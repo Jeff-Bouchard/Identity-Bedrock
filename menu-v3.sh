@@ -441,6 +441,7 @@ build_single_image() {
     "skywire-amneziawg"
     "amnezia-exit"
     "ness-unified"
+    "ness-attack"
   )
 
   echo -e "${green}Build single image (with context size hints):${reset}"
@@ -519,6 +520,21 @@ build_images_menu() {
     0) return 0 ;;
     *) echo "Invalid option." ;;
   esac
+}
+
+open_attack_shell() {
+  echo
+  echo -e "${green}Launching Ness self-pentest attack shell (ness-attack image)...${reset}"
+  require_docker || return 1
+  local docker_user
+  docker_user="${DOCKER_USER:-nessnetwork}"
+  if ! docker image inspect "${docker_user}/ness-attack:latest" >/dev/null 2>&1; then
+    echo -e "${yellow}Image ${docker_user}/ness-attack:latest not found.${reset}"
+    echo -e "${yellow}Hint:${reset} build it first via: Build images → Build single image → ness-attack."
+    return 1
+  fi
+  echo -e "${yellow}Note:${reset} this shell is intended for authorized self-pentest and lab use. Only test systems you own or have permission to test."
+  docker run --rm -it --network host "${docker_user}/ness-attack:latest" bash
 }
 
 service_control_menu() {
@@ -886,6 +902,49 @@ health_check() {
   fi
 }
 
+external_recon_snapshot() {
+  echo
+  echo -e "${yellow}External recon snapshot (local host) — lab use (self + LAN). Do no harm.${reset}"
+
+  local ts dir
+  ts=$(date +"%Y%m%d-%H%M%S" 2>/dev/null || echo "unknown")
+  dir="${SCRIPT_DIR}/recon/${ts}"
+
+  mkdir -p "$dir"
+
+  if [ -x "${SCRIPT_DIR}/lab/recon-local.sh" ]; then
+    ( cd "${SCRIPT_DIR}" && ./lab/recon-local.sh 127.0.0.1 "$dir" )
+  else
+    echo "lab/recon-local.sh not found or not executable; falling back to inline checks." | tee -a "$dir/meta.txt" 2>/dev/null || true
+
+    echo "Target: 127.0.0.1" >"$dir/meta.txt" 2>/dev/null || true
+
+    echo "Running nmap quick scan..." | tee -a "$dir/meta.txt" 2>/dev/null || true
+    if command -v nmap >/dev/null 2>&1; then
+      nmap -sV -p 1-1024 127.0.0.1 >"$dir/nmap-quick.txt" 2>&1 || true
+    else
+      echo "nmap not installed" >"$dir/nmap-quick.txt"
+    fi
+
+    echo "Running HTTP /health probe on 8888..." | tee -a "$dir/meta.txt" 2>/dev/null || true
+    if command -v curl >/dev/null 2>&1; then
+      curl -v --max-time 10 "http://127.0.0.1:8888/health" >"$dir/http-8888-health.txt" 2>&1 || true
+    else
+      echo "curl not installed" >"$dir/http-8888-health.txt"
+    fi
+
+    echo "Running DNS check via dns-reverse-proxy (port ${DNS_PROXY_HOST_PORT})..." | tee -a "$dir/meta.txt" 2>/dev/null || true
+    if command -v dig >/dev/null 2>&1; then
+      dig @127.0.0.1 example.com -p "${DNS_PROXY_HOST_PORT}" >"$dir/dns-check.txt" 2>&1 || true
+    else
+      echo "dig not installed" >"$dir/dns-check.txt"
+    fi
+  fi
+
+  echo
+  echo -e "${green}${check_ok_symbol}${reset} External recon snapshot saved under: $dir"
+}
+
 test_menu() {
   while true; do
     echo
@@ -896,6 +955,7 @@ test_menu() {
     echo "  4) Test dns-reverse-proxy (ports ${DNS_PROXY_HOST_PORT}/8053)"
     echo "  5) Test Skywire visor (port 8000)"
     echo "  6) PQ identity e2e (local + EmerNVS)"
+    echo "  7) External recon snapshot (local host)"
     echo "  0) Back"
     echo
     read -rp "Select an option: " choice
@@ -906,6 +966,7 @@ test_menu() {
       4) test_dns_reverse_proxy ;;
       5) test_skywire ;;
       6) test_pq_identity_e2e ;;
+      7) external_recon_snapshot ;;
       0) return 0 ;;
       *) echo "Invalid choice." ;;
     esac
@@ -1057,6 +1118,7 @@ menu() {
       "${accent}[7]${reset} Remove everything local"
       "${accent}[8]${reset} Rename Reality Modes"
       "${accent}[9]${reset} Exit"
+      "${accent}[10]${reset} Attack shell (self-pentest)"
     )
     for item in "${menu_items[@]}"; do
       echo -e "${panel_bg}${panel_fg}  ${item}${reset}"
@@ -1076,6 +1138,7 @@ menu() {
       7) remove_everything_local ;;
       8) edit_dns_mode_labels ;;
       9) exit 0 ;;
+      10) open_attack_shell ;;
       *) echo "Invalid choice." ;;
     esac
     echo
