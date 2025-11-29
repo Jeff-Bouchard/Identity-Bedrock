@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PAX / SIWE ETH-side Wizard</title>
+  <style>
+    body { background: #101c2a; color: #e0e0e0; font-family: 'Fira Sans', Arial, sans-serif; margin: 0; }
+    .container { max-width: 800px; margin: 40px auto; background: #171f2e; border-radius: 12px; box-shadow: 0 0 12px #0008; padding: 2em 2.5em; }
+    h1 { color: #6ec6ff; margin-top: 0; }
+    h2 { color: #90caf9; margin-top: 1.8em; }
+    label { display: block; margin-top: 1.1em; font-weight: bold; }
+    input, textarea { width: 100%; margin-top: 0.3em; padding: 0.5em; font-size: 1em; border-radius: 6px; border: 1px solid #28334a; background: #101c2a; color: #e0e0e0; box-sizing: border-box; }
+    textarea { resize: vertical; }
+    button { margin-top: 1em; padding: 0.6em 1.6em; border: none; border-radius: 6px; background: #6ec6ff; color: #101c2a; font-weight: bold; cursor: pointer; font-size: 1em; }
+    button:active { background: #2196f3; }
+    button.secondary { background: #28334a; color: #e0e0e0; }
+    .benji-ok { display: inline-block; margin-top: 1.4em; padding: 0.8em 2.6em; border-radius: 999px; background: #4caf50; color: #101c2a; font-weight: 700; font-size: 1.05em; letter-spacing: 0.03em; }
+    .benji-ok:active { background: #388e3c; }
+    .row { display: flex; gap: 1em; flex-wrap: wrap; }
+    .row > div { flex: 1 1 240px; }
+    .small { font-size: 0.9em; color: #9ea7c6; }
+    .status { margin-top: 0.6em; font-size: 0.95em; }
+    .status.ok { color: #81c784; }
+    .status.err { color: #ef9a9a; }
+    .footer { margin-top: 2em; text-align: center; color: #6ec6ff; font-size: 0.95em; }
+    @media (max-width: 860px) { .container { padding: 1.2em 1em; } }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>PAX / SIWE ETH-side Wizard</h1>
+    <p class="small">
+      This page lets you, from the Ethereum side, simulate the PAX binding:
+      generate an EIP-4361 Sign-In With Ethereum message that asserts a
+      <code>urn:privateness:user:&lt;username&gt;</code> identity, sign it with your
+      wallet, and locally verify the signature.
+    </p>
+
+    <h2>1. Identity & dApp parameters</h2>
+    <div class="row">
+      <div>
+        <label>Privateness username
+          <input type="text" id="username" value="alice" />
+        </label>
+      </div>
+      <div>
+        <label>ETH address
+          <input type="text" id="ethAddress" placeholder="0x..." />
+        </label>
+        <button id="btn-connect" class="secondary" type="button">Use connected address</button>
+        <div id="wallet-status" class="status small"></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>dApp domain
+          <input type="text" id="domain" value="dapp.example" />
+        </label>
+      </div>
+      <div>
+        <label>dApp URI
+          <input type="text" id="uri" value="https://dapp.example/login" />
+        </label>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Chain ID
+          <input type="number" id="chainId" value="1" />
+        </label>
+        <button id="btn-chain" class="secondary" type="button">Read from provider</button>
+        <div id="chain-status" class="status small"></div>
+      </div>
+      <div>
+        <label>Nonce
+          <input type="text" id="nonce" value="" />
+        </label>
+        <button id="btn-nonce" class="secondary" type="button">Generate nonce</button>
+      </div>
+    </div>
+
+    <div>
+      <label>Issued At (ISO 8601)
+        <input type="text" id="issuedAt" value="" />
+      </label>
+      <button id="btn-now" class="secondary" type="button">Set to now (UTC)</button>
+    </div>
+
+    <div style="margin-top:1.2em;">
+      <span class="small">
+        The statement will automatically include:
+        <code>I assert identity: urn:privateness:user:&lt;username&gt;</code>
+        when generating the SIWE message.
+      </span>
+    </div>
+
+    <button id="btn-generate" type="button">Generate SIWE message</button>
+
+    <h2>2. SIWE message</h2>
+    <label>Generated EIP-4361 message
+      <textarea id="siweMessage" rows="10" readonly></textarea>
+    </label>
+
+    <h2>3. Sign & verify</h2>
+    <button id="btn-sign" type="button">Sign with wallet (personal_sign)</button>
+    <div class="small">Requires an injected EIP-1193 provider (e.g. browser wallet) and a selected account.</div>
+
+    <label>Signature (hex)
+      <textarea id="signature" rows="4"></textarea>
+    </label>
+
+    <button id="btn-verify" type="button">Verify signature</button>
+    <div id="verify-status" class="status"></div>
+
+    <button id="btn-benji" type="button" class="benji-ok">Benji Button — OK</button>
+    <div id="benji-note" class="status small"></div>
+
+    <div class="footer">
+      Privateness.Network &copy; 2025 &mdash; PAX ETH-side simulation only. No on-chain transactions are sent.
+    </div>
+  </div>
+
+  <script>
+    function buildStatement(username) {
+      return `I assert identity: urn:privateness:user:${username}`;
+    }
+
+    function buildSiweMessage(params) {
+      const { domain, address, statement, uri, chainId, nonce, issuedAt } = params;
+      return (
+        `${domain} wants you to sign in with your Ethereum account:\n` +
+        `${address}\n\n` +
+        `${statement}\n\n` +
+        `URI: ${uri}\n` +
+        `Version: 1\n` +
+        `Chain ID: ${chainId}\n` +
+        `Nonce: ${nonce}\n` +
+        `Issued At: ${issuedAt}`
+      );
+    }
+
+    function isoNowUtc() {
+      return new Date().toISOString();
+    }
+
+    function randomNonce(length = 17) {
+      const alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      const bytes = new Uint8Array(length);
+      (window.crypto || window.msCrypto).getRandomValues(bytes);
+      let out = '';
+      for (let i = 0; i < bytes.length; i++) {
+        out += alphabet[bytes[i] % alphabet.length];
+      }
+      return out;
+    }
+
+    async function connectWallet() {
+      const statusEl = document.getElementById('wallet-status');
+      if (!window.ethereum) {
+        statusEl.textContent = 'No injected Ethereum provider detected (window.ethereum missing).';
+        statusEl.className = 'status err';
+        return;
+      }
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (!accounts || accounts.length === 0) {
+          statusEl.textContent = 'No account returned by provider.';
+          statusEl.className = 'status err';
+          return;
+        }
+        const addr = accounts[0];
+        document.getElementById('ethAddress').value = addr;
+        statusEl.textContent = `Using account ${addr}`;
+        statusEl.className = 'status ok';
+      } catch (e) {
+        statusEl.textContent = `Error requesting accounts: ${e.message || e}`;
+        statusEl.className = 'status err';
+      }
+    }
+
+    async function detectChain() {
+      const statusEl = document.getElementById('chain-status');
+      if (!window.ethereum) {
+        statusEl.textContent = 'No injected Ethereum provider detected (window.ethereum missing).';
+        statusEl.className = 'status err';
+        return;
+      }
+      try {
+        const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+        // eth_chainId returns a hex string like '0x1'
+        const chainIdDec = parseInt(chainIdHex, 16);
+        if (!Number.isFinite(chainIdDec)) {
+          statusEl.textContent = `Unexpected chainId value from provider: ${chainIdHex}`;
+          statusEl.className = 'status err';
+          return;
+        }
+        document.getElementById('chainId').value = String(chainIdDec);
+        statusEl.textContent = `Using chainId ${chainIdDec} (${chainIdHex}) from provider.`;
+        statusEl.className = 'status ok';
+      } catch (e) {
+        statusEl.textContent = `Error reading chainId from provider: ${e.message || e}`;
+        statusEl.className = 'status err';
+      }
+    }
+
+    async function signMessage() {
+      const addr = document.getElementById('ethAddress').value.trim();
+      const msg = document.getElementById('siweMessage').value;
+      const sigEl = document.getElementById('signature');
+      const statusEl = document.getElementById('verify-status');
+
+      if (!addr) {
+        alert('ETH address is empty. Either connect a wallet or fill it manually.');
+        return;
+      }
+      if (!msg) {
+        alert('SIWE message is empty. Generate it first.');
+        return;
+      }
+      if (!window.ethereum) {
+        alert('No injected Ethereum provider found (window.ethereum missing).');
+        return;
+      }
+
+      try {
+        // personal_sign expects [message, address]
+        const signature = await window.ethereum.request({
+          method: 'personal_sign',
+          params: [msg, addr]
+        });
+        sigEl.value = signature;
+        statusEl.textContent = '';
+        statusEl.className = 'status';
+      } catch (e) {
+        alert(`Error while signing message: ${e.message || e}`);
+      }
+    }
+
+    function verifySignature() {
+      const addrExpected = document.getElementById('ethAddress').value.trim();
+      const msg = document.getElementById('siweMessage').value;
+      const sig = document.getElementById('signature').value.trim();
+      const statusEl = document.getElementById('verify-status');
+
+      if (!addrExpected || !msg || !sig) {
+        statusEl.textContent = 'ETH address, message, or signature missing.';
+        statusEl.className = 'status err';
+        return;
+      }
+
+      try {
+        const recovered = ethers.utils.verifyMessage(msg, sig);
+        if (recovered.toLowerCase() === addrExpected.toLowerCase()) {
+          statusEl.textContent = `Signature valid. Recovered address matches expected (${recovered}).`;
+          statusEl.className = 'status ok';
+        } else {
+          statusEl.textContent = `Signature invalid for expected address. Recovered: ${recovered}`;
+          statusEl.className = 'status err';
+        }
+      } catch (e) {
+        statusEl.textContent = `Error verifying signature: ${e.message || e}`;
+        statusEl.className = 'status err';
+      }
+    }
+
+    function benjiCheck() {
+      const noteEl = document.getElementById('benji-note');
+      const verifyStatusEl = document.getElementById('verify-status');
+      const addr = document.getElementById('ethAddress').value.trim();
+      const chainId = document.getElementById('chainId').value.trim();
+      const msg = document.getElementById('siweMessage').value;
+
+      if (!msg) {
+        noteEl.textContent = 'Generate a SIWE message first, then sign and verify it.';
+        noteEl.className = 'status err small';
+        return;
+      }
+      if (!addr) {
+        noteEl.textContent = 'ETH address is empty. Either connect a wallet or fill it manually.';
+        noteEl.className = 'status err small';
+        return;
+      }
+
+      const okPrefix = 'Signature valid.';
+      if (!verifyStatusEl.textContent || !verifyStatusEl.textContent.startsWith(okPrefix)) {
+        noteEl.textContent = 'Signature has not yet been verified as valid. Click "Verify signature" first.';
+        noteEl.className = 'status err small';
+        return;
+      }
+
+      noteEl.textContent = `Benji OK: this demo only signed a login message for ${addr} on chainId ${chainId || '1'}. No transactions were sent and no funds moved.`;
+      noteEl.className = 'status ok small';
+    }
+
+    // Wire up controls
+    document.getElementById('btn-connect').onclick = connectWallet;
+    document.getElementById('btn-chain').onclick = () => { void detectChain(); };
+    document.getElementById('btn-nonce').onclick = () => {
+      document.getElementById('nonce').value = randomNonce();
+    };
+    document.getElementById('btn-now').onclick = () => {
+      document.getElementById('issuedAt').value = isoNowUtc();
+    };
+
+    document.getElementById('btn-generate').onclick = () => {
+      const username = document.getElementById('username').value.trim();
+      const addr = document.getElementById('ethAddress').value.trim();
+      const domain = document.getElementById('domain').value.trim();
+      const uri = document.getElementById('uri').value.trim();
+      const chainId = document.getElementById('chainId').value.trim() || '1';
+      const nonce = document.getElementById('nonce').value.trim() || randomNonce();
+      const issuedAt = document.getElementById('issuedAt').value.trim() || isoNowUtc();
+
+      if (!username) {
+        alert('Privateness username is required.');
+        return;
+      }
+      if (!addr) {
+        alert('ETH address is empty. Either connect a wallet or fill it manually.');
+        return;
+      }
+      if (!domain || !uri) {
+        alert('Domain and URI are required.');
+        return;
+      }
+
+      const statement = buildStatement(username);
+      const msg = buildSiweMessage({
+        domain,
+        address: addr,
+        statement,
+        uri,
+        chainId,
+        nonce,
+        issuedAt
+      });
+      document.getElementById('siweMessage').value = msg;
+    };
+
+    document.getElementById('btn-sign').onclick = () => { void signMessage(); };
+    document.getElementById('btn-verify').onclick = verifySignature;
+    document.getElementById('btn-benji').onclick = benjiCheck;
+
+    // Initialize defaults
+    document.getElementById('nonce').value = randomNonce();
+    document.getElementById('issuedAt').value = isoNowUtc();
+  </script>
+</body>
+</html>

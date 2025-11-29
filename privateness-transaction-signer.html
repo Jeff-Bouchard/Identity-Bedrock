@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skycoin/Privateness Transaction Signer</title>
+  <script src="https://cdn.jsdelivr.net/npm/@emurgo/cardano-serialization-lib-browser@10.0.0/cardano_serialization_lib_browser.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ripemd160@2.0.2/ripemd160.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sha256@0.0.1/sha256.min.js"></script>
+  <style>
+    body { background: #101c2a; color: #e0e0e0; font-family: 'Fira Sans', Arial, sans-serif; margin: 0; }
+    .container { max-width: 900px; margin: 40px auto; background: #171f2e; border-radius: 12px; box-shadow: 0 0 12px #0008; padding: 2em 2.5em; }
+    h1 { color: #6ec6ff; margin-top: 0; }
+    h2 { color: #90caf9; margin-top: 1.8em; }
+    label { display: block; margin-top: 1.1em; font-weight: bold; }
+    input, textarea, select { width: 100%; margin-top: 0.3em; padding: 0.5em; font-size: 1em; border-radius: 6px; border: 1px solid #28334a; background: #101c2a; color: #e0e0e0; box-sizing: border-box; }
+    textarea { resize: vertical; font-family: monospace; }
+    button { margin-top: 1em; padding: 0.6em 1.6em; border: none; border-radius: 6px; background: #6ec6ff; color: #101c2a; font-weight: bold; cursor: pointer; font-size: 1em; }
+    button:active { background: #2196f3; }
+    button:disabled { background: #555; color: #888; cursor: not-allowed; }
+    button.secondary { background: #28334a; color: #e0e0e0; }
+    button.danger { background: #f44336; color: #fff; }
+    .row { display: flex; gap: 1em; flex-wrap: wrap; }
+    .row > div { flex: 1 1 240px; }
+    .small { font-size: 0.9em; color: #9ea7c6; }
+    .status { margin-top: 0.6em; font-size: 0.95em; padding: 0.5em; border-radius: 4px; }
+    .status.ok { color: #81c784; background: rgba(129, 199, 132, 0.1); }
+    .status.err { color: #ef9a9a; background: rgba(239, 154, 154, 0.1); }
+    .status.info { color: #64b5f6; background: rgba(100, 181, 246, 0.1); }
+    .file-input-wrapper { position: relative; display: inline-block; width: 100%; }
+    .file-input-wrapper input[type="file"] { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+    .file-input-display { width: 100%; padding: 0.5em; border-radius: 6px; border: 1px solid #28334a; background: #101c2a; color: #e0e0e0; box-sizing: border-box; }
+    .section { margin-top: 2em; padding: 1.5em; border: 1px solid #28334a; border-radius: 8px; background: rgba(40, 51, 74, 0.2); }
+    .hidden { display: none; }
+    .footer { margin-top: 2em; text-align: center; color: #6ec6ff; font-size: 0.95em; }
+    @media (max-width: 860px) { .container { padding: 1.2em 1em; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Skycoin/Privateness Transaction Signer</h1>
+    <p class="small">
+      Create and sign self-spend transactions to generate sky-proofs. Works entirely in your browser.
+    </p>
+
+    <div class="section">
+      <h2>0. Node RPC Settings</h2>
+      <label>RPC Endpoint (scheme://host:port)
+        <input type="text" id="rpcAddress" value="http://127.0.0.1:6660" placeholder="http://127.0.0.1:6660" />
+      </label>
+      <label>Coin Identifier
+        <input type="text" id="coinName" value="privateness" placeholder="privateness" />
+      </label>
+      <label>API Token (optional)
+        <input type="password" id="apiToken" placeholder="Optional X-API-Key" />
+      </label>
+      <div id="node-status" class="status"></div>
+    </div>
+
+    <div class="section">
+      <h2>1. Wallet Input</h2>
+      <label>Wallet Name / ID on Node
+        <input type="text" id="walletName" placeholder="example_wallet.wlt" />
+        <span class="small">Must match the wallet stored on the RPC node.</span>
+      </label>
+      <label>Wallet File (JSON or WLT format)
+        <textarea id="walletData" rows="6" placeholder="Paste your wallet JSON data here or load from file..."></textarea>
+      </label>
+      <div class="file-input-wrapper">
+        <input type="file" id="walletFile" accept=".json,.wlt" />
+        <button type="button" class="secondary">Load Wallet File</button>
+      </div>
+      <label>Wallet Password (if encrypted)
+        <input type="password" id="walletPassword" placeholder="Enter password if wallet is encrypted..." />
+      </label>
+      <button id="btn-decrypt" type="button" class="secondary">Decrypt Wallet</button>
+      <div id="wallet-status" class="status"></div>
+    </div>
+
+    <div class="section">
+      <h2>2. Address Selection</h2>
+      <div class="row">
+        <div>
+          <label>From Address
+            <input type="text" id="fromAddress" placeholder="2..." readonly />
+            <button id="btn-browse-addresses" type="button" class="secondary">Browse Addresses</button>
+          </label>
+        </div>
+        <div>
+          <label>To Address (Self-Spend)
+            <input type="text" id="toAddress" placeholder="2..." />
+          </label>
+        </div>
+      </div>
+      <div id="address-list" class="status hidden"></div>
+      <div id="address-status" class="status"></div>
+    </div>
+
+    <div class="section">
+      <h2>3. Transaction Parameters</h2>
+      <div class="row">
+        <div>
+          <label>Amount (coins)
+            <input type="text" id="amount" value="0.001" />
+          </label>
+        </div>
+        <div>
+          <label>Coin Hours
+            <input type="text" id="coinHours" value="1" />
+            <span class="small">Default 1 NCH for sky-proof transactions</span>
+          </label>
+        </div>
+      </div>
+      <button id="btn-create-unsigned" type="button">Create Unsigned Transaction</button>
+      <div id="create-status" class="status"></div>
+    </div>
+
+    <div class="section hidden" id="unsigned-section">
+      <h2>4. Unsigned Transaction</h2>
+      <label>Unsigned Transaction JSON
+        <textarea id="unsignedTx" rows="10" readonly></textarea>
+      </label>
+      <label>Unsigned Hex
+        <textarea id="unsignedHex" rows="4" readonly></textarea>
+      </label>
+      <button id="btn-sign" type="button">Sign Transaction</button>
+      <div id="sign-status" class="status"></div>
+    </div>
+
+    <div class="section hidden" id="result-section">
+      <h2>5. Sky-Proof Result</h2>
+      <label>Signed Transaction JSON
+        <textarea id="signedTx" rows="10" readonly></textarea>
+      </label>
+      <label>Signed Hex (Sky-Proof)
+        <textarea id="signedHex" rows="4" readonly></textarea>
+      </label>
+      <button id="btn-copy-proof" type="button">Copy Sky-Proof</button>
+      <button id="btn-download" type="button" class="secondary">Download Results</button>
+      <div id="copy-status" class="status"></div>
+    </div>
+
+    <div class="footer">
+      Privateness.Network &copy; 2025 &mdash; Pure JavaScript Transaction Signer
+    </div>
+  </div>
+
+  <script>
+    // Enforce MAX_USER_DECIMALS = 6 at all times
+    const MAX_USER_DECIMALS = 6;
+    
+    // Override any potential environment variable changes
+    if (typeof process !== 'undefined' && process.env) {
+      process.env.MAX_USER_DECIMALS = '6';
+    }
+    
+    // Set global constant for all calculations
+    window.PRIVATENESS_CONFIG = {
+      MAX_USER_DECIMALS: 6,
+      DROPLETS_PER_COIN: 1000000
+    };
+    
+    let walletData = null;
+    let unsignedTransactionData = null;
+    let signedTransactionData = null;
+    const rpcAddressInput = document.getElementById('rpcAddress');
+    const coinInput = document.getElementById('coinName');
+    const apiTokenInput = document.getElementById('apiToken');
+    const walletNameInput = document.getElementById('walletName');
+
+    // Utility functions
+    function setStatus(elementId, message, type = 'info') {
+      const el = document.getElementById(elementId);
+      if (!el) {
+        return;
+      }
+      if (!message) {
+        el.textContent = '';
+        el.className = 'status';
+        return;
+      }
+      el.textContent = message;
+      el.className = `status ${type}`;
+    }
+
+    function formatDate() {
+      return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    }
+
+    function getRpcConfig() {
+      const rawAddr = (rpcAddressInput.value || '').trim();
+      const sanitizedAddr = rawAddr.endsWith('/') ? rawAddr.slice(0, -1) : rawAddr;
+      return {
+        rpcAddr: sanitizedAddr,
+        coin: (coinInput.value || 'privateness').trim() || 'privateness',
+        apiToken: (apiTokenInput.value || '').trim()
+      };
+    }
+
+    function sanitizeCoinAmount(value) {
+      const trimmed = (value || '').trim();
+      if (!trimmed) {
+        throw new Error('Amount is required');
+      }
+      if (!/^(?:\d+)(?:\.\d+)?$/.test(trimmed)) {
+        throw new Error('Amount must be numeric');
+      }
+      const decimalIndex = trimmed.indexOf('.');
+      if (decimalIndex !== -1 && trimmed.length - decimalIndex - 1 > window.PRIVATENESS_CONFIG.MAX_USER_DECIMALS) {
+        throw new Error(`Amount cannot exceed ${window.PRIVATENESS_CONFIG.MAX_USER_DECIMALS} decimal places`);
+      }
+      return trimmed;
+    }
+
+    function sanitizeHours(value) {
+      const trimmed = (value || '').trim();
+      if (!trimmed) {
+        throw new Error('Coin hours are required');
+      }
+      const hoursInt = parseInt(trimmed, 10);
+      if (!Number.isFinite(hoursInt) || hoursInt < 0) {
+        throw new Error('Coin hours must be a non-negative integer');
+      }
+      return hoursInt;
+    }
+
+    function extractHexField(data, candidates) {
+      if (!data) {
+        return '';
+      }
+      for (const path of candidates) {
+        const value = path.split('.').reduce((acc, key) => (acc && key in acc ? acc[key] : undefined), data);
+        if (typeof value === 'string' && value.trim().length > 0) {
+          return value.trim();
+        }
+      }
+      return '';
+    }
+
+    function deriveWalletName(loadedWallet, fallback = 'wallet.wlt') {
+      if (!loadedWallet) {
+        return fallback;
+      }
+      if (typeof loadedWallet === 'object') {
+        return loadedWallet.meta?.filename || loadedWallet.meta?.name || loadedWallet.name || loadedWallet.filename || fallback;
+      }
+      return fallback;
+    }
+
+    function normalizeWalletPayload(payload) {
+      if (!payload) {
+        return null;
+      }
+      const candidate = payload.wallet || payload;
+      if (typeof candidate === 'string') {
+        try {
+          return JSON.parse(candidate);
+        } catch (err) {
+          return candidate;
+        }
+      }
+      return candidate;
+    }
+
+    function stringifyWalletPayload(payload) {
+      return typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2);
+    }
+
+    function mapRpcAddresses(rawAddresses = []) {
+      const normalized = [];
+      rawAddresses.forEach((entry, idx) => {
+        if (!entry) {
+          return;
+        }
+        if (typeof entry === 'string') {
+          normalized.push({ address: entry, secret: null, index: idx });
+        } else if (entry.address) {
+          normalized.push({
+            address: entry.address,
+            secret: entry.secret || null,
+            index: entry.index ?? idx
+          });
+        }
+      });
+      return normalized;
+    }
+
+    // Privateness HTTP API execution - USE REAL API ENDPOINTS
+    async function executePrivatenessCommand(command, payload = {}) {
+      const { rpcAddr, coin, apiToken } = getRpcConfig();
+      if (!rpcAddr) {
+        return {
+          success: false,
+          error: 'RPC address is required. Set it in the node settings section.'
+        };
+      }
+
+      const apiEndpoints = {
+        decryptWallet: { method: 'POST', endpoint: '/api/v1/wallet/decrypt' },
+        listAddresses: { method: 'GET', endpoint: '/api/v1/wallet/addresses' },
+        createRawTransactionV2: { method: 'POST', endpoint: '/api/v1/transaction/raw' },
+        signTransaction: { method: 'POST', endpoint: '/api/v1/transaction/sign' }
+      };
+
+      const api = apiEndpoints[command];
+      if (!api) {
+        return {
+          success: false,
+          error: `Unsupported command: ${command}`
+        };
+      }
+
+      const headers = {
+        'Content-Type': 'application/json',
+        'X-Coin': coin,
+        'X-MAX-USER-Decimals': String(window.PRIVATENESS_CONFIG.MAX_USER_DECIMALS)
+      };
+
+      if (apiToken) {
+        headers['X-API-Key'] = apiToken;
+      }
+
+      let requestUrl = `${rpcAddr}${api.endpoint}`;
+      const fetchOptions = {
+        method: api.method,
+        headers
+      };
+
+      if (api.method === 'GET') {
+        const query = new URLSearchParams(payload).toString();
+        if (query) {
+          requestUrl += `?${query}`;
+        }
+      } else {
+        fetchOptions.body = JSON.stringify(payload);
+      }
+
+      console.log('[Privateness API]', command, payload, '->', requestUrl);
+
+      try {
+        const response = await fetch(requestUrl, fetchOptions);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const data = await response.json();
+        return {
+          success: true,
+          output: data
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: `API request failed: ${error.message}. Ensure the privateness daemon is reachable at ${rpcAddr}`
+        };
+      }
+    }
+
+    // Real address extraction from wallet files - NO MOCKS
+    function extractRealAddresses(walletData) {
+      const addresses = [];
+      
+      if (walletData.entries) {
+        // New wallet format - extract real addresses
+        walletData.entries.forEach(entry => {
+          if (entry.address) {
+            addresses.push({
+              address: entry.address,
+              secret: entry.secret,
+              index: entry.index || 0
+            });
+          }
+        });
+      } else if (walletData.addresses) {
+        // Simple format - extract real addresses
+        walletData.addresses.forEach((addr, idx) => {
+          addresses.push({
+            address: addr,
+            secret: walletData.secrets ? walletData.secrets[idx] : null,
+            index: idx
+          });
+        });
+      } else if (typeof walletData === 'string') {
+        // Parse WLT format - extract real addresses
+        const lines = walletData.split('\n');
+        let currentAddr = null;
+        let currentSecret = null;
+        
+        lines.forEach(line => {
+          if (line.startsWith('addr=')) {
+            currentAddr = line.substring(5);
+          } else if (line.startsWith('secret=')) {
+            currentSecret = line.substring(7);
+            if (currentAddr) {
+              addresses.push({
+                address: currentAddr,
+                secret: currentSecret,
+                index: addresses.length
+              });
+              currentAddr = null;
+              currentSecret = null;
+            }
+          }
+        });
+      }
+      
+      return addresses;
+    }
+
+    function hashTransaction(tx) {
+      const txString = JSON.stringify(tx, Object.keys(tx).sort());
+      const encoder = new TextEncoder();
+      const data = encoder.encode(txString);
+      return crypto.subtle.digest('SHA-256', data);
+    }
+
+    function signTransaction(hash, privateKey) {
+      return crypto.subtle.sign(
+        { name: 'ECDSA', hash: 'SHA-256' },
+        privateKey,
+        hash
+      );
+    }
+
+    // File input handling
+    document.querySelector('.file-input-wrapper button').addEventListener('click', function() {
+      document.getElementById('walletFile').click();
+    });
+
+    document.getElementById('walletFile').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const content = e.target.result;
+            if (file.name.endsWith('.json')) {
+              walletData = JSON.parse(content);
+            } else if (file.name.endsWith('.wlt')) {
+              // Parse WLT format
+              const lines = content.split('\n');
+              walletData = {
+                type: 'wlt',
+                addresses: [],
+                secrets: [],
+                encrypted: false
+              };
+              for (const line of lines) {
+                if (line.startsWith('addr=')) {
+                  walletData.addresses.push(line.substring(5));
+                } else if (line.startsWith('secret=')) {
+                  walletData.secrets.push(line.substring(7));
+                } else if (line.startsWith('encrypted=')) {
+                  walletData.encrypted = line.substring(10) === 'true';
+                }
+              }
+            }
+            document.getElementById('walletData').value = JSON.stringify(walletData, null, 2);
+            walletNameInput.value = deriveWalletName(walletData, file.name);
+            
+            if (walletData.encrypted) {
+              setStatus('wallet-status', `Loaded encrypted wallet: ${file.name} - Enter password to decrypt`, 'info');
+            } else {
+              setStatus('wallet-status', `Loaded wallet: ${file.name}`, 'ok');
+            }
+          } catch (err) {
+            setStatus('wallet-status', `Error loading wallet: ${err.message}`, 'err');
+          }
+        };
+        reader.readAsText(file);
+      }
+    });
+
+    // Decrypt wallet button
+    document.getElementById('btn-decrypt').addEventListener('click', async function() {
+      const walletName = (walletNameInput.value || '').trim();
+      const password = document.getElementById('walletPassword').value;
+
+      if (!walletName) {
+        setStatus('wallet-status', 'Wallet name/ID is required', 'err');
+        return;
+      }
+      if (!password) {
+        setStatus('wallet-status', 'Password required for encrypted wallet', 'err');
+        return;
+      }
+
+      setStatus('wallet-status', 'Decrypting wallet...', 'info');
+      
+      try {
+        const result = await executePrivatenessCommand('decryptWallet', { wallet: walletName, password });
+        
+        if (result.success) {
+          setStatus('wallet-status', 'Wallet decrypted successfully', 'ok');
+          const decryptedPayload = normalizeWalletPayload(result.output?.data || result.output);
+          if (decryptedPayload) {
+            walletData = decryptedPayload;
+            document.getElementById('walletData').value = stringifyWalletPayload(decryptedPayload);
+            walletNameInput.value = deriveWalletName(decryptedPayload, walletName || 'wallet.wlt');
+          } else if (walletData && typeof walletData === 'object') {
+            walletData.encrypted = false;
+            walletData.meta = walletData.meta || {};
+            walletData.meta.decrypted = true;
+            document.getElementById('walletData').value = JSON.stringify(walletData, null, 2);
+          }
+        } else {
+          setStatus('wallet-status', `Decryption failed: ${result.error}`, 'err');
+        }
+      } catch (err) {
+        setStatus('wallet-status', `Error: ${err.message}`, 'err');
+      }
+    });
+
+    // Browse addresses button
+    document.getElementById('btn-browse-addresses').addEventListener('click', async function() {
+      const walletText = document.getElementById('walletData').value;
+      const walletName = (walletNameInput.value || '').trim();
+
+      if (!walletText && !walletName) {
+        setStatus('address-status', 'Provide wallet data or wallet name before browsing addresses', 'err');
+        return;
+      }
+
+      try {
+        let wallet = null;
+        if (walletText) {
+          try {
+            wallet = JSON.parse(walletText);
+          } catch (e) {
+            wallet = walletText;
+          }
+          walletData = wallet;
+          if (typeof wallet === 'object') {
+            walletNameInput.value = deriveWalletName(wallet, walletName || 'wallet.wlt');
+          }
+        }
+
+        let addresses = wallet ? extractRealAddresses(wallet) : [];
+
+        if (addresses.length === 0 && walletName) {
+          setStatus('address-status', 'Local wallet is empty; querying node for addresses...', 'info');
+          const rpcResult = await executePrivatenessCommand('listAddresses', { wallet: walletName });
+          if (!rpcResult.success) {
+            setStatus('address-status', `listAddresses failed: ${rpcResult.error}`, 'err');
+            return;
+          }
+          const rpcAddresses = rpcResult.output?.data?.addresses || rpcResult.output?.addresses || [];
+          addresses = mapRpcAddresses(rpcAddresses);
+        }
+
+        if (addresses.length === 0) {
+          setStatus('address-status', 'No addresses found in wallet; ensure it is decrypted and contains entries', 'err');
+          return;
+        }
+
+        let addressList = 'Available addresses:\n\n';
+        addresses.forEach((addr, idx) => {
+          addressList += `${idx + 1}. ${addr.address}\n`;
+        });
+
+        const addressListEl = document.getElementById('address-list');
+        addressListEl.textContent = addressList;
+        addressListEl.classList.remove('hidden');
+        
+        document.getElementById('fromAddress').value = addresses[0].address;
+        document.getElementById('toAddress').value = addresses[0].address;
+        
+        setStatus('address-status', `Found ${addresses.length} REAL addresses from wallet. Auto-selected first for self-spend.`, 'ok');
+      } catch (err) {
+        setStatus('address-status', `Error reading addresses: ${err.message}`, 'err');
+      }
+    });
+
+    // Create unsigned transaction
+    document.getElementById('btn-create-unsigned').addEventListener('click', async function() {
+      const walletName = (walletNameInput.value || '').trim();
+      const fromAddress = document.getElementById('fromAddress').value;
+      const toAddress = document.getElementById('toAddress').value;
+      const amount = document.getElementById('amount').value;
+      const coinHours = document.getElementById('coinHours').value;
+
+      if (!walletName) {
+        setStatus('create-status', 'Wallet name/ID is required', 'err');
+        return;
+      }
+      if (!fromAddress || !toAddress || !amount || !coinHours) {
+        setStatus('create-status', 'Please fill all fields', 'err');
+        return;
+      }
+
+      setStatus('create-status', 'Creating unsigned transaction...', 'info');
+      
+      try {
+        const sanitizedAmount = sanitizeCoinAmount(amount);
+        const sanitizedHours = sanitizeHours(coinHours || '1');
+
+        const result = await executePrivatenessCommand('createRawTransactionV2', {
+          wallet: walletName,
+          address: toAddress,
+          amount: sanitizedAmount,
+          from_address: fromAddress,
+          hours: sanitizedHours,
+          unsigned: true
+        });
+        
+        if (result.success) {
+          unsignedTransactionData = result.output;
+          const unsignedHexValue = extractHexField(unsignedTransactionData, [
+            'data.unsigned_tx',
+            'data.encoded_transaction',
+            'unsigned_tx',
+            'encoded_transaction'
+          ]);
+
+          document.getElementById('unsignedTx').value = JSON.stringify(unsignedTransactionData, null, 2);
+          document.getElementById('unsignedHex').value = unsignedHexValue;
+          document.getElementById('unsigned-section').classList.remove('hidden');
+          
+          if (unsignedHexValue) {
+            setStatus('create-status', 'Unsigned Privateness transaction created', 'ok');
+          } else {
+            setStatus('create-status', 'Unsigned transaction created but hex payload missing in response', 'err');
+          }
+        } else {
+          setStatus('create-status', `Failed to create transaction: ${result.error}`, 'err');
+        }
+      } catch (err) {
+        setStatus('create-status', `Error: ${err.message}`, 'err');
+      }
+    });
+
+    // Sign transaction
+    document.getElementById('btn-sign').addEventListener('click', async function() {
+      const walletName = (walletNameInput.value || '').trim();
+      const unsignedHex = document.getElementById('unsignedHex').value;
+
+      if (!walletName) {
+        setStatus('sign-status', 'Wallet name/ID is required', 'err');
+        return;
+      }
+      if (!unsignedHex) {
+        setStatus('sign-status', 'Missing unsigned transaction data', 'err');
+        return;
+      }
+
+      setStatus('sign-status', 'Signing transaction...', 'info');
+      
+      try {
+        const result = await executePrivatenessCommand('signTransaction', {
+          wallet: walletName,
+          unsigned_tx: unsignedHex
+        });
+        
+        if (result.success) {
+          signedTransactionData = result.output;
+          const signedHexValue = extractHexField(signedTransactionData, [
+            'data.signed_tx',
+            'data.encoded_transaction',
+            'data.signature',
+            'signed_tx',
+            'encoded_transaction',
+            'signature'
+          ]);
+
+          document.getElementById('signedTx').value = JSON.stringify(signedTransactionData, null, 2);
+          document.getElementById('signedHex').value = signedHexValue;
+          document.getElementById('result-section').classList.remove('hidden');
+          
+          if (signedHexValue) {
+            setStatus('sign-status', 'Transaction signed successfully', 'ok');
+          } else {
+            setStatus('sign-status', 'Signed transaction received but proof hex missing in response', 'err');
+          }
+        } else {
+          setStatus('sign-status', `Failed to sign transaction: ${result.error}`, 'err');
+        }
+      } catch (err) {
+        setStatus('sign-status', `Error: ${err.message}`, 'err');
+      }
+    });
+
+    // Copy sky-proof
+    document.getElementById('btn-copy-proof').addEventListener('click', function() {
+      const signedHex = document.getElementById('signedHex').value;
+      if (signedHex) {
+        navigator.clipboard.writeText(signedHex).then(() => {
+          setStatus('copy-status', 'Sky-proof copied to clipboard!', 'ok');
+          setTimeout(() => {
+            setStatus('copy-status', '');
+          }, 3000);
+        }).catch(err => {
+          setStatus('copy-status', 'Failed to copy to clipboard', 'err');
+        });
+      }
+    });
+
+    // Download results
+    document.getElementById('btn-download').addEventListener('click', function() {
+      const timestamp = formatDate();
+      const unsignedJson = document.getElementById('unsignedTx').value;
+      const signedJson = document.getElementById('signedTx').value;
+      const skyProof = document.getElementById('signedHex').value;
+      
+      const content = `Skycoin/Privateness Transaction Results
+Generated: ${new Date().toISOString()}
+
+=== UNSIGNED TRANSACTION ===
+${unsignedJson}
+
+=== SIGNED TRANSACTION ===
+${signedJson}
+
+=== SKY-PROOF (Signature) ===
+${skyProof}
+`;
+
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `skyproof-${timestamp}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+    });
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      setStatus('wallet-status', 'Ready to load wallet', 'info');
+      setStatus('node-status', 'RPC defaults to http://127.0.0.1:6660 (set yours if different)', 'info');
+      
+      // Enforce MAX_USER_DECIMALS = 6 on amount input
+      const amountInput = document.getElementById('amount');
+      amountInput.addEventListener('input', function(e) {
+        const value = e.target.value;
+        const decimalIndex = value.indexOf('.');
+        
+        if (decimalIndex !== -1 && value.length - decimalIndex - 1 > window.PRIVATENESS_CONFIG.MAX_USER_DECIMALS) {
+          // Truncate to 6 decimal places
+          e.target.value = value.substring(0, decimalIndex + window.PRIVATENESS_CONFIG.MAX_USER_DECIMALS + 1);
+          setStatus('create-status', `Amount limited to ${window.PRIVATENESS_CONFIG.MAX_USER_DECIMALS} decimal places`, 'info');
+        }
+      });
+      
+      // Add placeholder text showing the constraint
+      amountInput.placeholder = `0.001 (max ${window.PRIVATENESS_CONFIG.MAX_USER_DECIMALS} decimal places)`;
+    });
+  </script>
+</body>
+</html>

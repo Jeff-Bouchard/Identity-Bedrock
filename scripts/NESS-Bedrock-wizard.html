@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NESS Bedrock Wizard</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Fira Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: radial-gradient(circle at top left, #1b2845 0%, #050712 45%, #05040b 100%);
+      color: #e3e7ff;
+      line-height: 1.6;
+      padding: 1rem 0;
+    }
+
+    .container {
+      max-width: 1024px;
+      margin: 0 auto;
+      background: rgba(9, 14, 34, 0.9);
+      border-radius: 18px;
+      padding: 2rem 2rem 1.7rem;
+      box-shadow: 0 26px 70px rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(111, 150, 255, 0.18);
+      backdrop-filter: blur(16px);
+    }
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 0.4rem;
+      font-size: 2.2rem;
+      font-weight: 400;
+      letter-spacing: -0.03em;
+      background: linear-gradient(130deg, #8ec5fc 0%, #e0c3fc 40%, #6ec6ff 85%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    h2 {
+      color: #a5c8ff;
+      margin-top: 1.2em;
+      font-weight: 500;
+      font-size: 1.25rem;
+    }
+
+    label {
+      display: block;
+      margin-top: 0.7em;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: #c9d5ff;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      margin-top: 0.3em;
+      padding: 0.45em 0.7em;
+      font-size: 0.9em;
+      border-radius: 7px;
+      border: 1px solid #2c395d;
+      background: rgba(4, 9, 24, 0.9);
+      color: #e3e7ff;
+      box-sizing: border-box;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: #6ec6ff;
+      box-shadow: 0 0 0 1px rgba(110, 198, 255, 0.65);
+      background: rgba(6, 14, 36, 0.98);
+    }
+
+    textarea {
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+      font-size: 0.84em;
+      line-height: 1.4;
+    }
+
+    button {
+      margin-top: 1em;
+      padding: 0.6em 1.6em;
+      border: none;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #6ec6ff 0%, #4eb5ff 40%, #2a94ff 100%);
+      color: #050712;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.96em;
+      letter-spacing: 0.02em;
+      box-shadow: 0 9px 24px rgba(34, 139, 230, 0.45);
+      transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+      box-shadow: 0 12px 30px rgba(34, 139, 230, 0.55);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 5px 16px rgba(34, 139, 230, 0.4);
+    }
+
+    button.secondary {
+      background: rgba(19, 31, 63, 0.95);
+      color: #e0e6ff;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+    }
+
+    .footer {
+      margin-top: 2.4em;
+      text-align: center;
+      color: #8aa2ff;
+      font-size: 0.9em;
+      opacity: 0.9;
+    }
+
+    .small {
+      font-size: 0.87em;
+      color: #9faee5;
+    }
+
+    .row {
+      display: flex;
+      gap: 1em;
+      flex-wrap: wrap;
+    }
+
+    .row > div {
+      flex: 1 1 260px;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #28334a;
+      margin: 1.6em 0 1.2em;
+      gap: 0.3rem;
+    }
+
+    .tab-btn {
+      padding: 0.6em 1.2em;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: #8591c2;
+      font-weight: 600;
+      border-bottom: 2px solid transparent;
+      border-radius: 9px 9px 0 0;
+      font-size: 0.9rem;
+    }
+
+    .tab-btn.active {
+      color: #e3e7ff;
+      border-bottom-color: #6ec6ff;
+      background: linear-gradient(135deg, rgba(110, 198, 255, 0.16), rgba(118, 75, 162, 0.12));
+    }
+
+    .benji {
+      display: inline-block;
+      margin-top: 0.8em;
+      padding: 0.85em 2.8em;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #4caf50 0%, #3dbf7a 40%, #2f9b46 100%);
+      color: #04110a;
+      font-weight: 800;
+      font-size: 1.02em;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      box-shadow: 0 12px 30px rgba(46, 160, 78, 0.7);
+    }
+
+    .benji:active {
+      box-shadow: 0 7px 18px rgba(46, 160, 78, 0.6);
+    }
+
+    .tab-panel {
+      display: none;
+      border-radius: 14px;
+      border: 1px solid rgba(84, 108, 190, 0.35);
+      background: radial-gradient(circle at top left, rgba(93, 120, 255, 0.08), rgba(8, 13, 35, 0.96));
+      padding: 1.2rem 1.4rem 1.4rem;
+      box-shadow: inset 0 0 0 1px rgba(10, 16, 40, 0.9);
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .status {
+      margin-top: 0.4em;
+      font-size: 0.86em;
+    }
+
+    .status.ok { color: #81c784; }
+    .status.err { color: #ef9a9a; }
+
+    @media (max-width: 860px) {
+      body { padding: 1.2rem 0; }
+      .container { padding: 1.4rem 1.1rem 1.3rem; }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>NESS Bedrock Wizard</h1>
+    <button id="benji-btn" class="benji" type="button">Benji Button GO</button>
+    <div id="benji-status" class="status small"></div>
+
+    <div class="row">
+      <div>
+        <label>EmerNVS MCP URL
+          <input type="text" id="emerMcpUrl" value="http://mcp.private.ness" />
+        </label>
+      </div>
+      <div>
+        <label>
+          <input type="checkbox" id="emerUseLocal" /> Use local Emercoin engine
+        </label>
+        <input type="text" id="emerLocalUrl" value="http://rpcuser:rpcpassword@127.0.0.1:6662" />
+        <div class="small">When checked, this URL overrides the MCP URL above.</div>
+      </div>
+    </div>
+    <div class="small" style="margin-top:0.2em;">By default, the wizard talks to your emercoin-mcp-server; you can force a local engine here if you want. The human stays the boss.</div>
+
+    <div class="tabs" style="margin-top:1.4em;">
+      <button class="tab-btn active" data-tab="tab-identity">Identity &amp; Node</button>
+      <button class="tab-btn" data-tab="tab-pax">External Keys (PAX / ETH)</button>
+    </div>
+
+    <!-- TAB 1: Identity & Node -->
+    <div id="tab-identity" class="tab-panel active">
+      <h2>1. Create Bedrock Identity &amp; Node</h2>
+      <p class="small">Fill this once to mint your Ness identity and a lite node descriptor. The wizard will talk to the MCP server to prepare WORM records and (optionally) publish them to EmerNVS.</p>
+
+      <div class="row">
+        <div>
+          <label>Master User Name
+            <input type="text" id="id-masterUser" value="master01" />
+          </label>
+        </div>
+        <div>
+          <label>Master Key Entropy
+            <input type="number" id="id-masterEntropy" value="100" />
+          </label>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Node URL
+            <input type="text" id="id-nodeUrl" value="http://batman1.private.ness" />
+          </label>
+        </div>
+        <div>
+          <label>Node Tariff (NCH/hour)
+            <input type="number" id="id-nodeTariff" value="1000" />
+          </label>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Node Services (comma-separated)
+            <input type="text" id="id-nodeServices" value="prng,files" />
+          </label>
+        </div>
+        <div>
+          <label>Node Network(s)
+            <input type="text" id="id-nodeNetwork" value="inet" />
+          </label>
+          <div class="small">Examples: inet (clearnet), skywire, yggdrasil, i2p, tor</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Node Entropy
+            <input type="number" id="id-nodeEntropy" value="100" />
+          </label>
+        </div>
+      </div>
+
+      <button id="btn-generate-bedrock" type="button">Generate WORM records</button>
+      <div id="id-status" class="status"></div>
+
+      <h2>2. Identity record (acct/ness/&lt;user&gt;)</h2>
+      <textarea id="id-acct-worm" rows="6" readonly></textarea>
+      <button id="btn-publish-acct" type="button" class="secondary">Publish identity to EmerNVS</button>
+      <div id="id-acct-status" class="status"></div>
+
+      <h2>3. Node record (node/ness/&lt;node-id&gt;)</h2>
+      <textarea id="id-node-worm" rows="6" readonly></textarea>
+      <button id="btn-publish-node" type="button" class="secondary">Publish node to EmerNVS</button>
+      <div id="id-node-status" class="status"></div>
+    </div>
+
+    <!-- TAB 2: PAX / ETH binding -->
+    <div id="tab-pax" class="tab-panel">
+      <h2>External Keys (PAX / ETH)</h2>
+      <p class="small">Bind an Ethereum address to your Bedrock identity using an EIP-4361 Sign-In With Ethereum message. Requires a browser wallet (window.ethereum).</p>
+
+      <div class="row">
+        <div>
+          <label>Privateness username
+            <input type="text" id="px-username" value="alice" />
+          </label>
+        </div>
+        <div>
+          <label>ETH address
+            <input type="text" id="px-ethAddress" placeholder="0x..." />
+          </label>
+          <button id="px-btn-connect" class="secondary" type="button">Use connected address</button>
+          <div id="px-wallet-status" class="status small"></div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>dApp domain
+            <input type="text" id="px-domain" value="dapp.example" />
+          </label>
+        </div>
+        <div>
+          <label>dApp URI
+            <input type="text" id="px-uri" value="https://dapp.example/login" />
+          </label>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Chain ID
+            <input type="number" id="px-chainId" value="1" />
+          </label>
+          <button id="px-btn-chain" class="secondary" type="button">Read from provider</button>
+          <div id="px-chain-status" class="status small"></div>
+        </div>
+        <div>
+          <label>Nonce
+            <input type="text" id="px-nonce" value="" />
+          </label>
+          <button id="px-btn-nonce" class="secondary" type="button">Generate nonce</button>
+        </div>
+      </div>
+
+      <div>
+        <label>Issued At (ISO 8601)
+          <input type="text" id="px-issuedAt" value="" />
+        </label>
+        <button id="px-btn-now" class="secondary" type="button">Set to now (UTC)</button>
+      </div>
+
+      <div style="margin-top:1.2em;" class="small">
+        The statement will automatically include:
+        <code>I assert identity: urn:privateness:user:&lt;username&gt;</code>
+      </div>
+
+      <button id="px-btn-generate" type="button">Generate SIWE message</button>
+
+      <h2>SIWE message</h2>
+      <label>
+        <textarea id="px-siweMessage" rows="6" readonly></textarea>
+      </label>
+
+      <h2>Sign &amp; verify</h2>
+      <button id="px-btn-sign" type="button">Sign with wallet (personal_sign)</button>
+      <div class="small">Requires an injected EIP-1193 provider (browser wallet).</div>
+
+      <label>Signature (hex)
+        <textarea id="px-signature" rows="3"></textarea>
+      </label>
+
+      <button id="px-btn-verify" type="button">Verify signature</button>
+      <div id="px-verify-status" class="status"></div>
+
+      <h2>Bedrock identity &amp; PAX WORM</h2>
+      <button id="px-btn-fetch-identity" type="button" class="secondary">Fetch acct/ness/&lt;user&gt; from EmerNVS</button>
+      <div id="px-identity-status" class="status small"></div>
+      <label>Identity payload preview
+        <textarea id="px-identity-preview" rows="4" readonly></textarea>
+      </label>
+
+      <button id="px-btn-build-worm" type="button" class="secondary">Build PAX binding WORM</button>
+      <label>PAX binding WORM (pax/ness/&lt;user&gt;/eth)
+        <textarea id="px-pax-worm" rows="6" readonly></textarea>
+      </label>
+      <button id="px-btn-publish-pax" type="button" class="secondary">Publish PAX binding to EmerNVS</button>
+      <div id="px-pax-status" class="status"></div>
+    </div>
+
+    <div class="footer">Privateness.Network &copy; 2025 &mdash; Bedrock / EmerNVS helpers. No funds move unless you use your own wallets.</div>
+  </div>
+
+  <script>
+    let benjiStage = 0;
+    let lastAcctResp = null;
+    let lastNodeResp = null;
+
+    // ----- Tab switching -----
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        const id = btn.getAttribute('data-tab');
+        const panel = document.getElementById(id);
+        if (panel) panel.classList.add('active');
+      });
+    });
+
+    function emerBaseUrl() {
+      const useLocal = document.getElementById('emerUseLocal')?.checked;
+      if (useLocal) {
+        const localInput = document.getElementById('emerLocalUrl');
+        const vLocal = localInput ? localInput.value.trim() : '';
+        return vLocal || 'http://rpcuser:rpcpassword@127.0.0.1:6662';
+      }
+      const v = document.getElementById('emerMcpUrl').value.trim();
+      return v || 'http://mcp.private.ness';
+    }
+
+    async function emerApiNameShow(name) {
+      const query = 'query { callwalletfunction (method: "name_show", data: "{ \\\"name\\\": \\\"' + name.replace(/"/g, '\\"') + '\\\" }") { answer } }';
+      const resp = await fetch('https://emerapi.info/graphql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query })
+      });
+      if (!resp.ok) {
+        return null;
+      }
+      const json = await resp.json().catch(() => null);
+      if (!json || !json.data || !json.data.callwalletfunction) {
+        return null;
+      }
+      const answer = json.data.callwalletfunction.answer;
+      if (!answer) {
+        return null;
+      }
+      try {
+        return JSON.parse(answer);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function ensurePyuheprngHealthy(statusEl) {
+      const target = statusEl || document.getElementById('benji-status');
+      const url = 'http://127.0.0.1:5000/health';
+      try {
+        if (target) {
+          target.textContent = 'Checking pyuheprng entropy service...';
+          target.className = 'status small';
+        }
+        const resp = await fetch(url, { method: 'GET' });
+        if (!resp.ok) {
+          const text = await resp.text().catch(() => '');
+          throw new Error('HTTP ' + resp.status + ' ' + text);
+        }
+        const data = await resp.json().catch(() => ({}));
+        if (!data || data.status !== 'healthy') {
+          throw new Error('pyuheprng not healthy (status=' + (data && data.status ? data.status : 'unknown') + ')');
+        }
+        if (target) {
+          target.textContent = 'pyuheprng OK. Entropy-backed key generation allowed.';
+          target.className = 'status ok small';
+        }
+      } catch (e) {
+        if (target) {
+          target.textContent = 'pyuheprng health check failed: ' + (e.message || e);
+          target.className = 'status err small';
+        }
+        throw e;
+      }
+    }
+
+    async function callEmerTool(tool, payload) {
+      const base = emerBaseUrl().replace(/\/$/, '');
+      const url = base + '/tools/' + tool;
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => '');
+        throw new Error('HTTP ' + resp.status + ' ' + text);
+      }
+      return resp.json();
+    }
+
+    async function benjiCheckHealth() {
+      const statusEl = document.getElementById('benji-status');
+      await ensurePyuheprngHealthy(statusEl);
+      const base = emerBaseUrl().replace(/\/$/, '');
+      const url = base + '/health';
+      const resp = await fetch(url, { method: 'GET' });
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => '');
+        throw new Error('MCP health check failed: HTTP ' + resp.status + ' ' + text);
+      }
+      statusEl.textContent = 'pyuheprng + MCP health OK. Creating identity & node next...';
+      statusEl.className = 'status ok small';
+    }
+
+    function wormUserName(username) {
+      const u = (username || '').trim() || 'user';
+      return `worm:user:ness:${u}`;
+    }
+
+    function wormNodeNameFromUrl(nodeUrl) {
+      let host = 'node1.ness';
+      try {
+        const u = new URL(nodeUrl);
+        host = u.hostname || host;
+      } catch (e) {}
+      return `worm:node:ness:${host}`;
+    }
+
+    async function benjiPublishIdentityAndNode() {
+      const statusEl = document.getElementById('benji-status');
+
+      const acctText = document.getElementById('id-acct-worm').value.trim();
+      const nodeText = document.getElementById('id-node-worm').value.trim();
+
+      if (!acctText || !nodeText) {
+        throw new Error('WORM records not prepared; run generation first.');
+      }
+
+      let acctJson, nodeJson;
+      try {
+        acctJson = JSON.stringify(JSON.parse(acctText));
+        nodeJson = JSON.stringify(JSON.parse(nodeText));
+      } catch (e) {
+        throw new Error('Generated WORM content is not valid JSON.');
+      }
+
+      const masterUser = document.getElementById('id-masterUser').value.trim() || 'user';
+      const nodeUrl = document.getElementById('id-nodeUrl').value.trim();
+
+      const acctName = (lastAcctResp && lastAcctResp.nvs_name)
+        ? lastAcctResp.nvs_name
+        : wormUserName(masterUser);
+      const nodeName = (lastNodeResp && lastNodeResp.nvs_name)
+        ? lastNodeResp.nvs_name
+        : wormNodeNameFromUrl(nodeUrl);
+
+      statusEl.textContent = 'Publishing identity via MCP...';
+      statusEl.className = 'status small';
+      const acctResp = await callEmerTool('bedrock_put_worm', {
+        name: acctName,
+        worm_json: acctJson,
+        days: 365,
+        valuetype: 'json'
+      });
+      if (!acctResp || !acctResp.ok) {
+        throw new Error('Failed to publish identity record: ' + (acctResp && acctResp.error ? acctResp.error : 'unknown'));
+      }
+
+      statusEl.textContent = 'Publishing node via MCP...';
+      statusEl.className = 'status small';
+      const nodeResp = await callEmerTool('bedrock_put_worm', {
+        name: nodeName,
+        worm_json: nodeJson,
+        days: 365,
+        valuetype: 'json'
+      });
+      if (!nodeResp || !nodeResp.ok) {
+        throw new Error('Failed to publish node record: ' + (nodeResp && nodeResp.error ? nodeResp.error : 'unknown'));
+      }
+
+      statusEl.textContent = 'Identity and node published. Requesting Benji reward...';
+      statusEl.className = 'status ok small';
+
+      const rewardResp = await callEmerTool('benji_reward', {
+        acct_name: acctName,
+        node_name: nodeName
+      });
+      if (rewardResp && rewardResp.ok) {
+        const amtNess = rewardResp.amount_ness != null ? rewardResp.amount_ness : '?';
+        const amtNch = rewardResp.amount_nch != null ? rewardResp.amount_nch : '?';
+        statusEl.textContent = `Benji OK: rewarded ${amtNess} NESS and ${amtNch} NCH (txid ${rewardResp.txid || 'n/a'}).`;
+        statusEl.className = 'status ok small';
+      } else {
+        statusEl.textContent = 'Identity/node published, but reward call failed: ' + (rewardResp && rewardResp.error ? rewardResp.error : 'unknown');
+        statusEl.className = 'status err small';
+      }
+    }
+
+    async function benjiStep() {
+      const statusEl = document.getElementById('benji-status');
+      try {
+        if (benjiStage === 0) {
+          statusEl.textContent = 'Checking MCP health...';
+          statusEl.className = 'status small';
+          await benjiCheckHealth();
+          benjiStage = 1;
+        } else if (benjiStage === 1) {
+          statusEl.textContent = 'Creating Bedrock identity and node via MCP...';
+          statusEl.className = 'status small';
+          await generateBedrockRecords();
+          benjiStage = 2;
+          statusEl.textContent = 'WORM records created. Publishing and requesting reward...';
+          statusEl.className = 'status ok small';
+        } else if (benjiStage === 2) {
+          await benjiPublishIdentityAndNode();
+          benjiStage = 3;
+        } else {
+          statusEl.textContent = 'Benji run completed. You can adjust details manually if needed.';
+          statusEl.className = 'status ok small';
+        }
+      } catch (e) {
+        statusEl.textContent = 'Benji error: ' + (e.message || e);
+        statusEl.className = 'status err small';
+        benjiStage = 0;
+      }
+    }
+
+    // ----- Identity & Node tab logic -----
+    async function generateBedrockRecords() {
+      const statusEl = document.getElementById('id-status');
+      statusEl.textContent = '';
+      statusEl.className = 'status';
+
+      const masterUser = document.getElementById('id-masterUser').value.trim();
+      const masterEntropy = parseInt(document.getElementById('id-masterEntropy').value, 10) || 100;
+      const nodeUrl = document.getElementById('id-nodeUrl').value.trim();
+      const nodeTariff = parseInt(document.getElementById('id-nodeTariff').value, 10) || 0;
+      const nodeServices = document.getElementById('id-nodeServices').value.split(',').map(s => s.trim()).filter(Boolean);
+      const nodeNetwork = document.getElementById('id-nodeNetwork').value.split(',').map(s => s.trim()).filter(Boolean);
+      const nodeEntropy = parseInt(document.getElementById('id-nodeEntropy').value, 10) || 100;
+
+      if (!masterUser) {
+        statusEl.textContent = 'Master user name is required.';
+        statusEl.className = 'status err';
+        return;
+      }
+      if (!nodeUrl) {
+        statusEl.textContent = 'Node URL is required.';
+        statusEl.className = 'status err';
+        return;
+      }
+
+      try {
+        await ensurePyuheprngHealthy(statusEl);
+        statusEl.textContent = 'Entropy OK. Contacting MCP server to create account & node WORMs...';
+        const acctResp = await callEmerTool('bedrock_create_account', {
+          username: masterUser,
+          entropy: masterEntropy,
+          namespace: 'ness'
+        });
+
+        const nodeResp = await callEmerTool('bedrock_create_node', {
+          owner_username: masterUser,
+          node_url: nodeUrl,
+          tariff_nch_per_hour: nodeTariff,
+          services: nodeServices,
+          networks: nodeNetwork,
+          entropy: nodeEntropy,
+          namespace: 'ness'
+        });
+
+        lastAcctResp = acctResp;
+        lastNodeResp = nodeResp;
+
+        document.getElementById('id-acct-worm').value = acctResp.worm_json ? JSON.stringify(JSON.parse(acctResp.worm_json), null, 2) : JSON.stringify(acctResp, null, 2);
+        document.getElementById('id-node-worm').value = nodeResp.worm_json ? JSON.stringify(JSON.parse(nodeResp.worm_json), null, 2) : JSON.stringify(nodeResp, null, 2);
+
+        statusEl.textContent = 'WORM records prepared. Review and publish when ready.';
+        statusEl.className = 'status ok';
+      } catch (e) {
+        statusEl.textContent = 'Error: ' + (e.message || e);
+        statusEl.className = 'status err';
+      }
+    }
+
+    async function publishWorm(textareaId, statusId, defaultNameHint) {
+      const wormText = document.getElementById(textareaId).value.trim();
+      const statusEl = document.getElementById(statusId);
+      statusEl.textContent = '';
+      statusEl.className = 'status';
+
+      if (!wormText) {
+        statusEl.textContent = 'Nothing to publish; generate WORM first.';
+        statusEl.className = 'status err';
+        return;
+      }
+
+      let wormJson;
+      try {
+        wormJson = JSON.stringify(JSON.parse(wormText));
+      } catch (e) {
+        statusEl.textContent = 'WORM content is not valid JSON.';
+        statusEl.className = 'status err';
+        return;
+      }
+
+      let name = prompt('EmerNVS name for this record', defaultNameHint || '');
+      if (!name) {
+        statusEl.textContent = 'Publish cancelled (no name).';
+        statusEl.className = 'status err';
+        return;
+      }
+
+      try {
+        statusEl.textContent = 'Publishing via MCP...';
+        const resp = await callEmerTool('bedrock_put_worm', {
+          name,
+          worm_json: wormJson,
+          days: 365,
+          valuetype: 'json'
+        });
+        if (resp && resp.ok) {
+          statusEl.textContent = 'Published at height ' + resp.height + ' (txid ' + resp.txid + ').';
+          statusEl.className = 'status ok';
+        } else {
+          statusEl.textContent = 'MCP error: ' + (resp && resp.error ? resp.error : 'unknown');
+          statusEl.className = 'status err';
+        }
+      } catch (e) {
+        statusEl.textContent = 'Error: ' + (e.message || e);
+        statusEl.className = 'status err';
+      }
+    }
+
+    document.getElementById('btn-generate-bedrock').onclick = () => { void generateBedrockRecords(); };
+    document.getElementById('btn-publish-acct').onclick = () => {
+      const user = document.getElementById('id-masterUser').value.trim() || 'user';
+      void publishWorm('id-acct-worm', 'id-acct-status', wormUserName(user));
+    };
+    document.getElementById('btn-publish-node').onclick = () => {
+      const url = document.getElementById('id-nodeUrl').value.trim();
+      void publishWorm('id-node-worm', 'id-node-status', wormNodeNameFromUrl(url));
+    };
+
+    // ----- PAX / ETH tab logic (adapted from PAX-ETH wizard) -----
+    function pxBuildStatement(username) {
+      return `I assert identity: urn:privateness:user:${username}`;
+    }
+
+    function pxBuildSiweMessage(params) {
+      const { domain, address, statement, uri, chainId, nonce, issuedAt } = params;
+      return (
+        `${domain} wants you to sign in with your Ethereum account:\n` +
+        `${address}\n\n` +
+        `${statement}\n\n` +
+        `URI: ${uri}\n` +
+        `Version: 1\n` +
+        `Chain ID: ${chainId}\n` +
+        `Nonce: ${nonce}\n` +
+        `Issued At: ${issuedAt}`
+      );
+    }
+
+    function pxIsoNowUtc() {
+      return new Date().toISOString();
+    }
+
+    function pxRandomNonce(length = 17) {
+      const alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      const bytes = new Uint8Array(length);
+      (window.crypto || window.msCrypto).getRandomValues(bytes);
+      let out = '';
+      for (let i = 0; i < bytes.length; i++) {
+        out += alphabet[bytes[i] % alphabet.length];
+      }
+      return out;
+    }
+
+    async function pxConnectWallet() {
+      const statusEl = document.getElementById('px-wallet-status');
+      if (!window.ethereum) {
+        statusEl.textContent = 'No injected Ethereum provider (window.ethereum missing).';
+        statusEl.className = 'status err small';
+        return;
+      }
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (!accounts || accounts.length === 0) {
+          statusEl.textContent = 'No account returned by provider.';
+          statusEl.className = 'status err small';
+          return;
+        }
+        const addr = accounts[0];
+        document.getElementById('px-ethAddress').value = addr;
+        statusEl.textContent = 'Using account ' + addr;
+        statusEl.className = 'status ok small';
+      } catch (e) {
+        statusEl.textContent = 'Error requesting accounts: ' + (e.message || e);
+        statusEl.className = 'status err small';
+      }
+    }
+
+    async function pxDetectChain() {
+      const statusEl = document.getElementById('px-chain-status');
+      if (!window.ethereum) {
+        statusEl.textContent = 'No injected Ethereum provider (window.ethereum missing).';
+        statusEl.className = 'status err small';
+        return;
+      }
+      try {
+        const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+        const chainIdDec = parseInt(chainIdHex, 16);
+        if (!Number.isFinite(chainIdDec)) {
+          statusEl.textContent = 'Unexpected chainId value: ' + chainIdHex;
+          statusEl.className = 'status err small';
+          return;
+        }
+        document.getElementById('px-chainId').value = String(chainIdDec);
+        statusEl.textContent = `Using chainId ${chainIdDec} (${chainIdHex})`;
+        statusEl.className = 'status ok small';
+      } catch (e) {
+        statusEl.textContent = 'Error reading chainId: ' + (e.message || e);
+        statusEl.className = 'status err small';
+      }
+    }
+
+    async function pxSignMessage() {
+      const addr = document.getElementById('px-ethAddress').value.trim();
+      const msg = document.getElementById('px-siweMessage').value;
+      const sigEl = document.getElementById('px-signature');
+      const statusEl = document.getElementById('px-verify-status');
+
+      if (!addr) {
+        alert('ETH address is empty. Connect a wallet or fill it manually.');
+        return;
+      }
+      if (!msg) {
+        alert('SIWE message is empty. Generate it first.');
+        return;
+      }
+      if (!window.ethereum) {
+        alert('No injected Ethereum provider (window.ethereum missing).');
+        return;
+      }
+
+      try {
+        const signature = await window.ethereum.request({
+          method: 'personal_sign',
+          params: [msg, addr]
+        });
+        sigEl.value = signature;
+        statusEl.textContent = '';
+        statusEl.className = 'status';
+      } catch (e) {
+        alert('Error while signing message: ' + (e.message || e));
+      }
+    }
+
+    function pxVerifySignature() {
+      const addrExpected = document.getElementById('px-ethAddress').value.trim();
+      const msg = document.getElementById('px-siweMessage').value;
+      const sig = document.getElementById('px-signature').value.trim();
+      const statusEl = document.getElementById('px-verify-status');
+
+      if (!addrExpected || !msg || !sig) {
+        statusEl.textContent = 'ETH address, message, or signature missing.';
+        statusEl.className = 'status err';
+        return;
+      }
+
+      try {
+        const recovered = ethers.utils.verifyMessage(msg, sig);
+        if (recovered.toLowerCase() === addrExpected.toLowerCase()) {
+          statusEl.textContent = 'Signature valid. Recovered address matches expected (' + recovered + ').';
+          statusEl.className = 'status ok';
+        } else {
+          statusEl.textContent = 'Signature invalid for expected address. Recovered: ' + recovered;
+          statusEl.className = 'status err';
+        }
+      } catch (e) {
+        statusEl.textContent = 'Error verifying signature: ' + (e.message || e);
+        statusEl.className = 'status err';
+      }
+    }
+
+    async function pxFetchIdentity() {
+      const username = document.getElementById('px-username').value.trim();
+      const previewEl = document.getElementById('px-identity-preview');
+      const statusEl = document.getElementById('px-identity-status');
+      previewEl.value = '';
+      statusEl.textContent = '';
+
+      if (!username) {
+        statusEl.textContent = 'Username is required.';
+        statusEl.className = 'status err small';
+        return;
+      }
+
+      try {
+        const nvsName = wormUserName(username);
+        statusEl.textContent = 'Fetching identity for ' + username + ' via MCP...';
+        statusEl.className = 'status small';
+
+        try {
+          const resp = await callEmerTool('bedrock_get_value', {
+            name: nvsName,
+            valuetype: 'json'
+          });
+          if (resp && resp.exists) {
+            const payload = resp.payload || {};
+            previewEl.value = JSON.stringify(payload, null, 2);
+            statusEl.textContent = 'Identity record found and decoded via MCP.';
+            statusEl.className = 'status ok small';
+            return;
+          }
+        } catch (eMcp) {
+          // fall through to EmerAPI fallback below
+        }
+
+        statusEl.textContent = 'MCP lookup failed or missing; trying EmerAPI name_show for ' + nvsName + '...';
+        statusEl.className = 'status small';
+        const apiAnswer = await emerApiNameShow(nvsName);
+        if (!apiAnswer) {
+          statusEl.textContent = 'No acct/ness/' + username + ' record found via MCP or EmerAPI.';
+          statusEl.className = 'status err small';
+          return;
+        }
+        previewEl.value = JSON.stringify(apiAnswer, null, 2);
+        statusEl.textContent = 'Identity record fetched via EmerAPI name_show (raw answer).';
+        statusEl.className = 'status ok small';
+      } catch (e) {
+        statusEl.textContent = 'Error: ' + (e.message || e);
+        statusEl.className = 'status err small';
+      }
+    }
+
+    function pxBuildPaxWorm() {
+      const username = document.getElementById('px-username').value.trim();
+      const addr = document.getElementById('px-ethAddress').value.trim();
+      const chainId = parseInt(document.getElementById('px-chainId').value.trim() || '1', 10) || 1;
+      const msg = document.getElementById('px-siweMessage').value;
+      const sig = document.getElementById('px-signature').value.trim();
+      const verifyStatus = document.getElementById('px-verify-status').textContent || '';
+      const outEl = document.getElementById('px-pax-worm');
+
+      outEl.value = '';
+
+      if (!username || !addr || !msg || !sig) {
+        outEl.value = '// Missing username, address, message or signature.';
+        return;
+      }
+
+      const verified = verifyStatus.startsWith('Signature valid');
+      const wormBody = {
+        type: 'bedrock.pax_binding',
+        version: 1,
+        id: `urn:privateness:user:${username}`,
+        external: {
+          system: 'ethereum',
+          address: addr,
+          chain_id: chainId
+        },
+        proof: {
+          scheme: 'siwe-eip4361',
+          message: msg,
+          signature: sig,
+          verified
+        },
+        metadata: {
+          created_at: Math.floor(Date.now() / 1000)
+        }
+      };
+
+      outEl.value = JSON.stringify(wormBody, null, 2);
+    }
+
+    async function pxPublishPax() {
+      const wormText = document.getElementById('px-pax-worm').value.trim();
+      const username = document.getElementById('px-username').value.trim() || 'user';
+      const statusEl = document.getElementById('px-pax-status');
+      statusEl.textContent = '';
+      statusEl.className = 'status';
+
+      if (!wormText) {
+        statusEl.textContent = 'No PAX WORM to publish; build it first.';
+        statusEl.className = 'status err';
+        return;
+      }
+
+      let wormJson;
+      try {
+        wormJson = JSON.stringify(JSON.parse(wormText));
+      } catch (e) {
+        statusEl.textContent = 'PAX WORM is not valid JSON.';
+        statusEl.className = 'status err';
+        return;
+      }
+
+      const name = `pax/ness/${username}/eth`;
+      try {
+        statusEl.textContent = 'Publishing ' + name + ' via MCP...';
+        const resp = await callEmerTool('bedrock_put_worm', {
+          name,
+          worm_json: wormJson,
+          days: 365,
+          valuetype: 'json'
+        });
+        if (resp && resp.ok) {
+          statusEl.textContent = 'Published ' + name + ' at height ' + resp.height + ' (txid ' + resp.txid + ').';
+          statusEl.className = 'status ok';
+        } else {
+          statusEl.textContent = 'MCP error: ' + (resp && resp.error ? resp.error : 'unknown');
+          statusEl.className = 'status err';
+        }
+      } catch (e) {
+        statusEl.textContent = 'Error: ' + (e.message || e);
+        statusEl.className = 'status err';
+      }
+    }
+
+    // Wire up PAX controls
+    document.getElementById('px-btn-connect').onclick = () => { void pxConnectWallet(); };
+    document.getElementById('px-btn-chain').onclick = () => { void pxDetectChain(); };
+    document.getElementById('px-btn-nonce').onclick = () => {
+      document.getElementById('px-nonce').value = pxRandomNonce();
+    };
+    document.getElementById('px-btn-now').onclick = () => {
+      document.getElementById('px-issuedAt').value = pxIsoNowUtc();
+    };
+
+    document.getElementById('px-btn-generate').onclick = () => {
+      const username = document.getElementById('px-username').value.trim();
+      const addr = document.getElementById('px-ethAddress').value.trim();
+      const domain = document.getElementById('px-domain').value.trim();
+      const uri = document.getElementById('px-uri').value.trim();
+      const chainId = document.getElementById('px-chainId').value.trim() || '1';
+      const nonce = document.getElementById('px-nonce').value.trim() || pxRandomNonce();
+      const issuedAt = document.getElementById('px-issuedAt').value.trim() || pxIsoNowUtc();
+
+      if (!username) { alert('Privateness username is required.'); return; }
+      if (!addr) { alert('ETH address is empty.'); return; }
+      if (!domain || !uri) { alert('Domain and URI are required.'); return; }
+
+      const statement = pxBuildStatement(username);
+      const msg = pxBuildSiweMessage({ domain, address: addr, statement, uri, chainId, nonce, issuedAt });
+      document.getElementById('px-siweMessage').value = msg;
+    };
+
+    document.getElementById('px-btn-sign').onclick = () => { void pxSignMessage(); };
+    document.getElementById('px-btn-verify').onclick = pxVerifySignature;
+    document.getElementById('px-btn-fetch-identity').onclick = () => { void pxFetchIdentity(); };
+    document.getElementById('px-btn-build-worm').onclick = pxBuildPaxWorm;
+    document.getElementById('px-btn-publish-pax').onclick = () => { void pxPublishPax(); };
+
+    // Initialize defaults for PAX tab
+    document.getElementById('px-nonce').value = pxRandomNonce();
+    document.getElementById('px-issuedAt').value = pxIsoNowUtc();
+  </script>
+</body>
+</html>

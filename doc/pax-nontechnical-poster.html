@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PAX: Your Identity, Your Key</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #050510;
+      --bg-alt: #101020;
+      --card: rgba(12, 12, 24, 0.96);
+      --accent: #ffb347;
+      --accent-soft: rgba(255, 179, 71, 0.12);
+      --text-main: #f5f5f7;
+      --text-soft: #c9cad4;
+      --muted: #8b8fa3;
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --shadow-soft: 0 32px 80px rgba(0, 0, 0, 0.75);
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: radial-gradient(circle at top, #1f2340 0%, #050510 55%, #020208 100%);
+      color: var(--text-main);
+      line-height: 1.7;
+      padding: 2.5rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    .poster {
+      max-width: 1080px;
+      width: 100%;
+      background: linear-gradient(145deg, rgba(16,16,40,0.98), rgba(6,6,20,0.98));
+      border-radius: 28px;
+      padding: 3.5rem 3rem 3rem;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .poster::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(255, 179, 71, 0.16) 0, transparent 55%),
+        radial-gradient(circle at 100% 0%, rgba(154, 208, 245, 0.22) 0, transparent 60%),
+        radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.03) 0, transparent 55%);
+      opacity: 0.8;
+      mix-blend-mode: screen;
+      pointer-events: none;
+    }
+
+    .poster-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.75rem;
+    }
+
+    .kicker {
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+
+    h1 {
+      font-size: 2.4rem;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.4rem;
+    }
+
+    h1 span {
+      color: var(--accent);
+    }
+
+    .subtitle {
+      font-size: 1rem;
+      color: var(--text-soft);
+      max-width: 640px;
+      margin: 0.3rem auto 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.6rem;
+      margin-bottom: 2.4rem;
+    }
+
+    .card {
+      background: linear-gradient(145deg, rgba(10,10,26,0.98), rgba(10,10,30,0.98));
+      border-radius: 20px;
+      padding: 1.4rem 1.5rem 1.5rem;
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.7);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top right, rgba(255, 179, 71, 0.18), transparent 55%);
+      opacity: 0.7;
+      mix-blend-mode: screen;
+      pointer-events: none;
+    }
+
+    .card-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .card-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .card h2 {
+      font-size: 1.1rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .card h3 {
+      font-size: 1rem;
+      margin-bottom: 0.35rem;
+      color: var(--accent);
+    }
+
+    .card p {
+      font-size: 0.92rem;
+      color: var(--text-soft);
+      margin-bottom: 0.45rem;
+    }
+
+    .card ul {
+      list-style: none;
+      margin-top: 0.2rem;
+    }
+
+    .card li {
+      font-size: 0.9rem;
+      color: var(--text-soft);
+      margin-bottom: 0.25rem;
+      padding-left: 1.1rem;
+      position: relative;
+    }
+
+    .card li::before {
+      content: "•";
+      position: absolute;
+      left: 0.15rem;
+      color: var(--accent);
+      font-size: 0.9rem;
+    }
+
+    .highlight {
+      background: linear-gradient(135deg, rgba(255, 179, 71, 0.12), rgba(255, 255, 255, 0.02));
+      border-color: rgba(255, 179, 71, 0.5);
+    }
+
+    .highlight h2 {
+      color: var(--accent);
+    }
+
+    .quote {
+      background: linear-gradient(120deg, rgba(5, 5, 18, 0.96), rgba(10, 10, 32, 0.96));
+      border-radius: 18px;
+      padding: 1.4rem 1.6rem;
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      margin-bottom: 2.2rem;
+    }
+
+    .quote p {
+      font-size: 0.95rem;
+      color: var(--text-soft);
+    }
+
+    .quote strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .footer-row {
+      display: grid;
+      grid-template-columns: 2.2fr 1.3fr;
+      gap: 1.4rem;
+      align-items: start;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      background: rgba(10, 10, 30, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-bottom: 0.55rem;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 12px rgba(255, 179, 71, 0.8);
+    }
+
+    .geek-note {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .geek-note strong {
+      color: var(--text-soft);
+      font-weight: 500;
+    }
+
+    @media (max-width: 900px) {
+      .poster {
+        padding: 2.4rem 1.6rem 2.2rem;
+        border-radius: 22px;
+      }
+
+      h1 {
+        font-size: 1.9rem;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      body {
+        padding: 0;
+        background: #ffffff;
+      }
+
+      .poster {
+        box-shadow: none;
+        border-radius: 0;
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="poster">
+    <div class="poster-inner">
+      <header>
+        <div class="kicker">SELF-SOVEREING DIGITAL IDENTITIES</div>
+        <h1>PAX: <span>Your</span> Key, <span>Your</span> Identity</h1>
+        <p class="subtitle">
+          An explanation for non‑technical people: how to keep control of who you are online,
+          without giving that power to big platforms or governments.
+        </p>
+      </header>
+
+      <div class="grid">
+        <section class="card">
+          <div class="card-inner">
+            <div class="card-label">Today</div>
+            <h2>The Internet Makes You "Rent" Your Identity</h2>
+            <p>
+              Most of today’s logins live on someone else’s computer. If that company bans you,
+              loses your data, or shuts down, your account disappears with it.
+            </p>
+            <ul>
+              <li><strong>Websites decide who you are.</strong> They can reset passwords or close accounts behind your back.</li>
+              <li><strong>Phone and email are fragile.</strong> Lose a number, get your inbox locked, and suddenly you “don’t exist” there.</li>
+              <li><strong>Everyone wants to be your ID card.</strong> Banks, governments, and giant tech platforms all want to sit in the middle.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="card highlight">
+          <div class="card-inner">
+            <div class="card-label">What PAX Changes</div>
+            <h2>You Hold the Only Key</h2>
+            <p>
+              PAX gives you a tiny digital key that only you control. Instead of trusting
+              companies to remember who you are, websites simply check whether you can
+              open the lock with that key.
+            </p>
+            <ul>
+              <li><strong>Your key lives with you.</strong> On your phone or computer, not on a company’s account server.</li>
+              <li><strong>A public notebook remembers your lock.</strong> Once written, nobody can quietly erase or rewrite it.</li>
+              <li><strong>Sites stop being the “owner” of your identity.</strong> They just verify that this is really you, right now.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-inner">
+            <div class="card-label">In Plain Words</div>
+            <h2>How PAX Works, Without the Math</h2>
+            <h3>1. You create your own key</h3>
+            <p>
+              Your device makes a secret key (like a master house key) and a matching public lock.
+              Only your key opens that lock.
+            </p>
+            <h3>2. The lock is written into a shared notebook e.g blockchain</h3>
+            <p>
+              This notebook is kept by many independent community computers. No single company
+              controls it, they just keep copies of the same pages.
+            </p>
+            <h3>3. To sign in, you open the lock</h3>
+            <p>
+              Instead of typing a password, your device proves: “I hold the right key for this lock.”
+              The website checks that the lock is in the notebook, and that it opens correctly.
+            </p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-inner">
+            <div class="card-label">No Central Company</div>
+            <h2>No One Can Take the Notebook Away</h2>
+            <p>
+              The important parts of PAX live directly in those shared notebooks and in your key,
+              not in our servers.
+            </p>
+            <ul>
+              <li><strong>No single "PAX company" to trust.</strong> If one helper service disappears, the records and your key still work.</li>
+              <li><strong>Communities can run their own small helpers.</strong> They are replaceable tools, not authorities.</li>
+              <li><strong>Your name isn’t rented.</strong> It’s anchored in public records that nobody can secretly edit for you.</li>
+            </ul>
+          </div>
+        </section>
+      </div>
+
+      <div class="quote">
+        <p>
+          <strong>In short:</strong> PAX separates <strong>who you are</strong> from
+          <strong>which website or chain you use today</strong>. Big platforms can still
+          choose whom they serve, but they cannot quietly erase your key or rewrite your past.
+        </p>
+      </div>
+
+      <div class="footer-row">
+        <div>
+          <div class="badge">
+            <span class="dot"></span>
+            <span>For families, communities &amp; small tech projects</span>
+          </div>
+          <p class="geek-note">
+            Under the hood, PAX anchors your public key in on‑chain records and uses simple
+            transaction patterns as proofs of control. Tiny “bridge” programs read those public
+            records and talk to regular websites using standard login formats.
+            <strong>The bridges are replaceable.</strong> The non‑replaceable part is your key
+            plus the public notebook that proves it is yours.
+          </p>
+        </div>
+        <div>
+          <p class="geek-note">
+            This poster is the non‑technical view. For the full protocol and security
+            details, see the PAX documentation.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
