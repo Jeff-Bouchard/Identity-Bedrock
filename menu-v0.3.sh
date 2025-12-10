@@ -904,7 +904,7 @@ health_check() {
 
 external_recon_snapshot() {
   echo
-  echo -e "${yellow}External recon snapshot (local host) — lab use (self + LAN). Do no harm.${reset}"
+  echo -e "${yellow}External recon snapshot (local host) — authorised defensive lab use. Do no harm.${reset}"
 
   local ts dir
   ts=$(date +"%Y%m%d-%H%M%S" 2>/dev/null || echo "unknown")

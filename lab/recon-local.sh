@@ -3,7 +3,7 @@
 # Ness Lab Recon Script
 # Runs basic recon (nmap, HTTP health, DNS check) against a target host
 # and writes results into a specified output directory.
-# Scope: your own host and LAN, authorised lab environments only.
+# Scope: authorised defense of your own host and LAN, and systems you are trusted to protect.
 # Ethic: EULA applies. Do no harm.
 
 set -euo pipefail

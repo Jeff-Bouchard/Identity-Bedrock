@@ -24,6 +24,7 @@ Intended use:
 import json
 import subprocess
 import sys
+from pathlib import Path
 from typing import Any, Dict
 
 CHECKPOINT_HEIGHT = 696911
@@ -42,6 +43,34 @@ def run_cli(args):
         raise RuntimeError("emercoin-cli not found in PATH") from e
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"emercoin-cli {' '.join(args)} failed: {e.output.decode(errors='ignore').strip()}") from e
+
+    return out.decode("utf-8", errors="ignore").strip()
+
+
+def run_emercoin_value(raw: str) -> str:
+    """Pipe emercoin-cli output through emercoin-value.py and return the extracted value.
+
+    This mirrors the manual usage pattern:
+
+        emercoin-cli name_show <name> | emercoin-value.py
+
+    so that all name_show callers share the same cleaning/parsing logic.
+    """
+
+    script_path = Path(__file__).with_name("emercoin-value.py")
+
+    try:
+        out = subprocess.check_output(
+            [sys.executable, str(script_path)],
+            input=raw.encode("utf-8", errors="ignore"),
+            stderr=subprocess.STDOUT,
+        )
+    except FileNotFoundError as e:  # noqa: BLE001
+        raise RuntimeError(f"emercoin-value.py not found at {script_path}") from e
+    except subprocess.CalledProcessError as e:  # noqa: BLE001
+        raise RuntimeError(
+            f"emercoin-value.py failed: {e.output.decode(errors='ignore').strip()}"
+        ) from e
 
     return out.decode("utf-8", errors="ignore").strip()
 
@@ -74,8 +103,8 @@ def check_checkpoint_name(result: Dict[str, Any]) -> None:
     """
 
     try:
-        # -f requests machine-parsable JSON metadata in recent emercoin-cli
-        raw = run_cli(["-f", "name_show", CHECKPOINT_NAME])
+        # Call emercoin-cli name_show without extra flags for maximum compatibility
+        raw = run_cli(["name_show", CHECKPOINT_NAME])
     except Exception as e:  # noqa: BLE001
         result["ok"] = False
         result["name_exists"] = False
@@ -86,32 +115,53 @@ def check_checkpoint_name(result: Dict[str, Any]) -> None:
             result["error"] = f"name_show {CHECKPOINT_NAME} failed: {e}"
         return
 
+    # First, try the shared emercoin-value.py helper
     try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        # Older emercoin-cli or unexpected format; fall back to a simple existence check
-        if CHECKPOINT_NAME not in raw:
-            result["ok"] = False
-            result["name_exists"] = False
+        value = run_emercoin_value(raw)
+    except Exception as e:  # noqa: BLE001
+        # If emercoin-value.py itself fails, fall back to raw existence check
+        if CHECKPOINT_NAME in raw:
+            result["name_exists"] = True
             if result.get("error"):
-                result["error"] += "; unexpected name_show output and name not present"
+                result["error"] += f"; emercoin-value.py failed but raw output contained {CHECKPOINT_NAME}: {e}"
             else:
-                result["error"] = "unexpected name_show output and name not present"
+                result["error"] = f"emercoin-value.py failed but raw output contained {CHECKPOINT_NAME}: {e}"
             return
 
-        result["name_exists"] = True
-        return
-
-    # JSON-parsed path
-    if isinstance(data, dict) and data.get("name") == CHECKPOINT_NAME:
-        result["name_exists"] = True
-    else:
         result["ok"] = False
         result["name_exists"] = False
         if result.get("error"):
-            result["error"] += "; name_show JSON did not contain expected name"
+            result["error"] += f"; emercoin-value.py failed and name not found in raw output: {e}"
         else:
-            result["error"] = "name_show JSON did not contain expected name"
+            result["error"] = f"emercoin-value.py failed and name not found in raw output: {e}"
+        return
+
+    # If emercoin-value.py could not parse JSON, it prefixes with "Invalid JSON input:".
+    # If it did not find a value field, it returns "No 'value' found".
+    cleaned = value.strip()
+    if cleaned.startswith("Invalid JSON input:") or cleaned == "No 'value' found":
+        # Fallback: if the raw output still clearly contains the checkpoint name,
+        # we treat that as evidence that the name exists, even if the value
+        # extraction failed.
+        if CHECKPOINT_NAME in raw:
+            result["name_exists"] = True
+            if result.get("error"):
+                result["error"] += "; emercoin-value.py reported invalid JSON, but raw output contained the name"
+            else:
+                result["error"] = "emercoin-value.py reported invalid JSON, but raw output contained the name"
+            return
+
+        result["ok"] = False
+        result["name_exists"] = False
+        if result.get("error"):
+            result["error"] += "; unexpected name_show output or missing value"
+        else:
+            result["error"] = "unexpected name_show output or missing value"
+        return
+
+    # Any other non-empty string from emercoin-value.py is treated as evidence
+    # that the name exists and has some value.
+    result["name_exists"] = True
 
 
 def main() -> None:

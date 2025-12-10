@@ -414,4 +414,4 @@ Privacy extensions:
 Use of zk‑proofs or selective disclosure over PAX tokens for stateful apps.
 This proposal shows how Privateness.Network can project its identities into ETH and the broader Internet while maintaining EmerNVS/WORM as the sovereign root of identity, with Handshake .privateness and privateness.link acting only as naming and discovery layers. Ethereum and similar systems see a familiar person‑like subject through SIWE and related flows, but the actual authority remains in Ed25519 keys anchored in EmerNVS, avoiding ETH‑centric digital ID regimes and preserving user freedom.
 
-Feedback submitted
+

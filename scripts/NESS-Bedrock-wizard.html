@@ -292,12 +292,12 @@
       <button id="btn-generate-bedrock" type="button">Generate WORM records</button>
       <div id="id-status" class="status"></div>
 
-      <h2>2. Identity record (acct/ness/&lt;user&gt;)</h2>
+      <h2>2. Identity record (acct:ness:&lt;user&gt;)</h2>
       <textarea id="id-acct-worm" rows="6" readonly></textarea>
       <button id="btn-publish-acct" type="button" class="secondary">Publish identity to EmerNVS</button>
       <div id="id-acct-status" class="status"></div>
 
-      <h2>3. Node record (node/ness/&lt;node-id&gt;)</h2>
+      <h2>3. Node record (node:ness:&lt;node-id&gt;)</h2>
       <textarea id="id-node-worm" rows="6" readonly></textarea>
       <button id="btn-publish-node" type="button" class="secondary">Publish node to EmerNVS</button>
       <div id="id-node-status" class="status"></div>
@@ -383,14 +383,14 @@
       <div id="px-verify-status" class="status"></div>
 
       <h2>Bedrock identity &amp; PAX WORM</h2>
-      <button id="px-btn-fetch-identity" type="button" class="secondary">Fetch acct/ness/&lt;user&gt; from EmerNVS</button>
+      <button id="px-btn-fetch-identity" type="button" class="secondary">Fetch acct:ness:&lt;user&gt; from EmerNVS</button>
       <div id="px-identity-status" class="status small"></div>
       <label>Identity payload preview
         <textarea id="px-identity-preview" rows="4" readonly></textarea>
       </label>
 
       <button id="px-btn-build-worm" type="button" class="secondary">Build PAX binding WORM</button>
-      <label>PAX binding WORM (pax/ness/&lt;user&gt;/eth)
+      <label>PAX binding WORM (pax:ness:&lt;user&gt;/eth)
         <textarea id="px-pax-worm" rows="6" readonly></textarea>
       </label>
       <button id="px-btn-publish-pax" type="button" class="secondary">Publish PAX binding to EmerNVS</button>
@@ -514,7 +514,7 @@
 
     function wormUserName(username) {
       const u = (username || '').trim() || 'user';
-      return `worm:user:ness:${u}`;
+      return `acct:ness:${u}`;
     }
 
     function wormNodeNameFromUrl(nodeUrl) {
@@ -523,7 +523,7 @@
         const u = new URL(nodeUrl);
         host = u.hostname || host;
       } catch (e) {}
-      return `worm:node:ness:${host}`;
+      return `node:ness:${host}`;
     }
 
     async function benjiPublishIdentityAndNode() {
@@ -921,7 +921,7 @@
         statusEl.className = 'status small';
         const apiAnswer = await emerApiNameShow(nvsName);
         if (!apiAnswer) {
-          statusEl.textContent = 'No acct/ness/' + username + ' record found via MCP or EmerAPI.';
+          statusEl.textContent = 'No acct:ness:' + username + ' record found via MCP or EmerAPI.';
           statusEl.className = 'status err small';
           return;
         }
@@ -996,7 +996,7 @@
         return;
       }
 
-      const name = `pax/ness/${username}/eth`;
+      const name = `pax:ness:${username}:eth`;
       try {
         statusEl.textContent = 'Publishing ' + name + ' via MCP...';
         const resp = await callEmerTool('bedrock_put_worm', {

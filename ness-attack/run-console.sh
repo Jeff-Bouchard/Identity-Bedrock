@@ -32,4 +32,5 @@ fi
 
 echo "[attack-console] Starting Ness Attack web console on http://127.0.0.1:18080"
 
-docker run --rm -p 18080:18080 "$IMAGE_NAME" bash -lc 'python /opt/ness-attack-webui/app.py'
+# Inside the container we have python3; fall back to python if needed.
+docker run --rm -p 18080:18080 "$IMAGE_NAME" bash -lc 'command -v python3 >/dev/null 2>&1 && python3 /opt/ness-attack-webui/app.py || python /opt/ness-attack-webui/app.py'

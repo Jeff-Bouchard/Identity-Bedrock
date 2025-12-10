@@ -32,7 +32,7 @@ TEMPLATE = """<!doctype html>
 <body>
   <h1>Ness Attack Console</h1>
   <p class="note">
-    For authorized self-pentest and lab use only. EULA applies: be a good internet person, do no harm.
+    For authorized defensive and research use only (systems you own or are trusted to protect). EULA applies: be a good internet person, do no harm.
   </p>
 
   <form method="post" action="/run">

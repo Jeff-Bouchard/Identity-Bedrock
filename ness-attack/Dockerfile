@@ -6,6 +6,9 @@
 FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
+# Allow pip to modify the system environment inside this container build
+# (PEP 668 / externally-managed-environment safeguard).
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
