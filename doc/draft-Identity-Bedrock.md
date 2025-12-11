@@ -149,7 +149,7 @@ Auth(id, c, σ) = 1
 where
 text
 Auth(id, c, σ) :=
-  [ ∃ pk : Bind(id, pk) = 1  ∧  Verify(pk, c, σ) = 1 ].
+  \[ ∃ pk : Bind(id, pk) = 1  ∧  Verify(pk, c, σ) = 1 \].
 No extra state, authority, or infrastructure appears in this definition.
 
 6. Security statement
@@ -174,7 +174,7 @@ Authentication soundness.
 If Σ is EUF‑CMA secure, then for all PPT adversaries A:
 
 text
-Pr[ A wins ] ≤ negl(λ).
+Pr\[ A wins \] ≤ negl(λ).
 Sketch: a winning A immediately yields a EUF‑CMA forger by forwarding its signature queries and outputting (c*, σ*) when A wins. Since Verify(pk, c*, σ*) = 1 and c* was not queried, this contradicts EUF‑CMA except with negligible probability.*
 
 By Rompel, existence of such Σ is equivalent to existence of OWF. There is no strictly weaker hardness assumption inside the usual model that can still support this protocol.
