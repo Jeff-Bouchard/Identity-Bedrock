@@ -1,4 +1,4 @@
-# EIP4361
+# EIP4361 (killer)
 
 # Digital Identity Bedrock
 
