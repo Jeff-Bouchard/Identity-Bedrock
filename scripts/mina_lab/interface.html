@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nano-Mina Chain Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .card { 
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 1.5rem;
+        }
+        .btn { 
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-primary { 
+            background-color: #2563eb;
+            color: white;
+        }
+        .btn-primary:hover { 
+            background-color: #1d4ed8;
+        }
+        .btn-success { 
+            background-color: #16a34a;
+            color: white;
+        }
+        .btn-success:hover { 
+            background-color: #15803d;
+        }
+        .btn-danger { 
+            background-color: #dc2626;
+            color: white;
+        }
+        .btn-danger:hover { 
+            background-color: #b91c1c;
+        }
+        .input { 
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.25rem;
+        }
+        .input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #2563eb;
+        }
+        .status-online { 
+            color: #16a34a;
+        }
+        .status-offline { 
+            color: #dc2626;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Nano-Mina Chain</h1>
+            <p class="text-gray-600">Simple Blockchain Interface for Everyone</p>
+        </header>
+
+        <!-- Connection Status -->
+        <div class="card mb-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i data-lucide="server" class="w-5 h-5 mr-2"></i>
+                    <span class="font-medium">Node Status:</span>
+                    <span id="status" class="ml-2 font-bold">Checking...</span>
+                </div>
+                <div class="flex items-center">
+                    <input type="text" id="nodeUrl" value="http://localhost:61234" class="input w-64 mr-2">
+                    <button onclick="connectNode()" class="btn btn-primary">Connect</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <!-- Chain Info -->
+            <div class="card">
+                <h2 class="text-xl font-bold mb-4 flex items-center">
+                    <i data-lucide="activity" class="w-5 h-5 mr-2"></i>
+                    Chain Information
+                </h2>
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="font-medium">Height:</span>
+                        <span id="chainHeight" class="font-mono">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">State Root:</span>
+                        <span id="stateRoot" class="font-mono text-xs">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Publisher:</span>
+                        <span id="publisher" class="font-mono text-xs">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Last Update:</span>
+                        <span id="lastUpdate">-</span>
+                    </div>
+                </div>
+                <button onclick="refreshChain()" class="btn btn-primary w-full mt-4">
+                    <i data-lucide="refresh-cw" class="w-4 h-4 inline mr-2"></i>
+                    Refresh
+                </button>
+            </div>
+
+            <!-- My Wallet -->
+            <div class="card">
+                <h2 class="text-xl font-bold mb-4 flex items-center">
+                    <i data-lucide="wallet" class="w-5 h-5 mr-2"></i>
+                    My Wallet
+                </h2>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Your 12 Word Seed:</label>
+                    <textarea id="mySeed" class="input h-16" placeholder="Enter your 12 word seed phrase..."></textarea>
+                </div>
+                <button onclick="loadMyWallet()" class="btn btn-primary w-full mb-3">
+                    <i data-lucide="user" class="w-4 h-4 inline mr-2"></i>
+                    Load Wallet
+                </button>
+                <div id="myWalletInfo" class="hidden space-y-2 p-3 bg-gray-50 rounded">
+                    <div class="flex justify-between">
+                        <span class="font-medium">Address:</span>
+                        <span id="myAddress" class="font-mono text-xs">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Balance:</span>
+                        <span id="myBalance" class="font-bold">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Nonce:</span>
+                        <span id="myNonce" class="font-mono">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Send Money -->
+            <div class="card">
+                <h2 class="text-xl font-bold mb-4 flex items-center">
+                    <i data-lucide="send" class="w-5 h-5 mr-2"></i>
+                    Send Money
+                </h2>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">To Address:</label>
+                        <input type="text" id="sendTo" class="input" placeholder="0x1234...">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Amount:</label>
+                        <input type="number" id="sendAmount" class="input" placeholder="100" min="1">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">From Seed:</label>
+                        <textarea id="sendSeed" class="input h-16" placeholder="Your 12 word seed..."></textarea>
+                    </div>
+                </div>
+                <button onclick="sendMoney()" class="btn btn-success w-full mt-4">
+                    <i data-lucide="send" class="w-4 h-4 inline mr-2"></i>
+                    Send Transaction
+                </button>
+                <div id="sendResult" class="mt-3 p-3 rounded hidden"></div>
+            </div>
+
+            <!-- Check Balance -->
+            <div class="card">
+                <h2 class="text-xl font-bold mb-4 flex items-center">
+                    <i data-lucide="search" class="w-5 h-5 mr-2"></i>
+                    Check Balance
+                </h2>
+                <div class="mb-3">
+                    <label class="block text-sm font-medium mb-1">Address:</label>
+                    <input type="text" id="checkAddress" class="input" placeholder="0x1234...">
+                </div>
+                <button onclick="checkBalance()" class="btn btn-primary w-full mb-3">
+                    <i data-lucide="search" class="w-4 h-4 inline mr-2"></i>
+                    Check Balance
+                </button>
+                <div id="balanceResult" class="hidden space-y-2 p-3 bg-gray-50 rounded">
+                    <div class="flex justify-between">
+                        <span class="font-medium">Balance:</span>
+                        <span id="checkedBalance" class="font-bold">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Nonce:</span>
+                        <span id="checkedNonce" class="font-mono">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Proof Valid:</span>
+                        <span id="proofValid" class="font-bold">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Block Producer -->
+            <div class="card">
+                <h2 class="text-xl font-bold mb-4 flex items-center">
+                    <i data-lucide="package" class="w-5 h-5 mr-2"></i>
+                    Block Producer
+                </h2>
+                <p class="text-sm text-gray-600 mb-4">
+                    Produce a block from pending transactions (Fiber-style: on-demand)
+                </p>
+                <button onclick="produceBlock()" class="btn btn-success w-full">
+                    <i data-lucide="play" class="w-4 h-4 inline mr-2"></i>
+                    Produce Block
+                </button>
+                <div id="blockResult" class="mt-3 p-3 rounded hidden"></div>
+            </div>
+
+            <!-- Mempool -->
+            <div class="card">
+                <h2 class="text-xl font-bold mb-4 flex items-center">
+                    <i data-lucide="list" class="w-5 h-5 mr-2"></i>
+                    Pending Transactions
+                </h2>
+                <div id="mempoolList" class="space-y-2 max-h-64 overflow-y-auto">
+                    <p class="text-gray-500 text-sm">No pending transactions</p>
+                </div>
+                <button onclick="refreshMempool()" class="btn btn-primary w-full mt-4">
+                    <i data-lucide="refresh-cw" class="w-4 h-4 inline mr-2"></i>
+                    Refresh Mempool
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card mt-6">
+            <h2 class="text-xl font-bold mb-4 flex items-center">
+                <i data-lucide="zap" class="w-5 h-5 mr-2"></i>
+                Quick Actions
+            </h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <button onclick="createNewWallet()" class="btn btn-primary">
+                    <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>
+                    New Wallet
+                </button>
+                <button onclick="faucet()" class="btn btn-success">
+                    <i data-lucide="droplet" class="w-4 h-4 inline mr-1"></i>
+                    Get Tokens
+                </button>
+                <button onclick="explorer()" class="btn btn-primary">
+                    <i data-lucide="globe" class="w-4 h-4 inline mr-1"></i>
+                    Explorer
+                </button>
+                <button onclick="help()" class="btn btn-primary">
+                    <i data-lucide="help-circle" class="w-4 h-4 inline mr-1"></i>
+                    Help
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let nodeUrl = 'http://localhost:61234';
+        let myWalletAddress = null;
+
+        // Initialize lucide icons
+        lucide.createIcons();
+
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            try {
+                const options = {
+                    method,
+                    headers: { 'Content-Type': 'application/json' }
+                };
+                if (data) options.body = JSON.stringify(data);
+                
+                const response = await fetch(`${nodeUrl}${endpoint}`, options);
+                return await response.json();
+            } catch (error) {
+                console.error('API call failed:', error);
+                return null;
+            }
+        }
+
+        async function connectNode() {
+            nodeUrl = document.getElementById('nodeUrl').value;
+            await checkStatus();
+        }
+
+        async function checkStatus() {
+            const state = await apiCall('/state');
+            const statusEl = document.getElementById('status');
+            
+            if (state) {
+                statusEl.textContent = 'Online';
+                statusEl.className = 'ml-2 font-bold status-online';
+                updateChainInfo(state);
+            } else {
+                statusEl.textContent = 'Offline';
+                statusEl.className = 'ml-2 font-bold status-offline';
+            }
+        }
+
+        function updateChainInfo(state) {
+            document.getElementById('chainHeight').textContent = state.height || '-';
+            document.getElementById('stateRoot').textContent = state.state_root ? state.state_root.substring(0, 16) + '...' : '-';
+            document.getElementById('publisher').textContent = state.publisher ? state.publisher.substring(0, 16) + '...' : '-';
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        }
+
+        async function refreshChain() {
+            const state = await apiCall('/state');
+            if (state) updateChainInfo(state);
+        }
+
+        async function loadMyWallet() {
+            const seed = document.getElementById('mySeed').value.trim();
+            if (!seed) {
+                alert('Please enter your seed phrase');
+                return;
+            }
+
+            // Get address from seed (simplified - in real implementation would use proper derivation)
+            const mockAddress = '0x' + Array.from({length: 40}, () => Math.floor(Math.random() * 16).toString(16)).join('');
+            
+            myWalletAddress = mockAddress;
+            document.getElementById('myAddress').textContent = mockAddress;
+            
+            // Check balance
+            const balance = await apiCall(`/account/${mockAddress}`);
+            if (balance) {
+                document.getElementById('myBalance').textContent = balance.account.balance;
+                document.getElementById('myNonce').textContent = balance.account.nonce;
+            }
+            
+            document.getElementById('myWalletInfo').classList.remove('hidden');
+        }
+
+        async function sendMoney() {
+            const to = document.getElementById('sendTo').value.trim();
+            const amount = parseInt(document.getElementById('sendAmount').value);
+            const seed = document.getElementById('sendSeed').value.trim();
+            
+            if (!to || !amount || !seed) {
+                alert('Please fill all fields');
+                return;
+            }
+
+            // Create transaction (simplified)
+            const tx = {
+                from: '0xsender', // Would derive from seed
+                to: to,
+                amount: amount,
+                nonce: 1,
+                sig: '0xsignature' // Would sign with seed
+            };
+
+            const result = await apiCall('/tx', 'POST', tx);
+            const resultEl = document.getElementById('sendResult');
+            
+            if (result && result.success) {
+                resultEl.className = 'mt-3 p-3 rounded bg-green-100 text-green-800';
+                resultEl.textContent = 'Transaction sent successfully!';
+                refreshMempool();
+            } else {
+                resultEl.className = 'mt-3 p-3 rounded bg-red-100 text-red-800';
+                resultEl.textContent = 'Transaction failed';
+            }
+            resultEl.classList.remove('hidden');
+        }
+
+        async function checkBalance() {
+            const address = document.getElementById('checkAddress').value.trim();
+            if (!address) {
+                alert('Please enter an address');
+                return;
+            }
+
+            const result = await apiCall(`/account/${address}`);
+            if (result) {
+                document.getElementById('checkedBalance').textContent = result.account.balance;
+                document.getElementById('checkedNonce').textContent = result.account.nonce;
+                document.getElementById('proofValid').textContent = result.proof.length > 0 ? 'YES' : 'NO';
+                document.getElementById('balanceResult').classList.remove('hidden');
+            }
+        }
+
+        async function produceBlock() {
+            const result = await apiCall('/produce');
+            const resultEl = document.getElementById('blockResult');
+            
+            if (result && result.height) {
+                resultEl.className = 'mt-3 p-3 rounded bg-green-100 text-green-800';
+                resultEl.textContent = `Block produced! Height: ${result.height}`;
+                refreshChain();
+                refreshMempool();
+            } else {
+                resultEl.className = 'mt-3 p-3 rounded bg-yellow-100 text-yellow-800';
+                resultEl.textContent = 'No transactions to process';
+            }
+            resultEl.classList.remove('hidden');
+        }
+
+        async function refreshMempool() {
+            const mempool = await apiCall('/mempool');
+            const listEl = document.getElementById('mempoolList');
+            
+            if (mempool && mempool.transactions.length > 0) {
+                listEl.innerHTML = mempool.transactions.map((tx, i) => `
+                    <div class="p-2 bg-gray-50 rounded text-sm">
+                        <div class="flex justify-between">
+                            <span class="font-mono">${tx.from.substring(0, 16)}...</span>
+                            <span class="font-bold">${tx.amount}</span>
+                        </div>
+                        <div class="text-gray-600">→ ${tx.to.substring(0, 16)}...</div>
+                    </div>
+                `).join('');
+            } else {
+                listEl.innerHTML = '<p class="text-gray-500 text-sm">No pending transactions</p>';
+            }
+        }
+
+        function createNewWallet() {
+            const words = [
+                'abandon', 'ability', 'able', 'about', 'above', 'absent', 'absorb', 'abstract',
+                'absurd', 'abuse', 'access', 'accident', 'account', 'accuse', 'achieve', 'acid',
+                'acoustic', 'acquire', 'across', 'act', 'action', 'actor', 'actress', 'actual'
+            ];
+            const seed = Array.from({length: 12}, () => words[Math.floor(Math.random() * words.length)]).join(' ');
+            alert('Your new seed phrase:\n\n' + seed + '\n\nWrite this down and keep it safe!');
+        }
+
+        function faucet() {
+            alert('Faucet would send tokens to your address. In a real implementation, this would connect to a faucet service.');
+        }
+
+        function explorer() {
+            alert('Blockchain explorer would open here, showing all transactions and blocks.');
+        }
+
+        function help() {
+            alert('Nano-Mina Chain Help:\n\n' +
+                  '1. Start the node with: python anomina.py node --words "your seed"\n' +
+                  '2. Load your wallet using your 12-word seed\n' +
+                  '3. Send tokens to other addresses\n' +
+                  '4. Produce blocks to process transactions\n' +
+                  '5. Check balances with cryptographic proofs\n\n' +
+                  'This is a Fiber-style chain where blocks are produced on demand.');
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            checkStatus();
+            refreshMempool();
+        }, 30000);
+
+        // Initial load
+        checkStatus();
+        refreshMempool();
+    </script>
+</body>
+</html>

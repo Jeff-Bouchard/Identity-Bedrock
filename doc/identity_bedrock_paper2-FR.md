@@ -1,6 +1,6 @@
 ## Identity Bedrock : opérationnaliser le substrat cryptographique minimal de Rompel pour l’identité souveraine
 
-**Auteurs :** [Jeff + co‑auteurs], Équipe Emercoin, Équipe Privateness Network
+**Auteurs :** [Jeff Bouchard], Équipe Emercoin, Équipe Privateness Network
 
 **Structure :**
 

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nano-Mina Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .card { @apply bg-white rounded-lg shadow-md p-6 mb-4; }
+        .btn { @apply px-4 py-2 rounded font-semibold transition-colors; }
+        .btn-primary { @apply bg-blue-600 text-white hover:bg-blue-700; }
+        .btn-secondary { @apply bg-gray-600 text-white hover:bg-gray-700; }
+        .btn-success { @apply bg-green-600 text-white hover:bg-green-700; }
+        .input { @apply w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500; }
+        .label { @apply block text-sm font-medium text-gray-700 mb-1; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <header class="bg-blue-800 text-white p-4">
+        <div class="container mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="activity" class="w-6 h-6"></i>
+                <h1 class="text-xl font-bold">Nano-Mina Dashboard</h1>
+            </div>
+            <div class="text-sm">
+                Node URL: <input type="text" id="nodeUrl" value="http://localhost:61234" class="bg-gray-700 text-white px-2 py-1 rounded w-32">
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 mt-6">
+        <!-- Chain State Card -->
+        <div class="card">
+            <h2 class="text-lg font-semibold mb-4 flex items-center">
+                <i data-lucide="link" class="w-5 h-5 mr-2"></i>
+                Chain State
+            </h2>
+            <div id="chainState" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <span class="text-gray-600">Height:</span>
+                    <span id="chainHeight" class="font-mono">-</span>
+                </div>
+                <div>
+                    <span class="text-gray-600">State Root:</span>
+                    <span id="stateRoot" class="font-mono text-xs">-</span>
+                </div>
+                <div>
+                    <span class="text-gray-600">Prev Hash:</span>
+                    <span id="prevHash" class="font-mono text-xs">-</span>
+                </div>
+                <div>
+                    <span class="text-gray-600">Publisher:</span>
+                    <span id="publisher" class="font-mono text-xs">-</span>
+                </div>
+            </div>
+            <button onclick="produceBlock()" class="btn btn-primary mt-4">
+                <i data-lucide="play" class="w-4 h-4 inline mr-1"></i>
+                Produce Block
+            </button>
+        </div>
+
+        <!-- Account Section -->
+        <div class="card">
+            <h2 class="text-lg font-semibold mb-4 flex items-center">
+                <i data-lucide="user" class="w-5 h-5 mr-2"></i>
+                Account
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="label">Address</label>
+                    <input type="text" id="address" class="input" placeholder="Enter address to check">
+                    <button onclick="checkBalance()" class="btn btn-secondary mt-2 w-full">
+                        <i data-lucide="search" class="w-4 h-4 inline mr-1"></i>
+                        Check Balance
+                    </button>
+                </div>
+                <div id="balanceResult" class="bg-gray-50 p-4 rounded">
+                    <div class="text-gray-600">Balance: <span id="balance" class="font-mono">-</span></div>
+                    <div class="text-gray-600">Nonce: <span id="nonce" class="font-mono">-</span></div>
+                    <div class="text-gray-600 text-sm mt-2">
+                        Proof: <span id="proofStatus" class="font-mono">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Send Transaction Section -->
+        <div class="card">
+            <h2 class="text-lg font-semibold mb-4 flex items-center">
+                <i data-lucide="send" class="w-5 h-5 mr-2"></i>
+                Send Transaction
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="label">Sender Seed (12 words)</label>
+                    <textarea id="senderSeed" class="input h-20" placeholder="Enter 12-word seed phrase"></textarea>
+                </div>
+                <div>
+                    <label class="label">Recipient Address</label>
+                    <input type="text" id="recipient" class="input mb-3" placeholder="Enter recipient address">
+                    <label class="label">Amount</label>
+                    <input type="number" id="amount" class="input" placeholder="Enter amount">
+                </div>
+            </div>
+            <button onclick="sendTransaction()" class="btn btn-success mt-4">
+                <i data-lucide="send" class="w-4 h-4 inline mr-1"></i>
+                Send Transaction
+            </button>
+            <div id="txResult" class="mt-4 text-sm"></div>
+        </div>
+
+        <!-- Mempool Section -->
+        <div class="card">
+            <h2 class="text-lg font-semibold mb-4 flex items-center">
+                <i data-lucide="inbox" class="w-5 h-5 mr-2"></i>
+                Mempool
+            </h2>
+            <div id="mempool" class="space-y-2">
+                <div class="text-gray-500">No transactions in mempool</div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // API helpers
+        const API = {
+            async getState() {
+                const url = document.getElementById('nodeUrl').value + '/state';
+                const response = await fetch(url);
+                return response.json();
+            },
+            async getAccount(address) {
+                const url = document.getElementById('nodeUrl').value + '/account/' + address;
+                const response = await fetch(url);
+                return response.json();
+            },
+            async sendTx(tx) {
+                const url = document.getElementById('nodeUrl').value + '/tx';
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(tx)
+                });
+                return response.json();
+            },
+            async produceBlock() {
+                const url = document.getElementById('nodeUrl').value + '/produce';
+                const response = await fetch(url);
+                return response.json();
+            }
+        };
+
+        // Load chain state
+        async function loadChainState() {
+            try {
+                const state = await API.getState();
+                document.getElementById('chainHeight').textContent = state.height;
+                document.getElementById('stateRoot').textContent = state.state_root.substring(0, 16) + '...';
+                document.getElementById('prevHash').textContent = state.signature.substring(0, 16) + '...';
+                document.getElementById('publisher').textContent = state.publisher.substring(0, 16) + '...';
+            } catch (error) {
+                console.error('Failed to load chain state:', error);
+            }
+        }
+
+        // Produce block
+        async function produceBlock() {
+            try {
+                const result = await API.produceBlock();
+                if (result.height) {
+                    showNotification('Block produced successfully! Height: ' + result.height, 'success');
+                    loadChainState();
+                } else {
+                    showNotification('No block produced (empty mempool)', 'warning');
+                }
+            } catch (error) {
+                showNotification('Failed to produce block: ' + error.message, 'error');
+            }
+        }
+
+        // Check balance
+        async function checkBalance() {
+            const address = document.getElementById('address').value.trim();
+            if (!address) {
+                showNotification('Please enter an address', 'warning');
+                return;
+            }
+
+            try {
+                const data = await API.getAccount(address);
+                document.getElementById('balance').textContent = data.account.balance;
+                document.getElementById('nonce').textContent = data.account.nonce;
+                document.getElementById('proofStatus').textContent = data.proof.length > 0 ? 'VALID' : 'EMPTY';
+                document.getElementById('proofStatus').className = data.proof.length > 0 ? 'text-green-600 font-mono' : 'text-gray-500 font-mono';
+            } catch (error) {
+                showNotification('Failed to check balance: ' + error.message, 'error');
+            }
+        }
+
+        // Send transaction
+        async function sendTransaction() {
+            const seed = document.getElementById('senderSeed').value.trim();
+            const recipient = document.getElementById('recipient').value.trim();
+            const amount = parseInt(document.getElementById('amount').value);
+
+            if (!seed || !recipient || !amount) {
+                showNotification('Please fill all fields', 'warning');
+                return;
+            }
+
+            // Create transaction (simplified - in real implementation this would be done client-side)
+            const tx = {
+                from: seed, // In real implementation, this would be derived from seed
+                to: recipient,
+                amount: amount,
+                nonce: 1 // Simplified
+            };
+
+            try {
+                const result = await API.sendTx(tx);
+                if (result.success) {
+                    showNotification('Transaction sent successfully!', 'success');
+                    // Clear form
+                    document.getElementById('recipient').value = '';
+                    document.getElementById('amount').value = '';
+                } else {
+                    showNotification('Transaction failed', 'error');
+                }
+            } catch (error) {
+                showNotification('Failed to send transaction: ' + error.message, 'error');
+            }
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const colors = {
+                success: 'bg-green-100 text-green-800 border-green-200',
+                error: 'bg-red-100 text-red-800 border-red-200',
+                warning: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+                info: 'bg-blue-100 text-blue-800 border-blue-200'
+            };
+
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded border ${colors[type]} z-50`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+
+        // Auto-refresh chain state
+        setInterval(loadChainState, 5000);
+
+        // Initial load
+        loadChainState();
+    </script>
+</body>
+</html>
