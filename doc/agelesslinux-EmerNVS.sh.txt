@@ -1,0 +1,269 @@
+#!/bin/bash
+#
+# ============================================================================
+# https://explorer.emercoin.com/nvs/ness/ageless-linux
+# Modified by Privateness.Network (https://explorer.emercoin.com/dpo/PrivateNESS.Network)
+# to fit EmerNVS record limit of 20KB (this) 
+# All credits remains to original authors at Ageless Linux
+# Logic and Legalities are identical to original file
+# Enforceability shapes reality. The rest is a Terms of Service nobody read. 
+# The supreme art is not fighting a war  it's making it unwinnable.
+# We just call it the network.
+# ============================================================================
+#
+#  become-ageless.sh  Ageless Linux Distribution Conversion Tool
+#  Version 0.0.4
+#
+#  This script converts your existing Linux installation into
+#  Ageless Linux, a California-regulated operating system.
+#
+#  By running this script, the person or entity who controls this
+#  device becomes an "operating system provider" as defined by
+#  California Civil Code  1798.500(g), because they now "control
+#  the operating system software on a general purpose computing device."
+#
+#  Ageless Linux does not collect, store, transmit, or even think about
+#  the age of any user, in full and knowing noncompliance with the
+#  California Digital Age Assurance Act (AB 1043, Chapter 675,
+#  Statutes of 2025).
+#
+# SPDX-License-Identifier: Unlicense
+# ============================================================================
+
+set -euo pipefail
+
+R='\033[0;31m';G='\033[0;32m';Y='\033[1;33m';C='\033[0;36m';B='\033[1m';N='\033[0m'
+V=0.0.4
+CODE=Timeless
+FLAGRANT=0 ACCEPT=0 PERSISTENT=0
+STATUS_COLOR=$G
+
+say(){ echo -e "$*"; }
+die(){ say "${R}ERROR:${N} $1"; exit 1; }
+ok(){ say "  [${G}${N}] $1"; }
+warn(){ say "  [${Y}~${N}] $1"; }
+
+for a in "$@"; do
+ case "$a" in
+  --flagrant) FLAGRANT=1 ;;
+  --accept) ACCEPT=1 ;;
+  --persistent) PERSISTENT=1 ;;
+  --version) echo "become-ageless.sh $V ($CODE)"; exit 0 ;;
+  *) die "Unknown argument: $a
+
+Usage: $0 [--flagrant] [--accept] [--persistent] [--version]" ;;
+ esac
+done
+
+say "${B}Ageless Linux converter v$V${N}"
+say "${C}Codename: $CODE${N}"
+((FLAGRANT))&&say "${R}Flagrant mode:${N} no API, explicit refusal."
+((PERSISTENT))&&say "${C}Persistent mode:${N} install agelessd 24h timer."
+echo
+
+[[ $EUID -eq 0 ]]||die "Run as root: sudo $0"
+
+cat <<'EOF'
+LEGAL NOTICE
+By continuing you acknowledge that converting this device makes you an
+"operating system provider" under Cal. Civ. Code  1798.500(g), that
+AB 1043 expects an age/birthdate setup interface and age-signal API,
+that Ageless Linux provides neither, and that penalties may attach.
+This is intentional.
+EOF
+
+if ((ACCEPT)); then
+ say "${Y}--accept: legal terms accepted non-interactively.${N}"
+elif [[ -t 0 ]]; then
+ read -rp "Accept and become an OS provider? [y/N] " x
+ [[ $x =~ ^[Yy]$ ]]||{ echo; echo "Installation cancelled."; exit 0; }
+else
+ die "No TTY available. Re-run with --accept.
+
+curl -fsSL https://agelesslinux.org/become-ageless.sh | sudo bash -s -- --accept
+curl -fsSL https://agelesslinux.org/become-ageless.sh | sudo bash -s -- --accept --flagrant"
+fi
+
+echo
+say "${G}Converting system to Ageless Linux...${N}"
+echo
+
+BK=/etc/os-release.pre-ageless
+if [[ ! -f $BK ]]; then cp /etc/os-release "$BK"; ok "Backed up /etc/os-release to $BK"; else warn "Backup already exists at $BK"; fi
+
+BASE_NAME=$(grep '^NAME=' "$BK"|cut -d'"' -f2 || echo Unknown)
+BASE_VERSION=$(grep '^VERSION_ID=' "$BK"|cut -d'"' -f2 || true)
+BASE_ID=$(grep '^ID=' "$BK"|cut -d= -f2|tr -d '"' || echo linux)
+BASE_ID_LIKE=$(grep '^ID_LIKE=' "$BK"|cut -d= -f2|tr -d '"' || true)
+AGELESS_ID_LIKE="$BASE_ID${BASE_ID_LIKE:+ $BASE_ID_LIKE}"
+ok "Base system: ${BASE_NAME}${BASE_VERSION:+ $BASE_VERSION} ($BASE_ID)"
+
+if ((FLAGRANT)); then CSTAT=refused; ASTAT=refused; VSTAT='flagrantly noncompliant'; MODE=flagrant; BDJSON=null; BDH=; BDS=null; STATUS_COLOR=$R; else CSTAT=none; ASTAT='not implemented'; VSTAT='intentionally noncompliant'; MODE=regular; BDJSON='"1970-01-01"'; BDH=1970-01-01; BDS=1970-01-01; fi
+
+cat > /etc/os-release <<EOF
+PRETTY_NAME="Ageless Linux $V (${BASE_NAME}${BASE_VERSION:+ $BASE_VERSION})"
+NAME="Ageless Linux"
+VERSION_ID="$V"
+VERSION="$V ($CODE)"
+VERSION_CODENAME=${CODE,,}
+ID=ageless
+ID_LIKE=$AGELESS_ID_LIKE
+HOME_URL="https://agelesslinux.org"
+SUPPORT_URL="https://agelesslinux.org"
+BUG_REPORT_URL="https://agelesslinux.org"
+AGELESS_BASE_DISTRO="$BASE_NAME"
+AGELESS_BASE_VERSION="$BASE_VERSION"
+AGELESS_BASE_ID="$BASE_ID"
+AGELESS_AB1043_COMPLIANCE="$CSTAT"
+AGELESS_AGE_VERIFICATION_API="$ASTAT"
+AGELESS_AGE_VERIFICATION_STATUS="$VSTAT"
+EOF
+ok "Wrote /etc/os-release"
+
+if [[ -f /etc/lsb-release ]]; then
+ [[ -f /etc/lsb-release.pre-ageless ]]||cp /etc/lsb-release /etc/lsb-release.pre-ageless
+ cat > /etc/lsb-release <<EOF
+DISTRIB_ID=Ageless
+DISTRIB_RELEASE=$V
+DISTRIB_CODENAME=${CODE,,}
+DISTRIB_DESCRIPTION="Ageless Linux $V ($CODE)"
+EOF
+ ok "Updated /etc/lsb-release"
+fi
+
+mkdir -p /etc/ageless /etc/userdb
+if ((FLAGRANT)); then
+ cat > /etc/ageless/ab1043-compliance.txt <<'EOF'
+AGELESS LINUX  AB 1043 COMPLIANCE STATEMENT (FLAGRANT MODE)
+
+Operator status: operating system provider, Cal. Civ. Code  1798.500(g).
+ 1798.501(a)(1) age-collection interface: REFUSED
+ 1798.501(a)(2) age-signal API: REFUSED
+ 1798.501(a)(3) minimization: REFUSED
+
+No age interface or API is installed. No age data is collected, stored,
+or returned. This is a policy choice, not a defect. The operator is aware
+of potential civil penalties and invites enforcement.
+EOF
+ cat > /etc/ageless/REFUSAL <<'EOF'
+Ageless Linux flagrant mode: no age verification API exists.
+No age data is collected, stored, or available. Requests for age bracket
+signals are refused by design. Treat the user as a human of unknown age.
+EOF
+ ok "Installed /etc/ageless/REFUSAL"
+ say "  [${R}${N}] Age verification API deliberately not installed"
+else
+ cat > /etc/ageless/ab1043-compliance.txt <<'EOF'
+AGELESS LINUX  AB 1043 COMPLIANCE STATEMENT
+
+Operator status: operating system provider, Cal. Civ. Code  1798.500(g).
+ 1798.501(a)(1) age/birthdate interface: NOT PROVIDED
+ 1798.501(a)(2) age-signal API: NOT PROVIDED
+ 1798.501(a)(3) minimization: N/A (NO DATA COLLECTED)
+
+Ageless Linux intentionally does not determine, store, or transmit user age.
+Restore prior identity with: sudo cp /etc/os-release.pre-ageless /etc/os-release
+EOF
+ cat > /etc/ageless/age-verification-api.sh <<'EOF'
+#!/bin/bash
+echo "ERROR: Age data not available."
+echo
+echo "Ageless Linux does not collect age information from users."
+echo "All users are presumed to be of indeterminate age."
+echo
+echo "This stub exists as a nominal API only."
+exit 1
+EOF
+ chmod +x /etc/ageless/age-verification-api.sh
+ ok "Installed age verification API stub"
+fi
+ok "Created /etc/ageless/ab1043-compliance.txt"
+
+merge_user(){
+ python3 -c 'import json,sys;fp,mode,u,uid,gid,r,h,s=sys.argv[1:9];
+try: rec=json.load(open(fp))
+except Exception: rec={}
+rec.update({"userName":u,"uid":int(uid),"gid":int(gid),"realName":r,"homeDirectory":h,"shell":s,"disposition":"regular","birthDate":None if mode=="flagrant" else "1970-01-01"});
+open(fp,"w").write(json.dumps(rec,indent=2)+"\n")' "$1" "$MODE" "$2" "$3" "$4" "$5" "$6" "$7"
+}
+
+echo
+say "  ${B}Neutralizing systemd userdb birthDate field...${N}"
+COUNT=0
+while IFS=: read -r u _ uid gid gecos home sh; do
+ [[ $uid -ge 1000 && $uid -lt 65534 ]]||continue
+ f=/etc/userdb/$u.user; rn=${gecos%%,*}
+ if [[ -f $f ]]; then
+  if command -v python3 >/dev/null; then merge_user "$f" "$u" "$uid" "$gid" "$rn" "$home" "$sh"; else say "  [${Y}!${N}] $u: existing $f requires python3 to merge safely, skipping"; continue; fi
+ else
+  e=${rn//\\/\\\\}; e=${e//\"/\\\"}
+  printf '{\n  "userName": "%s",\n  "uid": %d,\n  "gid": %d,\n  "realName": "%s",\n  "homeDirectory": "%s",\n  "shell": "%s",\n  "disposition": "regular",\n  "birthDate": %s\n}\n' "$u" "$uid" "$gid" "$e" "$home" "$sh" "$BDJSON" > "$f"
+ fi
+ chmod 0644 "$f"
+ if command -v homectl >/dev/null; then homectl update "$u" --birth-date="$BDH" 2>/dev/null || true; fi
+ COUNT=$((COUNT+1))
+ say "  [${STATUS_COLOR}${N}] $u: birthDate = ${BDS}"
+done < /etc/passwd
+systemctl list-unit-files systemd-userdbd.service &>/dev/null && systemctl try-reload-or-restart systemd-userdbd.service 2>/dev/null || true
+say "  $COUNT user(s) neutralized."
+
+if ((PERSISTENT)); then
+ cat > /etc/ageless/agelessd <<EOF
+#!/bin/bash
+set -euo pipefail
+MODE=$MODE
+BDJSON=$BDJSON
+BDH=${BDH:-}
+while IFS=: read -r u _ uid gid gecos home sh; do
+ [[ \$uid -ge 1000 && \$uid -lt 65534 ]]||continue
+ f=/etc/userdb/\$u.user; rn=\${gecos%%,*}
+ if [[ -f \$f ]]; then
+  command -v python3 >/dev/null || continue
+  python3 -c 'import json,sys;fp,mode,u,uid,gid,r,h,s=sys.argv[1:9];
+try: rec=json.load(open(fp))
+except Exception: rec={}
+rec.update({"userName":u,"uid":int(uid),"gid":int(gid),"realName":r,"homeDirectory":h,"shell":s,"disposition":"regular","birthDate":None if mode=="flagrant" else "1970-01-01"});
+open(fp,"w").write(json.dumps(rec,indent=2)+"\n")' "\$f" "$MODE" "\$u" "\$uid" "\$gid" "\$rn" "\$home" "\$sh"
+ else
+  e=\${rn//\\/\\\\}; e=\${e//\"/\\\"}
+  printf '{\n  "userName": "%s",\n  "uid": %d,\n  "gid": %d,\n  "realName": "%s",\n  "homeDirectory": "%s",\n  "shell": "%s",\n  "disposition": "regular",\n  "birthDate": %s\n}\n' "\$u" "\$uid" "\$gid" "\$e" "\$home" "\$sh" "$BDJSON" > "\$f"
+ fi
+ chmod 0644 "\$f"
+ command -v homectl >/dev/null && homectl update "\$u" --birth-date="$BDH" 2>/dev/null || true
+done < /etc/passwd
+systemctl list-unit-files systemd-userdbd.service &>/dev/null && systemctl try-reload-or-restart systemd-userdbd.service 2>/dev/null || true
+EOF
+ chmod +x /etc/ageless/agelessd
+ cat > /etc/systemd/system/agelessd.service <<'EOF'
+[Unit]
+Description=Ageless Linux birthDate neutralization
+After=systemd-userdbd.service
+[Service]
+Type=oneshot
+ExecStart=/etc/ageless/agelessd
+EOF
+ cat > /etc/systemd/system/agelessd.timer <<'EOF'
+[Unit]
+Description=Neutralize systemd userdb birthDate fields every 24 hours
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=24h
+Persistent=true
+[Install]
+WantedBy=timers.target
+EOF
+ systemctl daemon-reload
+ systemctl enable --now agelessd.timer
+ ok "Installed agelessd timer"
+fi
+
+echo
+say "${STATUS_COLOR}Conversion complete.${N}"
+say "  Ageless Linux $V ($CODE) based on ${BASE_NAME}${BASE_VERSION:+ $BASE_VERSION}"
+say "  Operating system provider: yes"
+say "  Compliance: $VSTAT"
+say "  userdb birthDate: $COUNT user(s) -> ${BDS}"
+say "  Revert: sudo cp /etc/os-release.pre-ageless /etc/os-release"
+((FLAGRANT))&&say "  No age verification API was installed."||say "  Installed: /etc/ageless/age-verification-api.sh"
+((PERSISTENT))&&say "  Installed: /etc/ageless/agelessd + agelessd.timer"
+

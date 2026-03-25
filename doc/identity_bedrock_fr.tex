@@ -1,0 +1,773 @@
+% Identity Bedrock — Source LaTeX (version française)
+% SAUVEGARDER SOUS: identity_bedrock_fr.tex
+% Compilation : pdflatex -> bibtex -> pdflatex -> pdflatex
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue]{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{url}
+\usepackage{cite}
+\usepackage{graphicx}
+
+\geometry{a4paper,top=25mm,bottom=25mm,left=25mm,right=25mm}
+
+\newtheorem{theorem}{Théorème}[section]
+\newtheorem{lemma}[theorem]{Lemme}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollaire}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Définition}
+\newtheorem{remark}[theorem]{Remarque}
+
+\lstset{basicstyle=\small\ttfamily,breaklines=true,frame=single,
+        numbers=none,xleftmargin=1em,language={}}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small Identity Bedrock}
+\rhead{\small Bouchard, 2026}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\newcommand{\OWF}{\mathrm{FSU}}
+\newcommand{\SIG}{\mathrm{SIG}}
+\newcommand{\EUFCMA}{\mathrm{EUF\text{-}CMA}}
+\newcommand{\negl}{\mathrm{negl}}
+\newcommand{\PBAT}{\textsf{PBAT}}
+\newcommand{\BD}{\textsf{Identity Bedrock}}
+
+\begin{document}
+
+\title{\textbf{Identity Bedrock~: opérationnalisation du substrat
+cryptographique minimal de Rompel\\pour une identité souveraine avec
+preuve de présence physique}}
+
+\author{
+  Jean-Fran\c{c}ois Bouchard\\[4pt]
+  \small PrivateNess Network (co-fondateur, directeur technique)\\
+  \small Emercoin (contributeur communautaire)\\[4pt]
+  \small \texttt{[contact via privateness.network]}
+}
+
+\date{Mars 2026 \quad|\quad Version 1.0}
+
+\maketitle
+
+\begin{center}
+\small\itshape
+\textbf{Déclaration IA~:} L'auteur a utilisé un assistant de rédaction
+fondé sur un modèle de langage pour la rédaction et la révision du
+manuscrit. L'ensemble des contributions techniques, de la conception
+du système, de l'implémentation, du cadre théorique et des intuitions
+de liaison décrits dans ce travail sont ceux de l'auteur, issus de
+neuf ans d'expérience opérationnelle dans le déploiement
+d'infrastructures fondées sur Emercoin.
+\end{center}
+
+\vspace{4pt}\noindent\rule{\textwidth}{0.4pt}\vspace{2pt}
+
+\begin{abstract}
+Nous présentons \BD{}, un système d'identité déployé fondé
+explicitement sur la preuve de Rompel selon laquelle les fonctions à
+sens unique ($\OWF$) sont nécessaires et suffisantes pour les schémas
+de signature existentiellement infalsifiables sous attaque à messages
+choisis adaptative ($\SIG_{\EUFCMA}$)~\cite{Rompel90}. Le système
+sépare la cryptographie d'identité (Ed25519 ou ML-DSA) du consensus
+d'annuaire via un registre agnostique à la chaîne en ajout seul,
+éliminant les clés institutionnelles sous l'individu. Déployé sur
+Emercoin NVS avec ancrage Bitcoin AuxPoW, le coût d'attaque sur la
+couche d'annuaire approche cinq fois la capitalisation boursière
+d'EMC~\cite{Kho21} en raison de la triple barrière de consensus.
+
+Nous identifions en outre l'audio par conduction osseuse comme un
+phénomène physique satisfaisant la propriété d'entropie inaccessible
+formalisée par Haitner et~al.~\cite{Haitner10}~: le désaccord
+d'impédance mécanique à l'interface air-os ($T \approx
+1{,}1 \times 10^{-3}$) rend le canal d'authentification
+inconditionnellement inaccessible à la rejouabilité, indépendamment
+de toute hypothèse calculatoire. Nous intégrons ce facteur comme
+quatrième facteur d'authentification et proposons le jeton
+d'authentification à liaison physique (\PBAT{}), une structure signée
+portant à la fois une preuve biométrique de session et une preuve
+cryptographique d'identité.
+
+La contribution réside dans la liaison de primitives existantes en
+un système dont les propriétés de sécurité émergentes n'existent dans
+aucune d'elles séparément.
+\end{abstract}
+
+\medskip
+\noindent\textbf{Mots-clés~:} fonctions à sens unique, signatures
+numériques, identité souveraine, authentification par conduction
+osseuse, entropie inaccessible, identité sur chaîne de blocs,
+cryptographie post-quantique, preuve de présence physique.
+
+\noindent\rule{\textwidth}{0.4pt}
+\tableofcontents
+\newpage
+
+\section{Introduction}
+
+\subsection{Le problème~: la capture institutionnelle}
+
+Tout système d'identité numérique déployé place des clés
+institutionnelles sous l'utilisateur~: autorités de certification,
+fournisseurs d'identité, registres de clés, opérateurs de plateforme.
+Ces entités peuvent révoquer, refuser, surveiller ou contrôler
+l'identité sans le consentement de l'utilisateur.
+
+Le modèle de menace motivant ce travail suppose un adversaire
+disposant de ressources conventionnelles substantielles, d'un soutien
+politique potentiel et d'un contrôle total de l'infrastructure
+d'identité traditionnelle. La question centrale est~:
+\emph{peut-il exister une identité sans clés institutionnelles sous
+l'individu~?}
+
+\subsection{La réponse théorique~: Rompel 1990}
+
+Rompel a démontré que les $\OWF$s sont à la fois nécessaires et
+suffisantes pour les schémas de signature
+$\SIG_{\EUFCMA}$~\cite{Rompel90}. Il s'agit du minimum démontrable
+--- rien de strictement plus faible ne soutient l'authentification
+publique sous hypothèses standard.
+
+Notre thèse~: fixer la $\OWF$ comme plancher cryptographique et y
+ajouter uniquement un annuaire agnostique à la chaîne en ajout seul
+produit une construction d'identité qui minimise à zéro les points
+de capture institutionnelle sous la clé individuelle.
+
+\subsection{L'intuition de liaison}
+
+Ce travail suit le schéma des innovations par liaison en cryptographie
+appliquée~: la valeur ne réside pas dans l'invention de nouvelles
+primitives, mais dans la reconnaissance que des primitives existantes,
+liées d'une façon spécifique, produisent des propriétés émergentes
+qu'aucune d'elles ne présente seule.
+
+\subsection{Contributions}
+
+\paragraph{Contribution 1 --- Théorie.}
+Formalisation d'un système d'identité agnostique à la chaîne fondé
+sur Rompel.
+
+\paragraph{Contribution 2 --- Systèmes.}
+Architecture~: couche d'identité Ed25519 ou ML-DSA~\cite{FIPS204}
+avec substrat d'annuaire interchangeable. Implémentation~: Emercoin
+NVS~\cite{Emercoin} et NESS Fiber~\cite{DPO}. Déployé et vérifiable
+publiquement depuis 2013.
+
+\paragraph{Contribution 3 --- Extension de présence physique.}
+Identification de l'audio par conduction osseuse comme phénomène
+physique satisfaisant la propriété d'entropie inaccessible de Haitner
+et~al.~\cite{Haitner10}~\cite{HeadSonic25,HCRAuth24}. Spécification
+du jeton \PBAT{}.
+
+\subsection{Organisation de l'article}
+
+Section~\ref{sec:background}~: contexte. Section~\ref{sec:threat}~:
+modèle de menace. Section~\ref{sec:architecture}~: architecture.
+Section~\ref{sec:implementation}~: implémentation.
+Section~\ref{sec:physical}~: présence physique.
+Section~\ref{sec:evaluation}~: évaluation.
+Section~\ref{sec:discussion}~: limitations et travaux futurs.
+
+\section{Contexte et travaux connexes}
+\label{sec:background}
+
+\subsection{Le théorème de Rompel (1990)}
+
+Les $\OWF$s, UOWHFs et schémas $\SIG_{\EUFCMA}$ sont équivalents en
+force~\cite{NaorYung89}. Rompel~\cite{Rompel90} et Haitner
+et~al.~\cite{Haitner10} ont montré comment construire des UOWHFs
+depuis des $\OWF$s arbitraires via l'entropie inaccessible~\cite{KatzKoo05}.
+\[
+  \OWF \;\Leftrightarrow\; \SIG_{\EUFCMA}
+\]
+sous les définitions standard~\cite{Rompel90,Goldreich01}.
+
+\subsection{Entropie inaccessible}
+\label{sec:inaccessible}
+
+\begin{definition}[Entropie inaccessible, informelle~{\cite{Haitner10}}]
+\label{def:inaccessible}
+Soit $F: \{0,1\}^n \to \{0,1\}^m$. L'\emph{entropie inaccessible}
+de $F^{-1}$ est l'écart
+\[
+  \Delta \;=\; H(X \mid F(X)) \;-\; \max_{A \in \mathrm{PPT}}
+  H(A(X;\,R) \mid X)
+\]
+où $X$ est uniforme sur $\{0,1\}^n$ et $A$ est contraint à produire
+des éléments de $F^{-1}(F(X))$.
+\end{definition}
+
+\subsection{Systèmes d'identité fondés sur la chaîne de blocs}
+
+\textbf{Namecoin / EmerDNS.} Lacune~: clés d'identité liées aux
+clés de portefeuille~; mineurs comme AC implicite.
+
+\textbf{DID W3C / Ethereum.} Lacune~: clés DAO, administrateurs de
+registre, dépendances fournisseurs.
+
+\textbf{Sovrin / Hyperledger Indy.} Lacune~: clés d'intendants
+contrôlent le réseau.
+
+\textbf{Distinction de \BD{}.} Plancher $\OWF$ pur. Séparation
+agnostique à la chaîne. Aucune clé institutionnelle sous
+l'utilisateur.
+
+\subsection{AuxPoW Bitcoin et minage fusionné}
+
+Khovayko~\cite{Kho21} introduit le coefficient \emph{hack51}
+($\text{coût\_attaque} / \text{capitalisation}$). Le triple consensus
+d'Emercoin (PoS + PoW + minage fusionné) requiert des ressources
+approchant cinq fois sa capitalisation boursière.
+
+\subsection{Authentification biométrique par conduction osseuse}
+
+HeadSonic~\cite{HeadSonic25}~: 96,59\% de précision, résistance au
+rejeu empiriquement démontrée. HCR-Auth~\cite{HCRAuth24}~: idem.
+Aucun de ces travaux ne fournit l'argument formel. Nous le fournissons
+à la section~\ref{sec:impedance}.
+
+\subsection{Consensus Skycoin Fiber}
+
+Skycoin Fiber~\cite{Skycoin}~: clés d'éditeur annoncées. Tout nombre
+de n\oe{}uds hostiles jusqu'à $N-1$ ne peut pas forger de blocs sans
+ces clés. Le moteur BoltDB en ajout seul rend la réécriture de l'historique impossible~: la seule attaque disponible à un adversaire détenant une clé d'éditeur volée est une réinitialisation au bloc de genèse~0, elle-même maximalement visible par tous les participants.
+
+\subsection{Synthèse des différences}
+
+\BD{} se distingue sur trois points~: plancher Rompel explicite~;
+architecture agnostique à la chaîne~; premier argument formel pour
+la résistance au rejeu des biométriques par conduction osseuse. Le
+\PBAT{} est le premier format de jeton portant preuve biométrique et
+cryptographique dans une structure signée unique.
+
+\section{Modèle de menace et exigences}
+\label{sec:threat}
+
+\subsection{Capacités de l'adversaire}
+
+\textbf{Supposées~:} ressources substantielles~; contrôle de
+l'infrastructure d'identité~; adversaire classique (temps polynomial).
+
+\textbf{Non supposées~:} ne peut pas casser la $\OWF$~; ne peut pas
+mener une attaque à 51\% soutenue sur Bitcoin~; ne peut pas violer
+la physique acoustique.
+
+\textbf{Périmètre~:} adversaires classiques. Migration ML-DSA
+discutée à la section~\ref{sec:limitations}.
+
+\subsection{Exigences de conception}
+
+\textbf{R1~:} $\OWF$ comme plancher. \textbf{R2~:} Aucune clé
+institutionnelle. \textbf{R3~:} Agnosticisme à la chaîne.
+\textbf{R4~:} Coûts quantifiables. \textbf{R5~:} Vérification
+opérationnelle. \textbf{R6~:} Présence physique inconditionnelle.
+
+\section{Architecture d'Identity Bedrock}
+\label{sec:architecture}
+
+\subsection{La conception à deux couches}
+
+\paragraph{Couche 1~: cryptographie d'identité.}
+\[
+\text{Graine}\;(\geq 256\text{ bits})
+\;\xrightarrow{\mathsf{GénClé}}\;(\mathit{sk},\;\mathit{pk})
+\]
+Ed25519~\cite{RFC8032} par défaut. ML-DSA-65~\cite{FIPS204} comme
+cible de migration.
+
+\paragraph{Couche 2~: substrat d'annuaire (interchangeable).}
+
+\begin{definition}[Annuaire en ajout seul avec finalité]
+\label{def:directory}
+Un annuaire $\mathcal{D} \subseteq \mathcal{ID} \times \mathcal{PK}$
+est \emph{en ajout seul avec finalité} si~: \emph{(i)} une fois que
+$\mathsf{Lier}(\mathit{id}, \mathit{pk}) = 1$ est confirmé, cela ne
+peut être mis à $0$ sans attaque de coût quantifiable~; et
+\emph{(ii)} la liaison est globalement vérifiable sans intermédiaire.
+\end{definition}
+
+\subsection{Protocole d'authentification}
+
+\paragraph{Configuration.}
+\begin{enumerate}
+  \item Génération de $(\mathit{sk}, \mathit{pk})$.
+  \item Publication de $(\mathit{id}, \mathit{pk})$ dans $\mathcal{D}$.
+  \item Attente de finalité.
+  \item $\mathsf{Lier}(\mathit{id}, \mathit{pk}) = 1$.
+\end{enumerate}
+
+\paragraph{Défi-réponse.}
+\begin{enumerate}
+  \item $V \to P$~: nonce frais $c \xleftarrow{\$} \{0,1\}^\lambda$.
+  \item $P \to V$~: $\sigma = \mathsf{Sign}_{\mathit{sk}}(c)$.
+  \item $V$ vérifie liaison et signature~; accepte si les deux tiennent.
+\end{enumerate}
+
+\subsection{Preuve de sécurité}
+
+\begin{theorem}
+\label{thm:unforgeability}
+Si le schéma est $\SIG_{\EUFCMA}$ sûr et $\mathcal{D}$ en ajout seul
+avec finalité, alors \BD{} fournit une authentification infalsifiable
+contre tout adversaire classique.
+\end{theorem}
+
+\begin{proof}
+Le faussaire $\mathcal{B}$ simule $\mathcal{D}$ localement, transmet
+le défi $c^*$ du jeu $\SIG_{\EUFCMA}$ à $\mathcal{A}$, et utilise
+la réponse $\sigma^*$ comme falsification existentielle. Par sécurité
+du schéma~: $\Pr[\mathcal{A}\text{ gagne}] \leq \negl(\lambda)$.\hfill\qed
+\end{proof}
+
+\section{Implémentation~: Emercoin + NESS Fiber}
+\label{sec:implementation}
+
+L'architecture décrite dans ce travail s'appuie sur la conception
+publiée dans le LitePaper PrivateNess Network d'octobre
+2020~\cite{Litepaper20}, qui établissait l'architecture double-aveugle
+Emercoin + Skywire, la restriction des communications à 127.0.0.1,
+l'entropie UHE-PRNG à 1536 bits d'état interne, et l'approche de
+décentralisation de la pile OSI complète. Identity Bedrock formalise
+les fondements cryptographiques de ce système déployé.
+
+\subsection{Annuaire~: Emercoin NVS}
+
+Consensus~: 85\% PoS + 15\% Bitcoin AuxPoW~\cite{Emercoin}.
+Finalité~: $\approx$2 minutes. Liaisons ancrées via le schéma WORM
+(World Object MaRkup language)~\cite{WORM}, conçu par Aleksej
+Sokolov~:
+
+\begin{lstlisting}[language=XML]
+<worm>
+  <user type="ness" key="<pubkey_hex>" nonce="<nonce>">
+    <keys>
+      <key hash="<hash>" algo="ed25519"><pubkey_hex></key>
+    </keys>
+    <node type="ness" url="<skywire_pubkey>"
+          nonce="<nonce>" tags="enregistreur,voix"/>
+  </user>
+</worm>
+\end{lstlisting}
+
+\subsection{Infrastructure~: NESS Fiber}
+
+Clés d'éditeur publiées dans \texttt{dpo/PrivateNESS.Network}~\cite{DPO}.
+La compromission d'une clé est maximalement détectable~: une clé d'éditeur volée ne peut pas réécrire les blocs passés (BoltDB en ajout seul rend la réécriture impossible). La seule action disponible est une réinitialisation au bloc de genèse~0, immédiatement visible par tous les participants. La rotation des clés est elle-même un événement publiquement auditable.
+
+\subsection{Preuve d'auto-dépense canonique}
+
+Liée à l'identité Ed25519, ancrée en NVS. Instance déployée~:
+bloc Emercoin~\#445669, 1\textsuperscript{er} novembre 2020,
+22~h~16~min~45~s~UTC.
+\[
+\text{Bitcoin AuxPoW}
+\to \text{Bloc \#445669}
+\to \text{DPO}
+\to \text{BlockchainPubkeyStr}
+\to \text{GenesisSignatureStr}
+\to \text{Chaîne NESS Fiber}
+\]
+
+\subsection{Génération de clés et entropie}
+
+Graine depuis UHEPRNG~\cite{Gibson}~: \texttt{os.urandom} $\times 6$,
+RC4OK Emercoin, gigue CPU, identifiants matériels. Plancher~:
+$\approx$128 bits de sécurité classique.
+
+\section{Extension de présence physique}
+\label{sec:physical}
+
+\subsection{Motivation}
+
+Couche supplémentaire garantissant inconditionnellement la présence
+physique, non par détection algorithmique de vivacité.
+
+\subsection{Le problème de symétrie de canal}
+
+Canal d'authentification et canal de rejeu acoustiques sont
+physiquement identiques~: vulnerabilité fondamentale irréductible
+par logiciel.
+
+\subsection{La conduction osseuse brise la symétrie}
+\label{sec:impedance}
+
+$Z_\text{air} \approx 415$~Pa$\cdot$s/m,
+$Z_\text{os} \approx 1{,}5 \times 10^6$~Pa$\cdot$s/m~\cite{Acoustics}.
+
+\begin{equation}
+\label{eq:transmission}
+T = \frac{4\, Z_\text{air}\, Z_\text{os}}{(Z_\text{air}+Z_\text{os})^2}
+\approx 1{,}1 \times 10^{-3}
+\end{equation}
+
+\begin{remark}
+L'équation~(\ref{eq:transmission}) est une conséquence de la physique
+acoustique, non une hypothèse de dureté. Elle tient inconditionnellement.
+\end{remark}
+
+\subsection{Entropie inaccessible physique}
+
+\begin{remark}[Instanciation physique de l'entropie inaccessible]
+\label{rem:physical_ie}
+Le canal de conduction osseuse produit une distribution dont l'entropie
+est inaccessible à tout adversaire sans contrôle physique du corps
+inscrit. L'inaccessibilité est imposée par
+l'équation~(\ref{eq:transmission}), non par hypothèse calculatoire~:
+garantie strictement plus forte que la Définition~\ref{def:inaccessible}.
+\end{remark}
+
+\begin{remark}[Périmètre]
+Observation et analogie, non théorème achevé. Réduction formelle~:
+travail futur.
+\end{remark}
+
+\subsection{Pile à quatre facteurs}
+
+\begin{table}[h]
+\centering
+\caption{Pile d'authentification à quatre facteurs}
+\label{tab:fourfactor}
+\begin{tabular}{llll}
+\toprule
+Facteur & Mécanisme & Attaque & Garantie \\
+\midrule
+Ed25519 / $\OWF$ & Plancher Rompel & Falsification & Calculatoire \\
+EmerNVS / AuxPoW & Annuaire ancré & Réécriture & Économique \\
+Conduction osseuse & Couplage physique & Rejeu & Inconditionnelle \\
+Empreinte + \PBAT{} & Session signée & Usurpation & Biom.+crypto \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Jeton d'authentification à liaison physique}
+
+\begin{definition}[\PBAT{}]
+\label{def:pbat}
+Structure signée contenant~: clé publique d'identité~; preuve de
+liaison d'annuaire~; empreinte biométrique de session capturée via
+canal physiquement inaccessible~; nonce à usage unique~; horodatage~;
+signature par la clé privée d'identité.
+\end{definition}
+
+\begin{lstlisting}
+{
+  "identity_pubkey":   "<pubkey Ed25519 ou ML-DSA>",
+  "identity_algo":     "ed25519 | mldsa65",
+  "nvs_record":        "<txid WORM>",
+  "voiceprint_hash":   "<SHA256 ou SHA3-256>",
+  "session_embedding": "<empreinte session courante>",
+  "similarity_score":  0.94,
+  "capture_channel":   "bone_conduction_msbc",
+  "headset_mac":       "<adresse MAC BT>",
+  "timestamp":         "<ISO8601 UTC>",
+  "nonce":             "<256 bits>",
+  "expires_seconds":   300,
+  "signature":         "<Sign_sk(tous les champs)>"
+}
+\end{lstlisting}
+
+\paragraph{Doctrine de présence physique.}
+\emph{Le dispositif authentifie le corps, non les justificatifs.
+Aucun chemin réseau ne substitue la présence physique.}
+
+\section{Évaluation}
+\label{sec:evaluation}
+
+\subsection{Analyse des coûts d'attaque}
+\label{sec:eval_attack}
+
+\begin{table}[h]
+\centering
+\caption{Analyse des coûts d'attaque}
+\label{tab:attacks}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{p{2.8cm}p{3.5cm}p{3cm}p{3cm}}
+\toprule
+Vecteur & Prérequis & Coût & Résultat \\
+\midrule
+Casser la signature & Violer $\OWF$ & Infaisable & Auth.\ s'effondre \\
+Réécrire NVS & PoS+PoW+AuxPoW 51\% & $\approx\!5\times$ cap.\ EMC~\cite{Kho21} & Réécriture \\
+Compromettre Fiber & Voler clés éditeur & Élevé & DoS uniquement \\
+Rejouer conduction & Reproduire sig.\ mécanique & Infaisable ($T\approx 10^{-3}$) & Couche biom.\ tient \\
+Contraindre user & Physique & Variable & Hors périmètre \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Comparaison}
+
+\begin{table}[h]
+\centering
+\caption{Comparaison des systèmes d'identité}
+\label{tab:comparison}
+\begin{tabular}{lcccc}
+\toprule
+Système & Plancher & Sans inst. & Agn.\ chaîne & Présence phys. \\
+\midrule
+\textbf{\BD{}} & Ed25519/Rompel & \checkmark & \checkmark & Physique (os) \\
+PKI X.509 & RSA/ECDSA & $\times$ & $\times$ & Aucune \\
+Namecoin & ECDSA & $\times$ & $\times$ & Aucune \\
+DID Ethereum & Variable & $\times$ & $\times$ & Aucune \\
+Sovrin & Ed25519 & $\times$ & $\times$ & Aucune \\
+FIDO2 & ECDSA & Partiel & $\times$ & Jeton mat. \\
+HeadSonic~\cite{HeadSonic25} & Aucun & N/A & N/A & Physique (os) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Performances}
+
+\begin{itemize}
+  \item Finalité NVS~: $\approx$2 minutes
+  \item Défi-réponse~: millisecondes
+  \item Vérification empreinte (resemblyzer\footnote{%
+        \url{https://github.com/resemble-ai/resemblyzer}},
+        RK3528)~: ${<}1$ seconde
+  \item Génération \PBAT{}~: ${<}10$ ms
+\end{itemize}
+
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Limitations}
+\label{sec:limitations}
+
+\paragraph{Hors périmètre.} Compromission par logiciel malveillant,
+ingénierie sociale~: orthogonaux au modèle.
+
+\paragraph{Adversaire quantique.} Migration vers ML-DSA-65
+(FIPS~204~\cite{FIPS204})~: remplacement compatible à l'interface
+gén-clés/signer/vérifier. Schéma WORM \texttt{<keys>} supporte
+nativement plusieurs algorithmes. Couche physique inchangée.
+OpenSSL~3.5 (avril~2025)~: ML-DSA natif dans Armbian.
+
+\paragraph{Réduction formelle.} La Remarque~\ref{rem:physical_ie}
+est une observation. Réduction formelle~: travail futur.
+
+\paragraph{Contrainte.} Surface résiduelle~: contrainte,
+compromission d'inscription, cryptanalyse post-quantique.
+
+\subsection{Sur la nature de la contribution}
+
+Liaison de primitives existantes produisant des propriétés émergentes
+qu'aucune n'exhibe seule. Système opérationnel depuis
+2013~\cite{Emercoin} / 2020~\cite{DPO}.
+
+\subsection{Travaux futurs}
+
+\begin{itemize}
+  \item Réduction formelle pour la Remarque~\ref{rem:physical_ie}
+  \item Preuve de sécurité complète du \PBAT{}
+  \item Signatures à seuil ($k$-sur-$n$ ML-DSA)
+  \item Portabilité agnostique~: Bitcoin OP\_RETURN, Ethereum
+  \item Études utilisateurs~: inscription et taux de rejet erroné
+\end{itemize}
+
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+
+\BD{} atteint son objectif principal --- absence de clés
+institutionnelles sous l'individu --- via une architecture agnostique
+à la chaîne. L'entropie inaccessible physique de la conduction
+osseuse (Remarque~\ref{rem:physical_ie}) produit un système à quatre
+facteurs (Tableau~\ref{tab:fourfactor}) où chaque attaque est traitée
+par un mécanisme catégoriquement distinct.
+
+L'enregistrement canonique~\cite{DPO} constitue une preuve
+opérationnelle~: ancré dans Bitcoin, auditable par toute partie
+sans intermédiaire. Ce n'est pas un article décrivant ce qui
+pourrait être construit. C'est un article décrivant ce qui fonctionne
+depuis 2020.
+
+\section*{Remerciements}
+\addcontentsline{toc}{section}{Remerciements}
+
+L'auteur remercie Oleg Khovayko pour l'infrastructure Emercoin et
+le cadre \emph{hack51}~; Aleksej Sokolov (Alex014) pour la
+conception du format WORM et l'implémentation de
+\texttt{privatenesstools} et \texttt{pyuheprng} à partir des
+spécifications de l'auteur~; Brandon <<~Synth~>> Smietana et Moses
+Narrow (\texttt{moe\_narrow} / \texttt{0pcom}), responsable du
+packaging Linux de Skywire~; ainsi que la communauté PrivateNess
+Network depuis le 1\textsuperscript{er} septembre 2020~\cite{BTCTalk20}.
+L'engagement de l'auteur dans l'infrastructure Emercoin s'étend sur
+neuf ans.
+
+\bibliographystyle{plain}
+\begin{thebibliography}{99}
+
+\bibitem{Rompel90}
+J.~Rompel.
+\newblock One-way functions are necessary and sufficient for secure
+  signatures.
+\newblock In {\em Proc.\ 22nd Annual ACM STOC}, pages 387--394, 1990.
+
+\bibitem{Haitner10}
+I.~Haitner, T.~Holenstein, O.~Reingold, S.~Vadhan, and H.~Wee.
+\newblock Universal one-way hash functions via inaccessible entropy.
+\newblock In {\em EUROCRYPT~2010}, LNCS vol.~6110, pages 616--637.
+  Springer, 2010.
+
+\bibitem{RFC8032}
+S.~Josefsson and I.~Liusvaara.
+\newblock {EdDSA}. RFC 8032, IETF, 2017.
+\newblock \url{https://www.rfc-editor.org/rfc/rfc8032}
+
+\bibitem{Gibson}
+S.~Gibson.
+\newblock {UHEPRNG}. Gibson Research Corporation.
+\newblock \url{https://www.grc.com/otg/uheprng.htm}
+
+\bibitem{Emercoin}
+Emercoin Development Team.
+\newblock Emercoin. \url{https://emercoin.com}, 2013--2026.
+
+\bibitem{Kho21}
+O.~Khovayko.
+\newblock {Оценка стоимости атаки 51\% на Emercoin: hack51}.
+\newblock Dzen, 2021.
+\newblock \url{https://dzen.ru/a/YUotZkN9nAeElPEQ} [En russe]
+
+\bibitem{CoinMetrics24}
+L.~Nuzzi et~al.
+\newblock Breaking {BFT}. Coin Metrics, 2024.
+
+\bibitem{Skycoin}
+B.~Smietana (<<~Synth~>>) et~al.
+\newblock Skycoin. \url{https://www.skycoin.com}, 2014--2026.
+\newblock Packaging~: M.~Narrow (\texttt{0pcom}).
+
+\bibitem{WORM}
+A.~Sokolov (Alex014) / {NESS-Network}.
+\newblock {WORM} --- {W}orld {O}bject {Ma}R\-kup language.
+\newblock \url{https://github.com/ness-network/worm}
+
+\bibitem{NaorYung89}
+M.~Naor and M.~Yung.
+\newblock Universal one-way hash functions.
+\newblock In {\em Proc.\ 21st Annual ACM STOC}, pages 33--43, 1989.
+
+\bibitem{KatzKoo05}
+J.~Katz and C.-Y. Koo.
+\newblock ePrint 2005/328, 2005.
+\newblock \url{https://eprint.iacr.org/2005/328}
+
+\bibitem{FIPS204}
+{NIST}.
+\newblock {ML-DSA}. {FIPS}~204, août 2024.
+\newblock \url{https://doi.org/10.6028/NIST.FIPS.204}
+
+\bibitem{HeadSonic25}
+Z.~He et~al.
+\newblock {HeadSonic}.
+\newblock {\em IEEE Trans.\ Mobile Comput.}, 24(9):7914--7928, 2025.
+\newblock doi:10.1109/TMC.2025.3551272
+
+\bibitem{HCRAuth24}
+Z.~He et~al.
+\newblock {HCR-Auth}.
+\newblock {\em Proc.\ ACM IMWUT}, 8(4):1--27, 2024.
+\newblock doi:10.1145/3699780
+
+\bibitem{Acoustics}
+L.~E.~Kinsler et~al.
+\newblock {\em Fundamentals of Acoustics}, 4th~ed.
+\newblock Wiley, 2000. ISBN~978-0-471-84789-2.
+
+\bibitem{Goldreich01}
+O.~Goldreich.
+\newblock {\em Foundations of Cryptography, Vol.~1}.
+\newblock Cambridge University Press, 2001.
+
+\bibitem{BTCTalk20}
+{PrivateNESS Network}.
+\newblock Bitcointalk, 1\textsuperscript{er} septembre 2020.
+\newblock \url{https://bitcointalk.org/index.php?topic=5272741.0}
+
+\bibitem{Litepaper20}
+J.-F.~Bouchard et~al.
+\newblock {PrivateNess Network LitePaper}.
+\newblock PrivateNess Network, 9~octobre 2020.
+\newblock \url{https://privateness.network/?p=255}
+\newblock \textit{<<~La seule arme efficace contre la big tech,
+  c'est la small tech décentralisée.~>>}
+
+\bibitem{DPO}
+{PrivateNESS Network}.
+\newblock EmerNVS DPO, bloc~\#445669, novembre 2020.
+\newblock \url{https://explorer.emercoin.com/dpo/PrivateNESS.Network}
+
+\end{thebibliography}
+
+\appendix
+
+\section{Définitions formelles}
+\label{app:defs}
+
+\begin{definition}[Fonction à sens unique]
+$f$ est une FSU si calculable en temps polynomial et
+$\Pr[\mathcal{A}(f(x)) \in f^{-1}(f(x))] \leq \negl(\lambda)$
+pour tout adversaire PPT $\mathcal{A}$.
+\end{definition}
+
+\begin{definition}[$\SIG_{\EUFCMA}$]
+$(\mathsf{Gén},\mathsf{Sign},\mathsf{Vérif})$ est EUF-CMA sûr si
+$\Pr[\mathsf{Vérif}(pk,m^*,\sigma^*)=1 \wedge m^*\notin Q]
+\leq \negl(\lambda)$.
+\end{definition}
+
+\begin{definition}[Canal biométrique physiquement inaccessible]
+\label{def:physical_channel}
+Canal dont l'entropie est inaccessible sans contrôle physique du sujet
+inscrit, par propriétés physiques du canal non par hypothèse
+calculatoire.
+\end{definition}
+
+\section{Schéma WORM}
+\label{app:worm}
+
+\begin{lstlisting}[language=XML]
+<worm>
+  <user type="ness" key="<pubkey>" nonce="<nonce>">
+    <keys>
+      <key hash="<h>" algo="ed25519"><pubkey></key>
+      <key hash="<h>" algo="mldsa65"><mldsa_pubkey></key>
+    </keys>
+    <node type="ness" url="<skywire_pk>"
+          nonce="<n>" tags="enregistreur,voix"/>
+  </user>
+</worm>
+\end{lstlisting}
+
+\section{Vérification du déploiement}
+\label{app:deployment}
+
+\begin{itemize}
+  \item DPO~: \url{https://explorer.emercoin.com/dpo/PrivateNESS.Network}
+        (bloc~\#445669, 1\textsuperscript{er} nov.\ 2020, 22~h~16~UTC)
+  \item Bitcointalk~: \url{https://bitcointalk.org/index.php?topic=5272741.0}
+  \item \url{https://privateness.network}
+  \item \url{https://github.com/ness-network/privatenesstools}
+  \item \url{https://github.com/ness-network/pyuheprng}
+  \item \url{https://github.com/ness-network/worm}
+  \item \url{https://ness-explorer.magnetosphere.net}
+  \item \url{https://explorer.privateness.network}
+\end{itemize}
+
+\end{document}

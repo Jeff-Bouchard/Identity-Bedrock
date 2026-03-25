@@ -1,0 +1,1115 @@
+% Identity Bedrock — LaTeX source
+% Target: IACR Cryptology ePrint Archive
+% Compile: pdflatex -> bibtex -> pdflatex -> pdflatex
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue]{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{url}
+\usepackage{cite}
+\usepackage{graphicx}
+
+\geometry{a4paper,top=25mm,bottom=25mm,left=25mm,right=25mm}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+
+\lstset{basicstyle=\small\ttfamily,breaklines=true,frame=single,
+        numbers=none,xleftmargin=1em,language={}}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small Identity Bedrock}
+\rhead{\small Bouchard, 2026}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\newcommand{\OWF}{\mathrm{OWF}}
+\newcommand{\SIG}{\mathrm{SIG}}
+\newcommand{\EUFCMA}{\mathrm{EUF\text{-}CMA}}
+\newcommand{\negl}{\mathrm{negl}}
+\newcommand{\PBAT}{\textsf{PBAT}}
+\newcommand{\BD}{\textsf{Identity Bedrock}}
+
+\begin{document}
+
+\title{\textbf{Identity Bedrock: Operationalizing Rompel's Minimal
+Cryptographic Substrate\\for Sovereign Identity with Physical Presence Proof}}
+
+\author{
+  Jean-Fran\c{c}ois Bouchard\\[4pt]
+  \small PrivateNess Network (co-founder, CTO)\\
+  \small Emercoin (community contributor)\\[4pt]
+  \small \texttt{[contact via privateness.network]}
+}
+
+\date{March 2026 \quad|\quad Version 1.0}
+
+\maketitle
+
+\begin{center}
+\small\itshape
+\textbf{AI disclosure:} The author used AI language model assistance
+for manuscript drafting and editing. All technical contributions,
+system design, implementation, theoretical framing, and binding
+insights described herein originate with the author, drawing on nine
+years of operational experience deploying Emercoin-based infrastructure.
+\end{center}
+
+\vspace{4pt}\noindent\rule{\textwidth}{0.4pt}\vspace{2pt}
+
+\begin{abstract}
+We present \BD{}, a deployed identity system grounded explicitly in
+Rompel's proof that one-way functions ($\OWF$) are necessary and
+sufficient for existentially unforgeable signatures under adaptive
+chosen-message attack ($\SIG_{\EUFCMA}$)~\cite{Rompel90}. The system
+separates identity cryptography (Ed25519 or ML-DSA) from directory
+consensus via a chain-agnostic append-only ledger, eliminating
+institutional keys beneath the individual. Deployed on Emercoin NVS
+with Bitcoin AuxPoW anchoring, the attack cost on the directory layer
+approaches five times EMC market capitalization~\cite{Kho21} due to
+the triple consensus barrier.
+
+We further identify bone conduction audio as a physical phenomenon
+satisfying the inaccessible entropy property of Haitner
+et~al.~\cite{Haitner10}: the mechanical impedance mismatch at the
+air-bone interface ($T \approx 1.1 \times 10^{-3}$) renders the
+authentication channel unconditionally inaccessible to replay,
+independent of computational assumptions. We integrate this as a
+fourth authentication factor and propose the Physically-Bound
+Authentication Token (\PBAT{}), a signed structure carrying biometric
+session evidence alongside cryptographic proof.
+
+The contribution lies in the binding of existing primitives into a
+system whose emergent security properties none of them exhibits alone.
+\end{abstract}
+
+\medskip
+\noindent\textbf{Keywords:} one-way functions, digital signatures,
+sovereign identity, bone conduction authentication, inaccessible
+entropy, blockchain identity, post-quantum cryptography,
+physical presence proof.
+
+\noindent\rule{\textwidth}{0.4pt}
+\tableofcontents
+\newpage
+
+\section{Introduction}
+
+\subsection{The Problem: Institutional Capture}
+
+Every deployed digital identity system places institutional keys
+beneath the user: certificate authorities, identity providers, key
+registries, platform operators. These entities can revoke, deny,
+surveil, or control identity without the user's consent.
+
+The threat model motivating this work assumes an adversary with
+substantial conventional resources, potential political backing, and
+full control of traditional identity infrastructure. The central
+question is: \emph{can identity exist without institutional keys
+beneath the individual?}
+
+\subsection{The Theoretical Answer: Rompel 1990}
+
+Rompel proved that $\OWF$s are both necessary and sufficient for
+$\SIG_{\EUFCMA}$ secure signature schemes~\cite{Rompel90}. This is
+the provable minimum --- nothing strictly weaker supports public
+authentication under standard assumptions.
+
+Our thesis: fixing $\OWF$ as the cryptographic floor and adding only
+a chain-agnostic append-only directory produces an identity
+construction that minimizes institutional capture to zero beneath
+the individual key.
+
+\subsection{The Binding Insight}
+
+This work follows a pattern established by prior binding innovations
+in cryptographic systems: the value lies not in the invention of new
+primitives but in recognizing that existing primitives, bound in a
+specific way, produce emergent properties none of them exhibits alone.
+Each component of \BD{} --- $\OWF$-based signatures, append-only
+directories, bone conduction biometrics --- exists independently in
+prior literature. The contribution is the binding and the formal
+argument for the security properties that binding produces.
+
+\subsection{Contributions}
+
+\paragraph{Contribution 1 --- Theory.}
+Formalization of a Rompel-grounded, chain-agnostic identity system.
+We prove that removing the $\OWF$ floor collapses authentication, and
+that weakening the directory trades one consensus for another without
+improving the institutional capture property.
+
+\paragraph{Contribution 2 --- Systems.}
+Architecture: Ed25519 or ML-DSA~\cite{FIPS204} identity layer with
+pluggable directory substrate. Implementation: Emercoin NVS
+(Bitcoin-anchored via AuxPoW)~\cite{Emercoin} and NESS
+Fiber~\cite{DPO} (announced publisher keys, append-only BoltDB).
+Deployed and publicly verifiable since 2013.
+
+\paragraph{Contribution 3 --- Physical Presence Extension.}
+Identification of bone conduction audio as a physical phenomenon
+satisfying the inaccessible entropy property of Haitner
+et~al.~\cite{Haitner10}, providing a formal argument for replay
+resistance that prior biometric work demonstrates only
+empirically~\cite{HeadSonic25,HCRAuth24}. Integration as a fourth
+authentication factor and the \PBAT{} token specification.
+
+\subsection{Paper Organization}
+
+Section~\ref{sec:background} reviews background and related work.
+Section~\ref{sec:threat} defines the threat model.
+Section~\ref{sec:architecture} presents the \BD{} architecture.
+Section~\ref{sec:implementation} describes the deployed implementation.
+Section~\ref{sec:physical} introduces the physical presence extension.
+Section~\ref{sec:evaluation} evaluates the system.
+Section~\ref{sec:discussion} discusses limitations and future work.
+
+\section{Background and Related Work}
+\label{sec:background}
+
+\subsection{Rompel's Theorem (1990)}
+
+From a complexity-theoretic perspective, $\OWF$s, universal one-way
+hash functions (UOWHFs), and $\SIG_{\EUFCMA}$ schemes are equivalent
+in strength~\cite{NaorYung89}. Rompel~\cite{Rompel90} and later
+Haitner et~al.~\cite{Haitner10} showed how to construct UOWHFs from
+arbitrary $\OWF$s using inaccessible entropy. A modern exposition is
+given in~\cite{KatzKoo05}. The equivalence is:
+\[
+  \OWF \;\Leftrightarrow\; \SIG_{\EUFCMA}
+\]
+under standard definitions~\cite{Rompel90,Goldreich01}. To our
+knowledge, prior work does not explicitly operationalize this
+equivalence as the design floor for a deployed identity system.
+
+\subsection{Inaccessible Entropy}
+\label{sec:inaccessible}
+
+Haitner et~al.~\cite{Haitner10} introduce inaccessible entropy to
+simplify and improve Rompel's construction. Informally, a function $F$
+has inaccessible entropy if the real entropy of $F^{-1}$ ---the
+entropy remaining in the input after observing the output---
+significantly exceeds the accessible entropy: the maximum entropy any
+polynomial-time adversary can generate among valid preimages.
+
+\begin{definition}[Inaccessible Entropy, informal~{\cite{Haitner10}}]
+\label{def:inaccessible}
+Let $F: \{0,1\}^n \to \{0,1\}^m$. The \emph{inaccessible entropy}
+of $F^{-1}$ is the gap
+\[
+  \Delta \;=\; H(X \mid F(X)) \;-\; \max_{A \in \mathrm{PPT}}
+  H(A(X;\,R) \mid X)
+\]
+where $X$ is uniform on $\{0,1\}^n$, $R$ denotes uniform random
+coins for $A$, and $A$ is constrained to output elements of
+$F^{-1}(F(X))$.
+\end{definition}
+
+We observe in Section~\ref{sec:physical} that bone conduction
+independently satisfies an analogous property --- but enforced by
+physical rather than computational means, yielding a strictly stronger
+guarantee.
+
+\subsection{Blockchain-Based Identity Systems}
+
+\textbf{Namecoin / EmerDNS.} Name-value storage on blockchain. Gap:
+identity keys tied to blockchain wallet keys (not chain-agnostic);
+miners act as an implicit certificate authority.
+
+\textbf{W3C DIDs / Ethereum.} DID methods, smart contracts, ENS. Gap:
+DAO governance keys, registry administrators, and provider
+dependencies introduce institutional keys above or beneath the user.
+
+\textbf{Sovrin / Hyperledger Indy.} Permissioned validators,
+credential schemas. Gap: steward keys control the network.
+
+\textbf{\BD{} distinction.} Pure $\OWF$ floor. Chain-agnostic
+separation of identity cryptography from directory consensus. No
+institutional key beneath the user by construction.
+
+\subsection{Bitcoin AuxPoW and Merged Mining}
+
+Auxiliary Proof-of-Work allows Emercoin to be merge-mined with
+Bitcoin, inheriting a portion of Bitcoin's security for non-monetary
+applications. Khovayko~\cite{Kho21} introduces the \emph{hack51}
+coefficient---defined as $\text{attack\_cost} /
+\text{market\_cap}$---as a numerically measurable metric for 51\%
+attack resistance. Under this metric, Emercoin's triple consensus
+(PoS + PoW + merged mining) produces a coefficient significantly
+exceeding 1.0: attacking Emercoin requires resources approaching five
+times its market capitalization, exceeding the cost of attacking
+Bitcoin alone at equivalent market cap. We apply the \emph{hack51}
+framework in Section~\ref{sec:eval_attack}.
+
+\subsection{Bone Conduction Biometric Authentication}
+
+Recent work demonstrates that bone conduction audio carries unique
+per-individual characteristics. HeadSonic~\cite{HeadSonic25} proposes
+a bone conduction earphone authentication system achieving 96.59\%
+balanced accuracy across 60 subjects and demonstrating resilience
+against replay and synthesis attacks. HCR-Auth~\cite{HCRAuth24}
+demonstrates reliable authentication via head contact response.
+These works establish \emph{empirically} that bone conduction
+authentication resists replay attacks. Neither provides a formal
+argument for why. We provide that argument in
+Section~\ref{sec:impedance}.
+
+\subsection{Skycoin Fiber Consensus}
+
+Skycoin Fiber~\cite{Skycoin} uses announced block publisher keys
+rather than economic consensus. Blocks must be signed by announced
+keys; any number of hostile nodes up to $N-1$ cannot forge blocks
+without those keys --- only the node holding the publisher key can
+produce valid blocks. The append-only BoltDB backend makes history
+rewriting detectable and maximally visible.
+
+\subsection{Summary of Differences}
+
+\BD{} differs from all prior work above in three respects
+simultaneously. First, it is the only system explicitly grounded in
+Rompel's $\OWF$--signature equivalence as a design floor. Second, the
+chain-agnostic architecture decouples identity cryptography from
+directory consensus: the same key works across directories, and
+migration is authenticated by the key itself. Third, by identifying
+bone conduction as satisfying the inaccessible entropy property, we
+provide the first formal argument for why bone conduction biometrics
+resist replay---prior work demonstrates this empirically without
+naming the underlying principle. The \PBAT{} specification is the
+first token format carrying physically-bound biometric session
+evidence alongside a cryptographic identity proof in a single signed
+structure.
+
+\section{Threat Model and Requirements}
+\label{sec:threat}
+
+\subsection{Adversary Capabilities}
+
+\textbf{Assumed:} Substantial conventional resources and political
+backing; full control of traditional identity infrastructure (CAs,
+IdPs, KYC registries); ability to outlaw software, seize property,
+and coerce individuals; classical (polynomial-time) computational
+adversary.
+
+\textbf{Not assumed:} Cannot break $\OWF$ under standard complexity
+assumptions; cannot mount a sustained 51\% attack on Bitcoin
+(quantified in Section~\ref{sec:eval_attack}); cannot simultaneously
+compromise distributed infrastructure globally; cannot violate
+acoustic physics (Section~\ref{sec:impedance}).
+
+\textbf{Explicit scope.} This work addresses classical adversaries.
+Post-quantum migration to ML-DSA (FIPS~204)~\cite{FIPS204} is
+discussed in Section~\ref{sec:limitations}.
+
+\subsection{Design Requirements}
+
+\textbf{R1 --- Mathematical irreducibility.} $\OWF$ as cryptographic
+floor. No strictly weaker primitive beneath.
+
+\textbf{R2 --- No institutional keys.} Individual key is sole
+cryptographic root of trust. No CA, IdP, or registry key beneath
+the user.
+
+\textbf{R3 --- Chain-agnostic.} Identity cryptography independent of
+any specific directory consensus. Portable across append-only
+substrates.
+
+\textbf{R4 --- Quantifiable security.} Attack costs explicit and
+measurable.
+
+\textbf{R5 --- Operational verification.} Deployed system, not
+theoretical proposal. Public verification of all claims.
+
+\textbf{R6 --- Physical presence.} For deployments requiring physical
+presence proof, the system must provide it unconditionally --- not
+via algorithmic liveness detection but via physical channel
+properties.
+
+\section{Identity Bedrock Architecture}
+\label{sec:architecture}
+
+\subsection{The Two-Layer Design}
+
+\paragraph{Layer 1: Identity Cryptography (Chain-Agnostic).}
+\[
+\text{Seed} \;(\geq 256\text{ bits}) \;\xrightarrow{\mathsf{KeyGen}}\;
+(\mathit{sk},\; \mathit{pk})
+\]
+\[
+\text{Identity} = (\mathit{id},\, \mathit{pk}), \qquad
+\text{Authentication} = \mathsf{Sign}_{\mathit{sk}}(\mathit{challenge})
+\]
+
+Properties: $\OWF$-equivalent security (Rompel equivalence);
+independent of any blockchain; portable across directory substrates.
+Default instantiation: Ed25519~\cite{RFC8032}. Migration target:
+ML-DSA-65~\cite{FIPS204}.
+
+\paragraph{Layer 2: Directory Substrate (Pluggable).}
+
+\begin{definition}[Append-Only Directory with Finality]
+\label{def:directory}
+A directory $\mathcal{D} \subseteq \mathcal{ID} \times \mathcal{PK}$
+is \emph{append-only with finality} if: \emph{(i)} once
+$\mathsf{Bind}(\mathit{id}, \mathit{pk}) = 1$ is confirmed, it cannot
+be set to $0$ without an attack of quantifiable cost; and \emph{(ii)}
+the binding is globally verifiable by any party without trusting an
+intermediary.
+\end{definition}
+
+\paragraph{Separation invariant.} Identity uses its chosen signature
+scheme; the directory uses whatever consensus fits the deployment's
+threat model. The same identity key can move between directories.
+No coupling exists between the two layers.
+
+\subsection{Authentication Protocol}
+
+\paragraph{Setup.}
+\begin{enumerate}
+  \item User generates $(\mathit{sk}, \mathit{pk})$ from entropy source.
+  \item User publishes $(\mathit{id}, \mathit{pk})$ to directory
+        $\mathcal{D}$.
+  \item Wait for finality (directory-dependent).
+  \item Binding is global: $\mathsf{Bind}(\mathit{id}, \mathit{pk})=1$.
+\end{enumerate}
+
+\paragraph{Challenge-Response.}
+\begin{enumerate}
+  \item $V \to P$: fresh nonce $c \xleftarrow{\$} \{0,1\}^\lambda$.
+  \item $P \to V$: $\sigma = \mathsf{Sign}_{\mathit{sk}}(c)$.
+  \item $V$ verifies:
+    \begin{enumerate}
+      \item Fetch $\mathit{pk}$ s.t.\
+            $\mathsf{Bind}(\mathit{id}, \mathit{pk}) = 1$ from
+            $\mathcal{D}$.
+      \item Check $\mathsf{Verify}_{\mathit{pk}}(c, \sigma) = 1$.
+      \item Accept iff both hold.
+    \end{enumerate}
+\end{enumerate}
+
+No state beyond $(\mathit{id}, \mathit{pk})$ is held in the directory.
+No smart contracts. Verification is pure mathematics.
+
+\subsection{Security Proof}
+
+\begin{theorem}
+\label{thm:unforgeability}
+If the underlying signature scheme is $\SIG_{\EUFCMA}$ secure and
+$\mathcal{D}$ is append-only with finality
+(Definition~\ref{def:directory}), then \BD{} provides unforgeable
+authentication against any classical adversary.
+\end{theorem}
+
+\begin{proof}
+Suppose adversary $\mathcal{A}$ wins the authentication game: it
+produces valid $(\mathit{id}^*, c^*, \sigma^*)$ without holding
+$\mathit{sk}$.
+
+Construct forger $\mathcal{B}$ against the signature scheme.
+$\mathcal{B}$ receives challenge public key $\mathit{pk}^*$. It
+simulates the directory by answering binding queries for
+$\mathit{id}^*$ with $\mathit{pk}^*$.\footnote{$\mathcal{B}$
+simulates the directory locally; it does not write to any real
+ledger.} When $\mathcal{A}$ triggers authentication, $\mathcal{B}$
+forwards the $\SIG_{\EUFCMA}$ game challenge $c^*$ to $\mathcal{A}$.
+Since $c^*$ was chosen fresh and never signed by the legitimate
+holder of $\mathit{sk}$, $\mathcal{A}$'s forgery $\sigma^*$
+constitutes an existential forgery. By security of the scheme:
+\[
+  \Pr[\mathcal{A}\text{ wins}] \;\leq\; \negl(\lambda).
+\]
+Directory attacks shift cost to the directory layer, quantified in
+Section~\ref{sec:eval_attack}.\hfill\qed
+\end{proof}
+
+\subsection{Chain-Agnostic Property and Migration}
+
+The same $(\mathit{sk}, \mathit{pk})$ can be published to Emercoin
+NVS, Bitcoin OP\_RETURN, Ethereum contract storage, or any
+append-only ledger satisfying Definition~\ref{def:directory}.
+Migration is authenticated: the user signs a migration statement with
+$\mathit{sk}$, publishes to $\mathcal{D}'$, and verifiers accept
+after finality. The old directory retains the historical record.
+
+\section{Implementation: Emercoin + NESS Fiber}
+\label{sec:implementation}
+
+The architecture described in this paper builds on the PrivateNess
+Network design published in October 2020~\cite{Litepaper20}, which
+established the dual-blind Emercoin + Skywire architecture, 127.0.0.1
+communication restriction, UHE-PRNG entropy at 1536 bits of internal
+state, and the full OSI-stack decentralization approach. Identity
+Bedrock formalizes the cryptographic foundations of that deployed
+system.
+
+\subsection{Directory: Emercoin NVS}
+
+Emercoin NVS provides a name-value store on a hybrid PoS + AuxPoW
+blockchain~\cite{Emercoin}. Consensus: 85\% Proof-of-Stake + 15\%
+Bitcoin AuxPoW. Finality: 1 confirmation ($\approx$2 minutes).
+
+Identity bindings are anchored using the WORM (World Object MaRkup
+language) schema~\cite{WORM}, a decentralized XML-based search
+infrastructure designed by Aleksej Sokolov and deployed within the
+PrivateNess ecosystem. The \texttt{<user>} element is the canonical
+container:
+
+\begin{lstlisting}[language=XML]
+<worm>
+  <user type="ness" key="<pubkey_hex>" nonce="<nonce>">
+    <keys>
+      <key hash="<pubkey_hash>" algo="ed25519">
+        <pubkey_hex>
+      </key>
+    </keys>
+    <node type="ness" url="<skywire_pubkey>"
+          nonce="<nonce>" tags="recorder,voice"/>
+  </user>
+</worm>
+\end{lstlisting}
+
+The \texttt{<keys>} list natively supports multiple algorithms,
+enabling ML-DSA migration without schema changes.
+
+\paragraph{Separation of concerns.} The Emercoin wallet key controls
+NVS record updates. The identity key authenticates the identity
+itself. Directory control is strictly separated from identity
+authentication.
+
+\subsection{Infrastructure: NESS Fiber}
+
+NESS Fiber uses Skycoin-type Fiber consensus~\cite{Skycoin} with
+announced publisher keys published in Emercoin NVS under
+\texttt{dpo/PrivateNESS.Network}~\cite{DPO}, creating a verifiable
+trust chain: NESS Fiber security anchors to Emercoin NVS, which
+anchors to Bitcoin via AuxPoW. This anchoring is \emph{trustless}:
+any verifier can confirm the binding independently at the Emercoin
+block explorer without relying on any intermediary.
+
+Key compromise is maximally detectable: a stolen publisher key cannot rewrite past blocks (append-only BoltDB makes history rewriting impossible). The only action available is a reset to genesis block~0, which is immediately visible to all participants. Key rotation is itself a publicly auditable event.
+
+\subsection{Canonical Self-Spend Proof}
+
+The canonical self-spend proof binds a chain address to the Ed25519
+identity:
+\begin{enumerate}
+  \item Create unsigned self-spend transaction $A \to A$
+  \item Sign with the secp256k1 chain key
+  \item Create proof $\{$\texttt{network, address, policy, txid,
+        tx\_hex}$\}$
+  \item Anchor proof in Emercoin NVS WORM record
+  \item WORM record controlled by the Ed25519 bedrock key
+\end{enumerate}
+
+\paragraph{Deployed instance.}
+The NESS Fiber chain instantiates this construction at genesis.
+The genesis address
+(\texttt{24GJTLPMoz61sV4J4qg1n14x5qqDwXqyJJy}),
+blockchain public key
+(\texttt{02933015bd2fa1...ccaf525036}),
+and genesis block signature are published in
+\texttt{dpo/PrivateNESS.Network}~\cite{DPO}, anchored in Emercoin
+block~\#445669 (November~1, 2020, 22:16:45~UTC) via AuxPoW:
+\[
+\text{Bitcoin AuxPoW}
+\;\to\; \text{Emercoin block \#445669}
+\;\to\; \text{DPO record}
+\;\to\; \text{BlockchainPubkeyStr}
+\;\to\; \text{GenesisSignatureStr}
+\;\to\; \text{NESS Fiber chain}
+\]
+Any verifier can confirm at
+\url{https://explorer.emercoin.com/dpo/PrivateNESS.Network} and
+\url{https://explorer.emercoin.com/block/445669}.
+
+\subsection{Key Generation and Entropy Provisioning}
+
+Identity keys are derived from a seed produced by Gibson's UHEPRNG~%
+\cite{Gibson}. Entropy sources mixed in include: multiple 1024-byte
+blocks from \texttt{os.urandom} ($\geq 1536$ bits total); RC4OK
+output from Emercoin core RNG; CPU timing jitter; and hardware
+identifiers (eMMC CID, MAC address, machine-id). The Linux kernel
+caps its DRBG state to approximately 256 bits; our multi-source
+mixing increases robustness against partial bias without claiming to
+exceed this ceiling. Security rests on the standard
+$\approx 128$-bit classical security floor of the chosen scheme.
+
+\section{Physical Presence Extension}
+\label{sec:physical}
+
+\subsection{Motivation}
+
+The two-layer \BD{} system addresses forgery ($\OWF$ layer) and
+directory rewrite (AuxPoW layer). It does not address physical
+presence: a device with a stolen key can impersonate the legitimate
+owner. For deployments where physical presence is a security
+requirement, an additional unconditionally guaranteed factor is
+needed.
+
+\subsection{The Channel Symmetry Problem}
+
+Every voice authentication system built on air-conducted audio shares
+a fundamental vulnerability: the authentication and replay channels
+are physically identical. A microphone captures air pressure waves.
+A speaker produces air pressure waves. This is not a software
+deficiency --- it is a property of air-conducted sound that no
+liveness detection algorithm can fully overcome.
+
+\subsection{Bone Conduction Breaks Channel Symmetry}
+\label{sec:impedance}
+
+Bone conduction transmits mechanical vibration through skull bone and
+soft tissue to the transducer. Replay requires producing the same
+mechanical vibration pattern at the transducer --- requiring the same
+skull geometry, bone density, tissue distribution, and coupling
+characteristics as the enrolled individual.
+
+The physical barrier to replay is the mechanical impedance mismatch
+at the air-bone interface. The specific acoustic impedance of air is
+$Z_\text{air} \approx 415$~Pa$\cdot$s/m; cortical bone is
+$Z_\text{bone} \approx 1.5 \times 10^6$~Pa$\cdot$s/m~\cite{Acoustics}.
+The pressure transmission coefficient is:
+
+\begin{equation}
+\label{eq:transmission}
+T = \frac{4\, Z_\text{air}\, Z_\text{bone}}{(Z_\text{air} +
+Z_\text{bone})^2}
+= \frac{4 \times 415 \times 1.5 \times 10^6}{(415 + 1.5 \times
+10^6)^2}
+\approx 1.1 \times 10^{-3}
+\end{equation}
+
+Approximately 0.11\% of acoustic energy from an air-conducted source
+transmits into bone. The spatial coupling characteristics --- which
+depend on the geometry of the skull in contact with the transducer
+--- are entirely absent in any replay attempt.
+
+\begin{remark}
+Equation~(\ref{eq:transmission}) is a consequence of acoustic
+physics, not a hardness assumption. It holds unconditionally,
+independent of any computational model.
+\end{remark}
+
+\subsection{Bone Conduction as Physical Inaccessible Entropy}
+
+\begin{remark}[Physical instantiation of inaccessible entropy]
+\label{rem:physical_ie}
+The bone conduction channel produces a distribution --- the mechanical
+resonance signature of the enrolled skull --- whose entropy is
+inaccessible to any adversary not in physical control of the enrolled
+body in contact with the enrolled transducer. The inaccessibility is
+enforced by Equation~(\ref{eq:transmission}), not by any
+computational hardness assumption. Where Definition~\ref{def:inaccessible}
+requires inaccessibility against PPT adversaries (a computational
+bound), bone conduction provides inaccessibility against \emph{all}
+adversaries lacking physical control (an unconditional bound) ---
+a strictly stronger guarantee under any computational model.
+\end{remark}
+
+\begin{remark}[Scope of Remark~\ref{rem:physical_ie}]
+Remark~\ref{rem:physical_ie} is an observation connecting a physical
+phenomenon to the inaccessible entropy framework of Haitner
+et~al.~\cite{Haitner10}. A formal reduction demonstrating that bone
+conduction channel entropy satisfies Definition~\ref{def:inaccessible}
+under the standard model remains for future work.
+\end{remark}
+
+\subsection{The Four-Factor Authentication Stack}
+
+\begin{table}[h]
+\centering
+\caption{Four-factor authentication stack}
+\label{tab:fourfactor}
+\begin{tabular}{llll}
+\toprule
+Factor & Mechanism & Attack addressed & Guarantee \\
+\midrule
+Ed25519 / $\OWF$ & Rompel floor & Forgery & Computational \\
+EmerNVS / AuxPoW & Bitcoin-anchored dir. & Dir.\ rewrite & Economic \\
+Bone conduction & Physical coupling & Replay & Unconditional \\
+Voiceprint + \PBAT{} & Session embed.\ signed & Impersonation &
+Biometric + crypto \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{The Physically-Bound Authentication Token}
+
+\begin{definition}[\PBAT{}]
+\label{def:pbat}
+A \emph{Physically-Bound Authentication Token} is a signed data
+structure containing: an identity public key; a directory binding
+proof; a biometric session embedding captured via a physically
+inaccessible channel (Definition~\ref{def:physical_channel}); a
+single-use nonce; a timestamp; and a digital signature over all
+fields by the identity private key.
+\end{definition}
+
+\begin{lstlisting}
+{
+  "identity_pubkey":   "<Ed25519 or ML-DSA pubkey hex>",
+  "identity_algo":     "ed25519 | mldsa65",
+  "nvs_record":        "<EmerNVS WORM txid>",
+  "voiceprint_hash":   "<SHA256 or SHA3-256 of enrolled embedding>",
+  "session_embedding": "<current session voice embedding>",
+  "similarity_score":  0.94,
+  "capture_channel":   "bone_conduction_msbc",
+  "headset_mac":       "<BT MAC of enrolled headset>",
+  "timestamp":         "<UTC ISO8601>",
+  "nonce":             "<random 256-bit>",
+  "expires_seconds":   300,
+  "signature":         "<Sign_sk(all above fields)>"
+}
+\end{lstlisting}
+
+A \PBAT{} cannot be replayed: the nonce is single-use, the timestamp
+is signed, and the session embedding is captured live at this
+authentication event.
+
+\paragraph{Physical presence doctrine.}
+\emph{The device authenticates the body, not the credential. No
+network path, no software override, and no root privilege substitutes
+for physical presence of the enrolled body wearing the enrolled
+transducer.}
+
+\paragraph{Quantum note.}
+The physical presence layer is unconditionally quantum-resistant.
+Post-quantum migration is scoped to the cryptographic binding layer
+only.
+
+\section{Evaluation}
+\label{sec:evaluation}
+
+\subsection{Attack Cost Analysis}
+\label{sec:eval_attack}
+
+\begin{table}[h]
+\centering
+\caption{Attack cost analysis}
+\label{tab:attacks}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{p{2.8cm}p{3.5cm}p{3.2cm}p{3cm}}
+\toprule
+Attack vector & Requirements & Estimated cost & Result \\
+\midrule
+Break signature scheme
+  & Violate $\OWF$ assumption
+  & Infeasible (classical)
+  & Authentication collapses \\
+Rewrite Emercoin NVS
+  & PoS majority + PoW + AuxPoW 51\% simultaneously
+  & $\approx\!5\times$ EMC mkt.\ cap~\cite{Kho21};
+    Bitcoin component $\sim$\$5--20B~\cite{CoinMetrics24}
+  & Directory rewrite \\
+Compromise NESS Fiber
+  & Steal publisher keys
+  & High; DoS only without keys
+  & Cannot alter identity bindings \\
+Replay bone conduction
+  & Reproduce mechanical skull signature via air
+  & Physically infeasible ($T \approx 10^{-3}$,
+    Eq.~\ref{eq:transmission})
+  & Biometric layer holds \\
+Coerce enrolled user
+  & Physical
+  & Variable
+  & Outside cryptographic scope \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Note on AuxPoW attack cost.}
+Khovayko~\cite{Kho21} demonstrates via the \emph{hack51} coefficient
+that Emercoin's triple consensus barrier requires resources approaching
+$5\times$ EMC market capitalization. The \$5--20B
+figure~\cite{CoinMetrics24} represents the Bitcoin AuxPoW component;
+it is a \emph{lower bound} on the total attack cost.
+
+\subsection{Comparison to Related Systems}
+
+\begin{table}[h]
+\centering
+\caption{Comparison of identity systems}
+\label{tab:comparison}
+\begin{tabular}{lcccc}
+\toprule
+System & Identity floor & No inst.\ keys & Chain-agnostic
+  & Physical presence \\
+\midrule
+\textbf{\BD{}} & Ed25519/Rompel & \checkmark & \checkmark
+  & Physical (bone) \\
+X.509 PKI & RSA/ECDSA & $\times$ & $\times$ & None \\
+Namecoin & ECDSA & $\times$ & $\times$ & None \\
+Ethereum DIDs & Varies & $\times$ & $\times$ & None \\
+Sovrin & Ed25519 & $\times$ & $\times$ & None \\
+FIDO2 & ECDSA & Partial & $\times$ & HW token \\
+HeadSonic~\cite{HeadSonic25} & None & N/A & N/A
+  & Physical (bone) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Performance}
+
+\begin{itemize}
+  \item \textbf{Emercoin NVS finality:} $\approx$2 minutes
+  \item \textbf{Challenge-response:} milliseconds (no on-chain
+        transaction required at verification time)
+  \item \textbf{Voiceprint verification} (resemblyzer%
+        \footnote{\url{https://github.com/resemble-ai/resemblyzer}},
+        RK3528 class hardware): ${<}1$ second
+  \item \textbf{\PBAT{} generation and signing:} ${<}10$ ms
+\end{itemize}
+
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Limitations}
+\label{sec:limitations}
+
+\paragraph{Out of scope.}
+Key compromise via malware or physical theft affects any cryptographic
+system. Social engineering, phishing, and UI-layer attacks are
+orthogonal to the security model.
+
+\paragraph{Quantum adversary.}
+Ed25519 is vulnerable to Shor's algorithm. This work scopes to
+classical adversaries. The intended migration path is ML-DSA-65
+(CRYSTALS-Dilithium3, FIPS~204~\cite{FIPS204}):
+\begin{itemize}
+  \item Replace Ed25519 with ML-DSA-65 (pubkey 1952 bytes vs.\ 32;
+        accommodated by EmerNVS value field)
+  \item Replace SHA-256 voiceprint hash with SHA3-256 in \PBAT{}
+  \item WORM \texttt{<keys>} schema natively supports multiple
+        algorithms; migration adds \texttt{<key algo="mldsa65">}
+        without modifying existing records
+  \item Physical presence layer, \PBAT{} structure, and directory
+        anchoring unchanged
+  \item OpenSSL~3.5 (April~2025) includes native ML-DSA support
+        in mainline Armbian Linux
+\end{itemize}
+
+\paragraph{Formal reduction for bone conduction.}
+The connection between bone conduction and
+Definition~\ref{def:inaccessible} is an observation
+(Remark~\ref{rem:physical_ie}), not a completed theorem. A formal
+reduction under the standard model remains for future work.
+
+\paragraph{Attack cost precision.}
+Absolute figures depend on current EMC market conditions and should
+be treated as order-of-magnitude illustrations.
+
+\paragraph{Coercion.}
+The residual attack surface of \BD{} is coercion, enrollment
+compromise, and post-quantum cryptanalysis --- each explicitly
+bounded.
+
+\subsection{On the Nature of the Contribution}
+
+This work follows the pattern of binding innovations in applied
+cryptography: taking existing primitives and identifying a binding
+that produces emergent properties none of them exhibits alone. The
+emergent property is an identity system with no institutional keys
+beneath the individual, unconditional physical presence proof, and a
+formal cryptographic floor, deployed and publicly verifiable since
+2013~\cite{Emercoin} / 2020~\cite{DPO}.
+
+\subsection{Future Work}
+
+\begin{itemize}
+  \item Formal reduction: prove bone conduction channel entropy
+        satisfies Definition~\ref{def:inaccessible} under the
+        standard model
+  \item Full \PBAT{} security proof under the standard model
+  \item Threshold signatures ($k$-of-$n$ ML-DSA) for social
+        recovery without institutional escrow
+  \item Demonstrate chain-agnostic portability across Bitcoin
+        OP\_RETURN and Ethereum
+  \item User studies on bone conduction enrollment UX and false
+        rejection rate
+\end{itemize}
+
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+
+We have presented \BD{}, a deployed identity system grounded in
+Rompel's $\OWF$--signature equivalence. The system achieves no
+institutional keys beneath the individual through a chain-agnostic
+architecture separating identity cryptography from directory
+consensus.
+
+We have further identified bone conduction audio as a physical
+phenomenon satisfying the inaccessible entropy property of Haitner
+et~al.~\cite{Haitner10} (Remark~\ref{rem:physical_ie}), providing
+the physical argument for replay resistance that prior biometric work
+demonstrates empirically. Integrated as a fourth authentication
+factor, this produces the four-factor system of
+Table~\ref{tab:fourfactor}.
+
+The canonical on-chain identity record at~\cite{DPO} constitutes
+operational proof: the genesis address, blockchain public key, and
+genesis signature are anchored in Emercoin NVS via AuxPoW,
+transitively anchored to Bitcoin, and independently auditable by
+any party without trusting an intermediary. This is not a paper
+describing what could be built. It is a paper describing what has
+been running since 2020.
+
+\section*{Acknowledgments}
+\addcontentsline{toc}{section}{Acknowledgments}
+
+The author thanks Oleg Khovayko for foundational Emercoin
+infrastructure work and the \emph{hack51} attack cost framework;
+Aleksej Sokolov (Alex014) for designing the WORM format and
+implementing the PrivateNess toolchain (\texttt{privatenesstools},
+\texttt{pyuheprng}) from the author's specifications; Brandon
+``Synth'' Smietana and Moses Narrow (\texttt{moe\_narrow} /
+\texttt{0pcom}), Skywire Linux packaging lead, for the Skywire mesh
+transport and Fiber consensus infrastructure on which NESS is built;
+and the PrivateNess Network community, whose collective work since
+the project's public founding on Bitcointalk on September~1,
+2020~\cite{BTCTalk20} has made this deployed system possible. The
+author's own engagement with Emercoin infrastructure spans nine
+years and provides the operational foundation on which \BD{} is
+built.
+
+\bibliographystyle{plain}
+\begin{thebibliography}{99}
+
+\bibitem{Rompel90}
+J.~Rompel.
+\newblock One-way functions are necessary and sufficient for secure
+  signatures.
+\newblock In {\em Proc.\ 22nd Annual ACM Symposium on Theory of
+  Computing (STOC)}, pages 387--394. ACM, 1990.
+
+\bibitem{Haitner10}
+I.~Haitner, T.~Holenstein, O.~Reingold, S.~Vadhan, and H.~Wee.
+\newblock Universal one-way hash functions via inaccessible entropy.
+\newblock In H.~Gilbert, editor, {\em Advances in Cryptology ---
+  EUROCRYPT~2010}, LNCS vol.~6110, pages 616--637. Springer, 2010.
+
+\bibitem{RFC8032}
+S.~Josefsson and I.~Liusvaara.
+\newblock Edwards-curve digital signature algorithm ({EdDSA}).
+\newblock RFC 8032, IETF, January 2017.
+\newblock \url{https://www.rfc-editor.org/rfc/rfc8032}
+
+\bibitem{Gibson}
+S.~Gibson.
+\newblock Ultra-high entropy pseudo-random number generator ({UHEPRNG}).
+\newblock Gibson Research Corporation.
+\newblock \url{https://www.grc.com/otg/uheprng.htm}
+
+\bibitem{Emercoin}
+Emercoin Development Team.
+\newblock Emercoin: hybrid blockchain with merged mining.
+\newblock \url{https://emercoin.com}, 2013--2026.
+
+\bibitem{Kho21}
+O.~Khovayko.
+\newblock {Оценка стоимости атаки 51\% на {Emercoin}:
+  коэффициент hack51}.
+\newblock Dzen / Yandex, 2021.
+\newblock \url{https://dzen.ru/a/YUotZkN9nAeElPEQ} [In Russian]
+
+\bibitem{CoinMetrics24}
+L.~Nuzzi et~al.
+\newblock Breaking {BFT}: quantifying the cost to attack {Bitcoin}
+  and {Ethereum}.
+\newblock Coin Metrics, 2024.
+
+\bibitem{Skycoin}
+B.~Smietana (``Synth'') et~al.
+\newblock Skycoin: {Skywire} and {Fiber} consensus.
+\newblock Skycoin Development Team, 2014--2026.
+\newblock \url{https://www.skycoin.com}
+\newblock Linux packaging: M.~Narrow (\texttt{moe\_narrow} /
+  \texttt{0pcom}).
+
+\bibitem{WORM}
+A.~Sokolov (Alex014) / {NESS-Network}.
+\newblock {WORM} --- {W}orld {O}bject {Ma}R\-kup language.
+\newblock Format designed by A.~Sokolov; deployed within the
+  {PrivateNess} ecosystem.
+\newblock \url{https://github.com/ness-network/worm}
+
+\bibitem{NaorYung89}
+M.~Naor and M.~Yung.
+\newblock Universal one-way hash functions and their cryptographic
+  applications.
+\newblock In {\em Proc.\ 21st Annual ACM Symposium on Theory of
+  Computing (STOC)}, pages 33--43. ACM, 1989.
+
+\bibitem{KatzKoo05}
+J.~Katz and C.-Y. Koo.
+\newblock On constructing universal one-way hash functions from
+  arbitrary one-way functions.
+\newblock Cryptology ePrint Archive, Report 2005/328, 2005.
+\newblock \url{https://eprint.iacr.org/2005/328}
+
+\bibitem{FIPS204}
+{National Institute of Standards and Technology}.
+\newblock Module-lattice-based digital signature standard ({ML-DSA}).
+\newblock {FIPS}~204, August 2024.
+\newblock \url{https://doi.org/10.6028/NIST.FIPS.204}
+
+\bibitem{HeadSonic25}
+Z.~He, J.~Chen, K.~He, Y.~Gu, Q.~Deng, and Z.~Zhang.
+\newblock {HeadSonic}: usable bone conduction earphone authentication
+  via head-conducted sounds.
+\newblock {\em IEEE Transactions on Mobile Computing},
+  24(9):7914--7928, September 2025.
+\newblock doi:10.1109/TMC.2025.3551272
+
+\bibitem{HCRAuth24}
+Z.~He, J.~Chen, C.~Wu, K.~He, R.~Du, J.~Jia, Y.~Gu, and X.~Sun.
+\newblock {HCR-Auth}: reliable bone conduction earphone
+  authentication with head contact response.
+\newblock {\em Proc.\ ACM Interact.\ Mob.\ Wearable Ubiquitous
+  Technol.}, 8(4):1--27, November 2024.
+\newblock doi:10.1145/3699780
+
+\bibitem{Acoustics}
+L.~E.~Kinsler, A.~R.~Frey, A.~B.~Coppens, and J.~V.~Sanders.
+\newblock {\em Fundamentals of Acoustics}, 4th~ed.
+\newblock John Wiley \& Sons, Hoboken, NJ, 2000.
+\newblock ISBN: 978-0-471-84789-2.
+
+\bibitem{Goldreich01}
+O.~Goldreich.
+\newblock {\em Foundations of Cryptography, Vol.~1: Basic Tools}.
+\newblock Cambridge University Press, 2001.
+
+\bibitem{BTCTalk20}
+{PrivateNESS Network}.
+\newblock {PrivateNess Network (NESS) Privacy CX Fiber Coin}.
+\newblock Bitcointalk Announcements (Altcoins), September~1, 2020.
+\newblock \url{https://bitcointalk.org/index.php?topic=5272741.0}
+
+\bibitem{Litepaper20}
+J.-F.~Bouchard et~al.
+\newblock {PrivateNess Network LitePaper}.
+\newblock PrivateNess Network, October~9, 2020.
+\newblock \url{https://privateness.network/?p=255}
+\newblock \textit{``The only effective weapon against big tech is
+  small tech decentralized.''}
+
+\bibitem{DPO}
+{PrivateNESS Network}.
+\newblock {PrivateNESS.Network} --- canonical on-chain identity
+  record.
+\newblock Emercoin NVS DPO, anchored in block~\#445669,
+  November~1, 2020, 22:16:45~UTC. Operational 2020--2026.
+\newblock \url{https://explorer.emercoin.com/dpo/PrivateNESS.Network}
+\newblock Block: \url{https://explorer.emercoin.com/block/445669}
+
+\end{thebibliography}
+
+\appendix
+
+\section{Formal Definitions}
+\label{app:defs}
+
+\begin{definition}[One-Way Function]
+A function $f: \{0,1\}^* \to \{0,1\}^*$ is a \emph{one-way
+function} if it is computable in polynomial time and for all PPT
+adversaries $\mathcal{A}$:
+\[
+  \Pr\bigl[\mathcal{A}(f(x)) \in f^{-1}(f(x))\bigr]
+  \;\leq\; \negl(\lambda)
+\]
+where $x \xleftarrow{\$} \{0,1\}^\lambda$.
+\end{definition}
+
+\begin{definition}[$\SIG_{\EUFCMA}$ Security]
+A signature scheme $(\mathsf{Gen}, \mathsf{Sign}, \mathsf{Verify})$
+is \emph{existentially unforgeable under adaptive chosen-message
+attack} if for all PPT adversaries $\mathcal{A}$ with access to a
+signing oracle:
+\[
+  \Pr\bigl[\mathsf{Verify}(\mathit{pk}, m^*, \sigma^*) = 1
+  \;\wedge\; m^* \notin Q\bigr]
+  \;\leq\; \negl(\lambda)
+\]
+where $(\mathit{pk}, \mathit{sk}) \gets \mathsf{Gen}(1^\lambda)$
+and $Q$ is the set of queried messages.
+\end{definition}
+
+\begin{definition}[Physically Inaccessible Biometric Channel]
+\label{def:physical_channel}
+A biometric capture channel is \emph{physically inaccessible} if
+the entropy produced by the channel is inaccessible to any adversary
+without physical control of the enrolled subject in contact with the
+enrolled transducer, by physical properties of the channel rather
+than by computational hardness assumptions.
+\end{definition}
+
+\section{WORM Identity Record Schema}
+\label{app:worm}
+
+The WORM \texttt{<keys>} list supports multiple algorithms,
+enabling post-quantum migration without schema changes:
+
+\begin{lstlisting}[language=XML]
+<worm>
+  <user type="ness" key="<primary_pubkey_hex>"
+        nonce="<random_nonce>">
+    <keys>
+      <key hash="<pubkey_hash>" algo="ed25519">
+        <pubkey_hex>
+      </key>
+      <key hash="<mldsa_hash>" algo="mldsa65">
+        <mldsa_pubkey_hex>
+      </key>
+    </keys>
+    <node type="ness" url="<skywire_pubkey>"
+          nonce="<skywire_nonce>"
+          tags="recorder,voice"/>
+  </user>
+</worm>
+\end{lstlisting}
+
+\section{Deployment Verification}
+\label{app:deployment}
+
+\begin{itemize}
+  \item \textbf{PrivateNess Network on-chain identity (EmerNVS DPO):}\\
+        \url{https://explorer.emercoin.com/dpo/PrivateNESS.Network}\\
+        Anchored in block~\#445669, November~1, 2020, 22:16:45~UTC.
+  \item \textbf{Bitcointalk (September~1, 2020):}\\
+        \url{https://bitcointalk.org/index.php?topic=5272741.0}
+  \item \textbf{Emercoin NVS explorer:}
+        \url{https://explorer.emercoin.com}
+  \item \textbf{PrivateNess Network:}
+        \url{https://privateness.network}
+  \item \textbf{PrivateNess tools}
+        (A.~Sokolov, from J.-F.~Bouchard specifications):\\
+        \url{https://github.com/ness-network/privatenesstools}
+  \item \textbf{pyuheprng}
+        (A.~Sokolov, from J.-F.~Bouchard specifications):\\
+        \url{https://github.com/ness-network/pyuheprng}
+  \item \textbf{WORM} (format designed by A.~Sokolov):\\
+        \url{https://github.com/ness-network/worm}
+  \item \textbf{Block explorers:}\\
+        \url{https://ness-explorer.magnetosphere.net}\\
+        \url{https://explorer.privateness.network}
+\end{itemize}
+
+\end{document}
