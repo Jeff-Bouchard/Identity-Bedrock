@@ -1,0 +1,797 @@
+% Identity Bedrock V14 — Pure minimal substrate, peer-review draft
+% No PBAT, no physical presence extension.
+% Compile: pdflatex -> pdflatex
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue]{hyperref}
+\usepackage{geometry}
+
+\geometry{a4paper,margin=25mm}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\title{\textbf{Identity Bedrock: Operationalizing Rompel's Minimal\\
+Cryptographic Substrate for Sovereign Identity}}
+\author{Jean-Fran\c{c}ois Bouchard\\
+  \small PrivateNess Network (co-founder, CTO)\\
+  \small Emercoin (community contributor)\\
+  \small \texttt{[contact via privateness.network]}}
+\date{March 2026}
+
+\begin{document}
+
+\maketitle
+
+\noindent\textbf{AI disclosure.} The author used AI language model assistance
+for manuscript drafting and editing.  All technical contributions, system
+design, implementation, theoretical framing, and binding insights described
+herein originate with the author, drawing on nine years of operational
+experience deploying Emercoin-based infrastructure.
+
+\begin{abstract}
+Identity Bedrock was not built from theory.  It was built from a requirement:
+eliminate every institutional key beneath the individual.  Following that
+requirement to its logical floor---asking what is the minimum cryptographic
+primitive that supports public authentication---we arrived at one-way functions
+as the irreducible foundation.  Rompel's 1990 proof that OWFs are necessary
+and sufficient for existentially unforgeable signatures under adaptive
+chosen-message attack~\cite{rompel1990} was found after that convergence.
+He had already proved we were standing on bedrock.
+
+The system separates identity cryptography from directory consensus via a
+chain-agnostic, append-only binding layer, enabling portability across
+heterogeneous substrates while preserving verifiability.  We instantiate this
+construction using Emercoin Name--Value Storage (NVS) anchored to Bitcoin
+via Auxiliary Proof-of-Work (AuxPoW), with a publicly verifiable deployment
+operational since 2020.
+
+We further show that additional system capabilities---naming, structured
+record representation, content retrieval, deterministic execution, overlay
+connectivity, and economic interaction---emerge as derived properties of this
+identity substrate rather than as independent subsystems requiring their own
+trust roots.
+
+The contribution is not a new primitive but a composition of existing ones
+into a system that minimises trust assumptions to the irreducible minimum
+while remaining deployable on commodity infrastructure.
+\end{abstract}
+
+\noindent\textbf{Keywords:} one-way functions $\cdot$ digital signatures
+$\cdot$ sovereign identity $\cdot$ blockchain identity $\cdot$
+chain-agnostic architecture $\cdot$ append-only directory $\cdot$
+post-quantum migration
+
+%--------------------------------------------------------------------
+\section{Introduction}
+%--------------------------------------------------------------------
+
+\subsection{The Problem: Institutional Capture}
+
+Every deployed digital identity system places institutional keys beneath the
+user: certificate authorities, identity providers, key registries, platform
+operators.  These entities can revoke, deny, surveil, or control identity
+without the user's consent.
+
+The threat model motivating this work assumes an adversary with substantial
+conventional resources, potential political backing, and full control of
+traditional identity infrastructure.  The central question is: \emph{can
+identity exist without institutional keys beneath the individual?}
+
+\subsection{The Theoretical Answer: Rompel 1990}
+
+Rompel proved that OWFs are both necessary and sufficient for
+$\mathrm{SIG}_{\mathrm{EUF\text{-}CMA}}$ secure signature
+schemes~\cite{rompel1990}.  This is the provable minimum---nothing strictly
+weaker supports public authentication under standard assumptions.
+
+Our thesis: fixing OWF as the cryptographic floor and adding only a
+chain-agnostic append-only directory produces an identity construction that
+minimises institutional capture to zero beneath the individual key.
+
+\subsection{The Binding Insight}
+
+This work follows a pattern established by prior binding innovations in
+cryptographic systems: the value lies not in the invention of new primitives
+but in recognising that existing primitives, bound in a specific way, produce
+emergent properties none of them exhibits alone.  Each component of Identity
+Bedrock---OWF-based signatures, append-only directories---exists independently
+in prior literature.  The contribution is the binding and the formal argument
+for the security properties that binding produces.
+
+\subsection{Contributions}
+
+\begin{enumerate}[label=\textbf{C\arabic*.},leftmargin=*]
+  \item \textbf{Theory.}  Formalisation of a Rompel-grounded, chain-agnostic
+    identity system with inline definitions and a formal authentication
+    soundness theorem proved via explicit security reduction.
+
+  \item \textbf{Systems.}  Architecture: OWF-based identity layer (Ed25519
+    default; ML-DSA-65 migration target~\cite{fips204}) with pluggable
+    directory substrate.  Implementation: Emercoin NVS anchored to Bitcoin
+    via AuxPoW~\cite{emercoin} and NESS Fiber~\cite{onchain}.  Deployed and
+    publicly verifiable since 2020.
+
+  \item \textbf{Systemic emergence.}  Demonstration that naming, structured
+    representation, content addressing, deterministic execution, overlay
+    connectivity, and economic interaction all arise as derived properties of
+    the identity substrate without additional trust roots.
+
+  \item \textbf{Attack-cost analysis.}  Quantified cost of attacking both the
+    cryptographic and directory components using the hack51
+    framework~\cite{hack51}.
+\end{enumerate}
+
+\subsection{Paper Organisation}
+
+Section~2 reviews background.  Section~3 defines the threat model.
+Section~4 gives the formal model.  Section~5 presents the architecture.
+Section~6 proves authentication soundness.  Section~7 describes derived
+system properties.  Section~8 covers the concrete instantiation and
+attack-cost analysis.  Section~9 demonstrates the deployed system.
+Section~10 discusses limitations and future work.
+
+%--------------------------------------------------------------------
+\section{Background}
+%--------------------------------------------------------------------
+
+\subsection{One-Way Functions and Digital Signatures}
+
+A function $f : \{0,1\}^* \to \{0,1\}^*$ is a \emph{one-way function} (OWF)
+if it is computable in polynomial time and for every probabilistic
+polynomial-time (PPT) adversary $\mathcal{A}$,
+\[
+  \Pr\bigl[f(x') = f(x) \;\big|\; x \gets \{0,1\}^\lambda,\;
+    x' \gets \mathcal{A}(1^\lambda, f(x))\bigr] \leq \mathrm{negl}(\lambda).
+\]
+
+Rompel~\cite{rompel1990} proved, completing the programme of
+Naor--Yung~\cite{naoryung1989} and later Haitner et
+al.~\cite{haitner2010}, that OWFs are \emph{necessary and sufficient} for
+EUF-CMA-secure digital signature schemes:
+\[
+  \mathrm{OWF} \iff \mathrm{SIG}_{\mathrm{EUF\text{-}CMA}}.
+\]
+
+This equivalence means that the existence of any EUF-CMA-secure scheme
+already commits the system to exactly one hardness assumption---the existence
+of OWFs---and that no weaker assumption is sufficient.  Identity Bedrock
+operationalises this as a design principle: the individual's keypair is the
+unique cryptographic root of identity.
+
+\subsection{Traditional Identity Architectures}
+
+Public-Key Infrastructure (PKI) / X.509~\cite{rfc5280} places a CA hierarchy
+beneath the individual key, introducing revocation oracles and CA compromise
+as additional failure modes.  Federated identity systems (OAuth 2.0, OpenID
+Connect) delegate identity to a provider that can de-authenticate users
+unilaterally.  Even in blockchain settings, governance multisigs and
+administrative keys often sit below the individual in the trust stack.  These
+architectural choices add assumptions beyond OWFs without increasing the
+cryptographic security of authentication itself.
+
+\subsection{Bitcoin AuxPoW and Merged Mining}
+
+Auxiliary Proof-of-Work allows Emercoin to be merge-mined with Bitcoin,
+inheriting a portion of Bitcoin's security for non-monetary applications.
+Khovayko~\cite{hack51} introduces the \emph{hack51 coefficient}---defined as
+$\text{attack\_cost} / \text{market\_cap}$---as a numerically measurable
+metric for 51\% attack resistance.  Under this metric, Emercoin's triple
+consensus (PoS + PoW + merged mining) produces a coefficient significantly
+exceeding 1.0: attacking Emercoin requires resources approaching five times
+its market capitalisation.  We apply the hack51 framework in
+Section~\ref{sec:instantiation}.
+
+%--------------------------------------------------------------------
+\section{Threat Model}
+%--------------------------------------------------------------------
+
+\subsection{Adversary Capabilities}
+
+\textbf{Assumed:} Substantial conventional resources and political backing;
+full control of traditional identity infrastructure (CAs, IdPs, KYC
+registries); ability to outlaw software, seize property, and coerce
+individuals; classical (polynomial-time) computational adversary.
+
+\textbf{Not assumed:} Cannot break OWF under standard complexity assumptions;
+cannot mount a sustained 51\% attack on Bitcoin (quantified in
+Section~\ref{sec:instantiation}); cannot simultaneously compromise distributed
+infrastructure globally.
+
+\textbf{Explicit scope.}  This work addresses classical adversaries.
+Post-quantum migration to ML-DSA (FIPS~204~\cite{fips204}) is discussed in
+Section~\ref{sec:discussion}.
+
+\subsection{Design Requirements}
+
+\begin{description}[leftmargin=*,style=nextline]
+  \item[R1 --- Mathematical irreducibility.]  OWF as cryptographic floor.
+    No strictly weaker primitive beneath.
+  \item[R2 --- No institutional keys.]  Individual key is sole cryptographic
+    root of trust.  No CA, IdP, or registry key beneath the user.
+  \item[R3 --- Chain-agnostic.]  Identity cryptography independent of any
+    specific directory consensus.  Portable across append-only substrates.
+  \item[R4 --- Quantifiable security.]  Attack costs explicit and measurable.
+  \item[R5 --- Operational verification.]  Deployed system, not theoretical
+    proposal.  Public verification of all claims.
+\end{description}
+
+%--------------------------------------------------------------------
+\section{Formal Model}
+%--------------------------------------------------------------------
+
+Let $\lambda \in \mathbb{N}$ denote the security parameter and
+$\mathrm{negl}(\lambda)$ a negligible function.
+
+\begin{definition}[Digital Signature Scheme]
+  A digital signature scheme is a triple $\Sigma = (\mathsf{KeyGen},
+  \mathsf{Sign}, \mathsf{Verify})$ of PPT algorithms where:
+  \begin{itemize}
+    \item $\mathsf{KeyGen}(1^\lambda) \to (sk, pk)$,
+    \item $\mathsf{Sign}(sk, m) \to \sigma$ for $m \in \{0,1\}^*$,
+    \item $\mathsf{Verify}(pk, m, \sigma) \to \{0,1\}$.
+  \end{itemize}
+  $\Sigma$ is \emph{correct} if $\mathsf{Verify}(pk, m, \mathsf{Sign}(sk,m))
+  = 1$ for all $(sk,pk) \gets \mathsf{KeyGen}(1^\lambda)$ and all $m$.
+\end{definition}
+
+\begin{definition}[EUF-CMA Security]
+  $\Sigma$ is \emph{existentially unforgeable under adaptive chosen-message
+  attack} if for every PPT $\mathcal{A}$,
+  \[
+    \Pr\bigl[\mathsf{EUF\text{-}CMA}(\mathcal{A},\Sigma,\lambda) = 1\bigr]
+    \leq \mathrm{negl}(\lambda),
+  \]
+  where $\mathsf{EUF\text{-}CMA}(\mathcal{A},\Sigma,\lambda)$ is the standard
+  game: $(sk,pk) \gets \mathsf{KeyGen}(1^\lambda)$; $\mathcal{A}^{\mathsf{Sign}(sk,\cdot)}(pk)$
+  outputs $(m^*, \sigma^*)$; $\mathcal{A}$ wins if $\mathsf{Verify}(pk,
+  m^*, \sigma^*) = 1$ and $m^*$ was never queried to the signing oracle.
+\end{definition}
+
+\begin{definition}[Public Directory]
+  A \emph{public directory} $\mathcal{D}$ is a set of pairs $(id, pk) \in
+  \mathcal{ID} \times \mathcal{PK}$ with membership predicate
+  \[
+    \mathsf{Bind}(id, pk) = 1 \iff (id, pk) \in \mathcal{D}.
+  \]
+  $\mathcal{D}$ is \emph{append-only} if for every $(id, pk)$ once inserted,
+  there is no efficient procedure that can cause $\mathsf{Bind}(id, pk)$ to
+  become $0$.
+\end{definition}
+
+\begin{definition}[$\varepsilon_{\mathrm{dir}}$-Finality]
+  An append-only directory $\mathcal{D}$ has \emph{$\varepsilon_{\mathrm{dir}}$-finality}
+  if for any PPT adversary $\mathcal{A}$ and any entry $(id, pk)$ written to
+  $\mathcal{D}$ at depth $d$,
+  \[
+    \Pr\bigl[\mathcal{A}\ \text{causes } \mathsf{Bind}(id,pk) = 0\bigr]
+    \leq \varepsilon_{\mathrm{dir}}(\lambda, d).
+  \]
+  As confirmation depth $d \to \infty$, $\varepsilon_{\mathrm{dir}} \to 0$.
+\end{definition}
+
+\begin{definition}[Authentication Predicate]
+  Given directory $\mathcal{D}$, the \emph{authentication predicate} is
+  \[
+    \mathsf{Auth}(id, c, \sigma) := 1 \iff
+    \exists\, pk :\;
+    \mathsf{Bind}(id, pk) = 1
+    \;\wedge\;
+    \mathsf{Verify}(pk, c, \sigma) = 1.
+  \]
+\end{definition}
+
+%--------------------------------------------------------------------
+\section{Architecture}
+%--------------------------------------------------------------------
+
+\subsection{Layer~1: Identity Cryptography}
+
+A party generates $(sk, pk) \gets \mathsf{KeyGen}(1^\lambda)$ from a
+high-entropy seed (OS entropy combined with an application-layer PRNG, e.g.,
+UHEPRNG~\cite{uheprng}).  The public key $pk$, together with a chosen
+identifier $id \in \mathcal{ID}$, constitutes the identity object
+$\mathcal{I} = (id, pk)$.  Authentication to any verifier who can evaluate
+$\mathsf{Bind}$ is then a standard challenge--response:
+
+\begin{enumerate}[leftmargin=*]
+  \item Verifier samples $c \gets \{0,1\}^\lambda$ and sends $c$ to the prover.
+  \item Prover computes $\sigma \gets \mathsf{Sign}(sk, c)$ and returns $\sigma$.
+  \item Verifier accepts iff $\mathsf{Auth}(id, c, \sigma) = 1$.
+\end{enumerate}
+
+No certificate, session token, or third-party oracle appears in this
+exchange.
+
+\subsection{Layer~2: Append-Only Directory}
+
+The directory $\mathcal{D}$ binds identifiers to public keys.  The
+requirements are exactly those of Definition~3: global verifiability,
+persistence, and $\varepsilon_{\mathrm{dir}}$-finality.  The identity layer
+and directory layer are decoupled: any substrate satisfying Definition~3 is a
+valid instantiation.  Section~\ref{sec:instantiation} gives a concrete one.
+
+%--------------------------------------------------------------------
+\section{Security Analysis}
+\label{sec:security}
+%--------------------------------------------------------------------
+
+\begin{theorem}[Authentication Soundness]
+  \label{thm:soundness}
+  Let $\Sigma$ be EUF-CMA secure with advantage bound $\varepsilon_{\mathrm{sig}}$,
+  and let $\mathcal{D}$ be an append-only directory with
+  $\varepsilon_{\mathrm{dir}}$-finality.  For any PPT adversary $\mathcal{A}$
+  that does not hold $sk$, the probability that $\mathcal{A}$ causes a
+  verifier to accept as identity $id$ is at most
+  $\varepsilon_{\mathrm{sig}}(\lambda) + \varepsilon_{\mathrm{dir}}(\lambda, d)$.
+\end{theorem}
+
+\begin{proof}
+Suppose adversary $\mathcal{A}$ wins the authentication game: it produces
+valid $(id, c, \sigma)$ without holding $sk$.
+
+\textbf{Reduction.}  Construct forger $\mathcal{B}$ against $\Sigma$.
+$\mathcal{B}$ receives challenge public key $\hat{pk}$.  It simulates the
+directory for $\mathcal{A}$ by answering $\mathsf{Bind}$ queries for $id$
+with $\hat{pk}$.\footnote{$\mathcal{B}$ simulates the directory locally; it
+does not write to any real ledger.}  We consider two mutually exclusive cases.
+
+\textbf{Case 1: directory integrity holds} (probability $\geq 1 -
+\varepsilon_{\mathrm{dir}}$).  The only $pk$ satisfying
+$\mathsf{Bind}(id,pk)=1$ is $\hat{pk}$.  When $\mathcal{A}$ triggers
+authentication, $\mathcal{B}$ forwards the EUF-CMA game challenge $c$ to
+$\mathcal{A}$.  Since $c$ is chosen fresh after $\mathcal{A}$ commits its
+strategy and was never queried to the legitimate $\mathsf{Sign}(sk,\cdot)$
+oracle, any valid $\sigma$ returned by $\mathcal{A}$ is an existential
+forgery.  By EUF-CMA security of $\Sigma$:
+\[
+  \Pr[\mathcal{A}\ \text{wins} \mid \text{Case 1}]
+  \leq \varepsilon_{\mathrm{sig}}(\lambda).
+\]
+
+\textbf{Case 2: directory integrity fails} (probability $\leq
+\varepsilon_{\mathrm{dir}}$).  $\mathcal{A}$ replaces $(id, \hat{pk})$ with
+$(id, pk')$ for a key it controls.  This event occurs with probability at
+most $\varepsilon_{\mathrm{dir}}(\lambda,d)$ by Definition~4.  Directory
+attacks shift cost to the directory layer, quantified in
+Section~\ref{sec:instantiation}.
+
+By a union bound:
+$\Pr[\mathcal{A}\ \text{wins}] \leq
+\varepsilon_{\mathrm{sig}} + \varepsilon_{\mathrm{dir}}$,
+both negligible under the stated assumptions.
+\end{proof}
+
+\begin{corollary}
+  Any successful impersonation of identity $id$ requires either (i) breaking
+  $\Sigma$ with advantage $> \varepsilon_{\mathrm{sig}}$, or (ii) corrupting
+  the directory with cost exceeding the economic threshold implied by
+  $\varepsilon_{\mathrm{dir}}$.  No institutional secret appears in either
+  condition.
+\end{corollary}
+
+%--------------------------------------------------------------------
+\section{Derived System Properties}
+\label{sec:derived}
+%--------------------------------------------------------------------
+
+Once an identity substrate satisfying Definitions~1--5 exists, additional
+system capabilities are obtainable as derived properties without introducing
+new trust roots.
+
+\subsection{Naming and Resolution}
+
+Append-only bindings between human-readable names and public keys implement
+decentralised naming.  Resolution is identity-check: to resolve name $n$,
+retrieve $(n, pk)$ from $\mathcal{D}$ and verify $\mathsf{Bind}(n, pk) = 1$.
+No hierarchical authority is required.  This subsumes the functionality of
+DNS-over-blockchain proposals~\cite{handshake} without a separate trust
+model.
+
+\subsection{Structured Record Representation}
+
+A canonical, append-only JSON schema---the WORM (Write-Once Read-Many)
+format---defines typed records stored as directory values.  Deterministic
+serialisation allows independent nodes to parse, index, and query records
+without a shared schema authority.
+
+\subsection{Content Addressing}
+
+Content retrieval uses cryptographic hashes: a node stores a datum $m$ at
+address $h = H(m)$ and any retriever verifies $H(m') = h$ before use.
+Integrity is transport-independent~\cite{ipfs}.  Combined with the identity
+layer, a publisher can sign a content address, binding retrieval integrity to
+identity authenticity.
+
+\subsection{Deterministic Execution}
+
+A computation is modelled as a pure function $F$ applied to content-addressed
+inputs: given inputs $\{h_i\}$ and a content-addressed program $h_F$, the
+output $h_{\mathrm{out}} = H(F(m_1, \ldots, m_k))$ is deterministic and
+independently reproducible by any node that can retrieve the inputs.
+Verifiable execution reduces to checking that the published output hash
+matches independent local evaluation.
+
+\subsection{Overlay Connectivity}
+
+Peer discovery and message routing can be implemented over identity-addressed
+endpoints.  Because each endpoint is authenticated via $\mathsf{Auth}$, the
+overlay inherits the security of the identity layer and does not require a
+separate PKI for transport authentication.
+
+\subsection{Economic Interaction}
+
+Participation-based reward and payment models can be constructed using
+identity-bound attribution.  Each economic action is signed by the actor's
+$sk$, making contributions attributable and auditable without a centralised
+ledger operator.
+
+%--------------------------------------------------------------------
+\section{Concrete Instantiation}
+\label{sec:instantiation}
+%--------------------------------------------------------------------
+
+\subsection{Signature Scheme}
+
+We instantiate $\Sigma$ with Ed25519~\cite{eddsa}, a Schnorr-variant
+signature scheme over Curve25519 providing approximately $2^{128}$ security
+against known attacks.  Key generation uses a multi-source high-entropy seed:
+multiple 1024-byte blocks from \texttt{os.urandom} (1536 bits total internal
+state), RC4OK output from Emercoin core RNG, CPU timing jitter, and hardware
+identifiers, mixed via UHEPRNG~\cite{uheprng}.
+
+\subsection{Directory: Emercoin NVS + AuxPoW}
+
+The public directory $\mathcal{D}$ is implemented using Emercoin
+Name--Value Storage (NVS)~\cite{emercoin}, a blockchain-native key--value
+store.  Emercoin blocks are merge-mined against Bitcoin via Auxiliary
+Proof-of-Work (AuxPoW)~\cite{hack51}, anchoring directory state to
+Bitcoin's cumulative proof-of-work.
+
+Identity records are written as WORM JSON objects under NVS keys of the form
+\texttt{id:$\langle$identifier$\rangle$}.  Once written, records can be
+renewed but not deleted, satisfying the append-only requirement of
+Definition~3.
+
+\subsection{Attack-Cost Analysis}
+
+\begin{center}
+\begin{tabular}{lll}
+  \toprule
+  \textbf{Attack vector} & \textbf{Requirement} & \textbf{Result} \\
+  \midrule
+  Break Ed25519    & Violate OWF assumption   & Infeasible ($2^{128}$ ops) \\
+  Rewrite Emercoin NVS & PoS majority + AuxPoW 51\% & 5$\times$ EMC mkt.\ cap~\cite{hack51} \\
+  Compromise NESS Fiber & Steal publisher keys & DoS only; no forgery \\
+  Coerce enrolled user  & Physical / legal coercion & Out of cryptographic scope \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Signature forgery.}  Breaking Ed25519 requires solving the discrete
+logarithm problem on Curve25519; no sub-exponential algorithm is known
+($O(2^{128})$ operations, classically infeasible).
+
+\textbf{Directory rewrite.}  Altering a finalised NVS entry requires a
+$>50\%$ attack on Emercoin's AuxPoW chain.  Under the hack51
+framework~\cite{hack51}, this costs resources approaching five times
+Emercoin's market capitalisation.  Nuzzi et al.~\cite{nuzzi2024} place the
+cost of attacking Bitcoin itself at USD 5--20B for a sustained attack,
+providing a lower bound on the AuxPoW component alone.
+
+\textbf{NESS Fiber key compromise.}  A stolen publisher key cannot rewrite
+past blocks (append-only BoltDB makes history rewriting impossible).  The only
+action available is a reset to genesis, which is immediately visible to all
+participants.  Key compromise is thus maximally detectable.
+
+%--------------------------------------------------------------------
+\section{Practical Demonstration}
+%--------------------------------------------------------------------
+
+The system has been operational since 2020 on the PrivateNess Network.  The
+canonical on-chain identity record~\cite{onchain}---genesis address, blockchain
+public key, and genesis signature---is anchored in Emercoin NVS block~\#445669
+(November~1, 2020, 22:16:45~UTC), transitively anchored to Bitcoin via AuxPoW,
+and independently auditable at
+\url{https://explorer.emercoin.com/dpo/PrivateNESS.Network} by any party
+without trusting an intermediary.  This is not a paper describing what could
+be built.  It is a paper describing what has been running since 2020.
+
+\textbf{NESS Fiber.}  NESS Fiber uses Skycoin-type Fiber consensus~\cite{skycoin}
+with announced publisher keys published in Emercoin NVS, creating a verifiable
+trust chain: NESS Fiber security anchors to Emercoin NVS, which anchors to
+Bitcoin via AuxPoW.  Any verifier can confirm the binding independently at the
+Emercoin block explorer without relying on any intermediary.
+
+\textbf{Resolution flow.}
+\begin{enumerate}[leftmargin=*]
+  \item Look up \texttt{id:$\langle$name$\rangle$} in Emercoin NVS;
+    verify $\mathsf{Bind}(\mathit{name}, pk) = 1$.
+  \item Retrieve associated content by hash; verify $H(m') = h$.
+  \item Verify publisher signature: $\mathsf{Verify}(pk, h, \sigma) = 1$.
+  \item Execute content-addressed program deterministically.
+\end{enumerate}
+
+Each step is independently verifiable by any node with access to the public
+directory and standard hash functions.  No trusted intermediary participates.
+The system operates on commodity hardware including RK3528-class single-board
+computers and repurposed consumer devices, with a verified full-stack
+deployment cost under 50~CAD~\cite{onchain}.
+
+%--------------------------------------------------------------------
+\section{Related Work}
+\label{sec:related}
+%--------------------------------------------------------------------
+
+\textbf{X.509 and PKI.}  RFC~5280~\cite{rfc5280} places a CA hierarchy
+beneath individual keys.  CAs can mis-issue certificates, be compromised, or
+be coerced, violating the requirement that no institutional key sits beneath
+the individual~\cite{goldreich2001}.  Identity Bedrock removes this layer
+entirely.
+
+\textbf{Decentralised Identifiers (DIDs).}  The W3C DID specification
+\cite{did2022} defines a generic framework for self-sovereign identifiers.
+Identity Bedrock is compatible with the DID model at the identifier layer but
+provides a stronger formal security foundation and a concrete economic
+finality argument absent from the DID core specification.
+
+\textbf{FIDO2 / WebAuthn.}  The FIDO2 standard~\cite{webauthn2021} eliminates
+passwords using device-bound asymmetric keys, closely aligning with the
+identity primitive of Definition~1.  However, FIDO2 relies on attestation
+certificates from hardware vendors, reintroducing an institutional trust
+anchor.  Identity Bedrock requires no attestation layer.
+
+\textbf{Sign-In with Ethereum (EIP-4361).}  EIP-4361~\cite{eip4361} binds
+identity to Ethereum account keys and uses Ethereum state as the directory.
+This couples identity finality to Ethereum consensus and governance, and
+restricts the signature scheme to secp256k1.  Identity Bedrock generalises
+this pattern to arbitrary EUF-CMA schemes and arbitrary append-only
+directories.
+
+\textbf{ENS and Handshake.}  The Ethereum Name Service (ENS) and
+Handshake~\cite{handshake} provide decentralised naming but do not define a
+formal authentication substrate.  They can be viewed as concrete
+instantiations of the directory layer $\mathcal{D}$, compatible with the
+architecture presented here.
+
+\textbf{Verifiable Credentials.}  The W3C Verifiable Credentials (VC)
+model~\cite{vc2019} supports issuer-signed claims, which introduce issuer
+keys as trust anchors.  Identity Bedrock operates one layer below VCs: it
+provides the identity binding from which a VC holder's key can be derived.
+
+%--------------------------------------------------------------------
+\section{Discussion}
+\label{sec:discussion}
+%--------------------------------------------------------------------
+
+\textbf{What the bedrock provides.}  A verifiable, unforgeable binding between
+an identifier and a public key, secured by standard cryptographic assumptions
+and a quantified economic finality argument.  All higher-layer properties
+described in Section~\ref{sec:derived} inherit this security basis.
+
+\textbf{What is out of scope.}  The model does not address:
+\begin{itemize}[leftmargin=*]
+  \item \emph{Endpoint compromise and malware.}  An adversary with access to
+    the device holding $sk$ trivially breaks authentication regardless of
+    the protocol.
+  \item \emph{Social engineering and phishing.}  Out-of-band attacks that
+    induce the legitimate key holder to sign adversarial challenges.
+  \item \emph{Legal and regulatory coercion.}  Compelled key disclosure is
+    orthogonal to cryptographic security.
+\end{itemize}
+These are operational and social concerns that require additional layers and
+are deliberately out of scope.
+
+\textbf{Comparison with zero-knowledge approaches.}  The authentication
+protocol in Section~4.1 reveals the challenge--response pair $(c, \sigma)$,
+which may allow linkability across sessions if $pk$ is public.  Anonymous
+credential schemes~\cite{goldreich2001} can provide unlinkability at the cost
+of additional complexity; this is a natural extension of the bedrock rather
+than a contradiction of it.
+
+\textbf{Post-quantum migration.}  Ed25519 is vulnerable to Shor's algorithm.
+The intended migration path is ML-DSA-65 (CRYSTALS-Dilithium3,
+FIPS~204~\cite{fips204}):
+\begin{itemize}[leftmargin=*]
+  \item Replace Ed25519 with ML-DSA-65 (public key 1952~bytes; accommodated
+    by the EmerNVS value field).
+  \item The WORM \texttt{<keys>} schema~\cite{worm} natively supports multiple
+    algorithms; migration adds \texttt{<key algo="mldsa65">} without
+    modifying existing records.
+  \item Directory anchoring, NESS Fiber structure, and the authentication
+    protocol are unchanged.
+  \item OpenSSL~3.5 (April 2025) includes native ML-DSA support in mainline
+    Armbian Linux.
+\end{itemize}
+The directory and connectivity layers are post-quantum agnostic; only the
+signature scheme at Layer~1 requires migration.
+
+\textbf{Key rotation.}  The directory model supports key rotation by
+registering a new binding $(id, pk')$ and revoking the old one through a
+signed revocation record.  The append-only property means revocations are
+themselves permanent and publicly verifiable.
+
+%--------------------------------------------------------------------
+\section{Conclusion}
+%--------------------------------------------------------------------
+
+Identity Bedrock demonstrates that a minimal cryptographic substrate---an
+EUF-CMA signature scheme and an append-only directory with quantified
+finality---is sufficient not only for authentication but for enabling a full
+suite of system capabilities without introducing institutional trust anchors.
+
+The formal model, security proof, and economic attack-cost analysis establish
+that the only meaningful attacks on the system require either breaking standard
+hardness assumptions or paying a publicly quantifiable economic cost.  The
+system has been deployed and operational since 2020 on commodity hardware,
+validating the practical feasibility of the construction.
+
+By deriving naming, content addressing, deterministic execution, connectivity,
+and economic interaction from a single identity primitive, the architecture
+reduces conceptual complexity while preserving compatibility with existing
+protocols and standards.
+
+%--------------------------------------------------------------------
+\section*{Acknowledgments}
+%--------------------------------------------------------------------
+
+The author thanks Oleg Khovayko for foundational Emercoin infrastructure
+work and the hack51 attack-cost framework~\cite{hack51}; Aleksej Sokolov
+(Alex014) for designing the WORM format~\cite{worm} and implementing the
+PrivateNess toolchain (privatenesstools, pyuheprng) from the author's
+specifications; Brandon ``Synth'' Smietana and Moses Narrow
+(\texttt{moe\_narrow} / \texttt{0pcom}), Skywire Linux packaging lead, for
+the Skywire mesh transport and Fiber consensus infrastructure on which NESS
+is built; and the PrivateNess Network community, whose collective work since
+the project's public founding on Bitcointalk on September~1,
+2020~\cite{bitcointalk} has made this deployed system possible.  The author's
+own engagement with Emercoin infrastructure spans nine years and provides the
+operational foundation on which Identity Bedrock is built.
+
+%--------------------------------------------------------------------
+\begin{thebibliography}{99}
+
+\bibitem{rompel1990}
+  J.~Rompel,
+  ``One-way functions are necessary and sufficient for secure signatures,''
+  in \textit{Proc.\ 22nd Annual ACM STOC}, pp.~387--394, 1990.
+
+\bibitem{haitner2010}
+  I.~Haitner, T.~Holenstein, O.~Reingold, S.~Vadhan, and H.~Wee,
+  ``Universal one-way hash functions via inaccessible entropy,''
+  in H.~Gilbert (Ed.), \textit{EUROCRYPT 2010},
+  LNCS vol.~6110, pp.~616--637, Springer, 2010.
+
+\bibitem{naoryung1989}
+  M.~Naor and M.~Yung,
+  ``Universal one-way hash functions and their cryptographic applications,''
+  in \textit{Proc.\ 21st Annual ACM STOC}, pp.~33--43, 1989.
+
+\bibitem{katz2005}
+  J.~Katz and C.-Y.~Koo,
+  ``On constructing universal one-way hash functions from arbitrary one-way
+  functions,''
+  Cryptology ePrint Archive, Report 2005/328, 2005.
+  \url{https://eprint.iacr.org/2005/328}
+
+\bibitem{goldreich2001}
+  O.~Goldreich,
+  \textit{Foundations of Cryptography, Volume~1: Basic Tools},
+  Cambridge University Press, 2001.
+
+\bibitem{eddsa}
+  S.~Josefsson and I.~Liusvaara,
+  ``Edwards-Curve Digital Signature Algorithm (EdDSA),''
+  RFC~8032, IETF, January 2017.
+  \url{https://www.rfc-editor.org/rfc/rfc8032}
+
+\bibitem{fips204}
+  National Institute of Standards and Technology,
+  ``Module-Lattice-Based Digital Signature Standard (ML-DSA),''
+  FIPS~204, August 2024.
+  \url{https://doi.org/10.6028/NIST.FIPS.204}
+
+\bibitem{uheprng}
+  S.~Gibson,
+  ``Ultra-High Entropy Pseudo-Random Number Generator (UHEPRNG),''
+  Gibson Research Corporation.
+  \url{https://www.grc.com/otg/uheprng.htm}
+
+\bibitem{emercoin}
+  Emercoin Development Team,
+  ``Emercoin: hybrid blockchain with merged mining,''
+  \url{https://emercoin.com}, 2013--2026.
+
+\bibitem{hack51}
+  O.~Khovayko,
+  ``Estimating the cost of a 51\% attack on Emercoin: the hack51 coefficient''
+  [In Russian],
+  Dzen / Yandex, 2021.
+  \url{https://dzen.ru/a/YUotZkN9nAeElPEQ}
+
+\bibitem{nuzzi2024}
+  L.~Nuzzi et al.,
+  ``Breaking BFT: quantifying the cost to attack Bitcoin and Ethereum,''
+  Coin Metrics, 2024.
+
+\bibitem{skycoin}
+  B.~Smietana (``Synth'') et al.,
+  ``Skycoin: Skywire and Fiber consensus,''
+  Skycoin Development Team, 2014--2026.
+  \url{https://www.skycoin.com}
+  Linux packaging: M.~Narrow (\texttt{moe\_narrow} / \texttt{0pcom}).
+
+\bibitem{worm}
+  A.~Sokolov (Alex014) / NESS-Network,
+  ``WORM --- World Object MaRkup language,''
+  format designed by A.~Sokolov; deployed within the PrivateNess ecosystem.
+  \url{https://github.com/ness-network/worm}
+
+\bibitem{onchain}
+  PrivateNess Network,
+  ``PrivateNess.Network --- canonical on-chain identity record,''
+  Emercoin NVS DPO, anchored in block~\#445669,
+  November~1, 2020, 22:16:45~UTC.  Operational 2020--2026.
+  \url{https://explorer.emercoin.com/dpo/PrivateNESS.Network}
+
+\bibitem{bitcointalk}
+  PrivateNess Network,
+  ``PrivateNess Network (NESS) Privacy CX Fiber Coin,''
+  Bitcointalk Announcements (Altcoins), September~1, 2020.
+  \url{https://bitcointalk.org/index.php?topic=5272741.0}
+
+\bibitem{rfc5280}
+  D.~Cooper et al.,
+  ``Internet X.509 Public Key Infrastructure Certificate and CRL Profile,''
+  IETF RFC~5280, May 2008.
+
+\bibitem{did2022}
+  M.~Sporny et al.,
+  ``Decentralized Identifiers (DIDs) v1.0,''
+  W3C Recommendation, July 2022.
+  \url{https://www.w3.org/TR/did-core/}
+
+\bibitem{webauthn2021}
+  D.~Balfanz et al.,
+  ``Web Authentication: An API for Accessing Public Key Credentials Level~2,''
+  W3C Recommendation, April 2021.
+  \url{https://www.w3.org/TR/webauthn-2/}
+
+\bibitem{eip4361}
+  B.~Talsma et al.,
+  ``EIP-4361: Sign-In with Ethereum,''
+  Ethereum Improvement Proposal, October 2021.
+  \url{https://eips.ethereum.org/EIPS/eip-4361}
+
+\bibitem{vc2019}
+  M.~Sporny, D.~Longley, and D.~Chadwick,
+  ``Verifiable Credentials Data Model 1.0,''
+  W3C Recommendation, November 2019.
+  \url{https://www.w3.org/TR/vc-data-model/}
+
+\bibitem{handshake}
+  Handshake Authors,
+  ``Handshake: Decentralized Certificate Authority and Naming,''
+  Technical Paper, 2018.
+  \url{https://handshake.org/files/handshake.txt}
+
+\bibitem{ipfs}
+  J.~Benet,
+  ``IPFS---Content Addressed, Versioned, P2P File System,''
+  arXiv:1407.3561, 2014.
+
+\end{thebibliography}
+
+\end{document}

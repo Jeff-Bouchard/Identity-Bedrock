@@ -1,0 +1,165 @@
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+
+\geometry{a4paper,margin=25mm}
+
+\newtheorem{theorem}{Theorem}[section]
+
+\title{\textbf{Identity Bedrock: A Minimal Cryptographic Substrate and Its Systemic Implications}}
+\author{Jean-François Bouchard}
+\date{March 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Identity Bedrock is a deployed identity system grounded in minimal cryptographic assumptions. It relies on one-way functions (OWFs) as the necessary and sufficient primitive for secure digital signatures and separates identity from directory consensus via an append-only, chain-agnostic substrate.
+
+The system is operational in production for over five years with publicly verifiable records. We demonstrate that naming, structured data, content resolution, execution, connectivity, and economic coordination emerge as consequences of this identity substrate.
+
+This work documents the architecture, mechanisms, and deployment of the system and provides reproducible verification paths.
+\end{abstract}
+
+\section{Introduction}
+
+Modern identity systems depend on centralized authorities. These introduce control, fragility, and trust assumptions.
+
+This work describes a deployed alternative where identity is reduced to its minimal cryptographic form and anchored in a publicly verifiable directory.
+
+\section{Background}
+
+One-way functions (OWFs) are sufficient for constructing secure signature schemes. This provides the minimal basis for authentication.
+
+\section{Architecture}
+
+\subsection{Identity}
+
+Identity is defined by a keypair $(sk, pk)$. Authentication consists of signature verification.
+
+\subsection{Directory}
+
+An append-only name-value substrate binds identifiers:
+
+\begin{equation}
+(n, v, pk, \sigma)
+\end{equation}
+
+where:
+
+\begin{equation}
+\sigma = \text{Sign}_{sk}(n \parallel v)
+\end{equation}
+
+\section{Security}
+
+\begin{theorem}
+Authentication is unforgeable assuming signature security and append-only directory integrity.
+\end{theorem}
+
+\begin{proof}
+Forgery implies either signature break or directory tampering.
+\end{proof}
+
+\section{Derived System Properties}
+
+\subsection{Naming and Resolution}
+
+Names resolve via signed records. Integration occurs through standard DNS resolution paths.
+
+\subsection{Content Addressing}
+
+Content is retrieved via hash:
+
+\begin{equation}
+CID = H(content)
+\end{equation}
+
+\subsection{Deterministic Execution}
+
+\begin{equation}
+h = H(I \parallel E \parallel C)
+\end{equation}
+
+\subsection{Connectivity}
+
+Overlay networks enable communication independent of infrastructure.
+
+\subsection{Economic Coordination}
+
+Identity-bound attribution enables decentralized incentives.
+
+\section{Deployment and Operation}
+
+The system is deployed:
+
+\begin{center}
+\url{https://explorer.emercoin.com/dpo/PrivateNESS.Network}
+\end{center}
+
+Verification steps:
+
+\begin{enumerate}
+\item Retrieve record
+\item Verify signature
+\item Resolve content
+\end{enumerate}
+
+\section{Implementation}
+
+Implemented using:
+
+\begin{itemize}
+\item Emercoin NVS / EmerDNS
+\item AuxPoW (Bitcoin-anchored security)
+\item Fiber chains for extensibility
+\end{itemize}
+
+Compatible with:
+
+\begin{itemize}
+\item DNS (RFC 1035)
+\item SSH key distribution
+\item TLS workflows
+\end{itemize}
+
+\section{Evaluation}
+
+The system has operated continuously with low overhead and verifiable correctness.
+
+\section{Discussion}
+
+The system demonstrates that multiple layers of functionality derive from identity alone.
+
+\section{Conclusion}
+
+A minimal identity substrate is sufficient to support a full distributed system stack.
+
+\section*{Acknowledgments}
+
+AI-assisted editing.
+
+\begin{thebibliography}{99}
+
+\bibitem{rompel1990}
+Rompel.
+
+\bibitem{rfc1035}
+Mockapetris.
+
+\bibitem{nakamoto2008}
+Nakamoto.
+
+\end{thebibliography}
+
+\end{document}

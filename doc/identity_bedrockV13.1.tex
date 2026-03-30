@@ -1,0 +1,166 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+
+\geometry{a4paper,margin=25mm}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{definition}[theorem]{Definition}
+
+\title{\textbf{Identity Bedrock: A Minimal Cryptographic Substrate and Its Systemic Implications}}
+\author{Jean-François Bouchard}
+\date{March 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We present Identity Bedrock, a deployed identity system constructed from a minimal cryptographic substrate. Starting from the requirement that no institutional key exists beneath the individual, we derive an architecture grounded in one-way functions (OWFs), which are necessary and sufficient for existentially unforgeable signature schemes under adaptive chosen-message attack.
+
+The system separates identity cryptography from directory consensus via a chain-agnostic, append-only binding layer, enabling portability across heterogeneous substrates while preserving verifiability.
+
+We show that additional system capabilities---including naming, structured representation, content retrieval, execution, connectivity, and economic interaction---emerge as derived properties of this identity substrate rather than independent subsystems.
+
+The contribution is not a new primitive but a composition of existing ones into a system that minimizes trust assumptions while preserving verifiable authentication and enabling practical deployment on commodity infrastructure.
+\end{abstract}
+
+\section{Introduction}
+
+Digital identity systems commonly rely on institutional trust anchors such as certificate authorities, identity providers, or registry operators. These introduce external control points over identity and create dependencies that affect availability, portability, and sovereignty.
+
+This work explores whether identity can be constructed by minimizing such dependencies and relying only on necessary cryptographic assumptions. We further examine the broader implications of such a construction, showing that multiple system-level capabilities can be derived from a minimal identity substrate.
+
+\subsection{Contributions}
+
+\begin{itemize}
+\item \textbf{Minimal construction.} Identity grounded in OWF-based signature schemes.
+\item \textbf{Chain-agnostic architecture.} Separation of identity cryptography from directory consensus.
+\item \textbf{Deployed system.} Publicly verifiable implementation.
+\item \textbf{Systemic emergence.} Demonstration that higher-layer capabilities arise from the identity substrate.
+\end{itemize}
+
+\section{Background}
+
+One-way functions (OWFs) are necessary and sufficient for existentially unforgeable signature schemes under adaptive chosen-message attack. This equivalence provides a minimal foundation for authentication.
+
+Traditional identity systems extend beyond this minimal requirement by introducing hierarchical trust models. These systems provide operational convenience but introduce additional assumptions and control points.
+
+The approach taken in this work is to begin from the minimal requirement and examine the system properties that emerge when additional structure is introduced only as needed.
+
+\section{Architecture}
+
+\subsection{Identity Cryptography}
+
+A user generates a keypair $(sk, pk)$ from a high-entropy seed. Authentication consists of signing a challenge and verifying the signature using the public key.
+
+\subsection{Directory Substrate}
+
+An append-only directory binds identifiers to public keys. The directory provides:
+
+\begin{itemize}
+\item Global verifiability
+\item Persistence
+\item Finality
+\end{itemize}
+
+The identity layer and directory layer are decoupled, allowing the directory to be implemented on different substrates.
+
+\section{Security}
+
+\begin{theorem}
+If the signature scheme is existentially unforgeable under adaptive chosen-message attack and the directory is append-only with finality, then authentication is unforgeable under standard assumptions.
+\end{theorem}
+
+\begin{proof}
+A successful forgery implies either a break of the signature scheme or a violation of directory integrity. Both contradict the stated assumptions.
+\end{proof}
+
+\section{Derived System Properties}
+
+We now examine how additional capabilities emerge from the identity substrate.
+
+\subsection{Naming and Resolution}
+
+Identity enables decentralized naming through append-only bindings between identifiers and public keys. Resolution becomes a process of verifying ownership rather than trusting hierarchical authorities.
+
+\subsection{Structured Representation}
+
+Objects can be represented using deterministic structured formats. This allows consistent parsing and indexing across independent nodes, enabling decentralized query and discovery.
+
+\subsection{Content Addressing}
+
+Content retrieval is performed using cryptographic hashes. This ensures that integrity is verified independently of the transport mechanism.
+
+\subsection{Deterministic Execution}
+
+Execution can be modeled as:
+
+\begin{equation}
+Execution = Hash(Input, Environment, Command)
+\end{equation}
+
+This enables reproducible computation and verifiable execution outcomes.
+
+\subsection{Connectivity}
+
+Overlay networking techniques allow nodes to communicate independently of underlying network constraints. This reduces reliance on centralized routing infrastructure.
+
+\subsection{Economic Interaction}
+
+Incentive mechanisms can be constructed using identity-bound attribution, enabling participation-based reward models without centralized coordination.
+
+\section{Practical Demonstration}
+
+The architecture has been implemented and deployed.
+
+\subsection{Application Deployment}
+
+Applications can be resolved via decentralized naming, retrieved using content-addressed mechanisms, and executed in a deterministic environment.
+
+\subsection{Node Deployment}
+
+Nodes operate on commodity hardware, including low-cost devices and repurposed systems. This enables broad participation without specialized infrastructure.
+
+\subsection{Resolution Flow}
+
+A typical interaction follows:
+
+\begin{enumerate}
+\item Resolve identifier to public key binding
+\item Retrieve associated content via hash
+\item Verify integrity
+\item Execute deterministically
+\end{enumerate}
+
+\section{Implementation}
+
+The system is implemented using an append-only name-value substrate anchored to external consensus mechanisms. Identity bindings are publicly verifiable and portable across substrates.
+
+\section{Evaluation}
+
+Authentication requires only signature verification and directory lookup, resulting in low computational overhead and minimal latency.
+
+The system has been deployed over multiple years, demonstrating operational stability.
+
+\section{Discussion}
+
+The architecture does not introduce independent subsystems for naming, execution, or connectivity. Instead, these capabilities emerge from a unified identity substrate.
+
+This reduces conceptual complexity while preserving compatibility with existing protocols.
+
+\section{Conclusion}
+
+Identity Bedrock demonstrates that a minimal cryptographic substrate, combined with an append-only directory, is sufficient not only for authentication but also for enabling broader system functionality.
+
+By deriving system behavior from a unified primitive, the approach minimizes trust assumptions while enabling practical deployment and interoperability.
+
+\end{document}

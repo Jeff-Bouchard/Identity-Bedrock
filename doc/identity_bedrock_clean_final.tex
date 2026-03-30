@@ -1,0 +1,205 @@
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{geometry}
+\usepackage{hyperref}
+
+\geometry{a4paper,margin=25mm}
+
+\newtheorem{theorem}{Theorem}[section]
+
+\title{\textbf{Identity Bedrock: A Minimal Cryptographic Substrate and Its Systemic Implications}}
+\author{Jean-François Bouchard}
+\date{March 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We present Identity Bedrock, a deployed identity system constructed from a minimal cryptographic substrate grounded in one-way functions (OWFs). The system separates identity cryptography from directory consensus via an append-only, chain-agnostic binding layer.
+
+The system has been deployed in production for over five years, with publicly verifiable records and continuous operation.
+
+We demonstrate that naming, content resolution, execution, connectivity, and economic interaction can be derived from this identity substrate without introducing additional trust assumptions.
+\end{abstract}
+
+\section{Introduction}
+
+Digital identity systems typically rely on institutional trust anchors such as certificate authorities or identity providers. These introduce external control points and operational dependencies.
+
+This work documents a deployed system that minimizes such dependencies by reducing identity to cryptographic ownership and binding it to an append-only directory.
+
+\section{Background}
+
+One-way functions are necessary and sufficient for constructing secure digital signature schemes. This provides a minimal foundation for authentication.
+
+\section{Architecture}
+
+\subsection{Identity}
+
+Identity is defined as control of a private key $sk$ corresponding to a public key $pk$.
+
+Authentication consists of signing a message $m$:
+
+\begin{equation}
+\sigma = \text{Sign}_{sk}(m)
+\end{equation}
+
+and verifying:
+
+\begin{equation}
+\text{Verify}_{pk}(m, \sigma) = \text{true}
+\end{equation}
+
+\subsection{Directory}
+
+An append-only directory binds identifiers to values under a controlling key:
+
+\begin{equation}
+(n, v, pk, \sigma)
+\end{equation}
+
+where:
+
+\begin{equation}
+\sigma = \text{Sign}_{sk}(n \parallel v)
+\end{equation}
+
+Verification requires only signature validation.
+
+\section{Security}
+
+\begin{theorem}
+If the signature scheme is existentially unforgeable under adaptive chosen-message attack and the directory is append-only with finality, then authentication is unforgeable.
+\end{theorem}
+
+\begin{proof}
+A successful forgery implies either a break of the signature scheme or a violation of the append-only property of the directory.
+\end{proof}
+
+All security properties in the system reduce to the correctness of signature verification and the integrity of the append-only directory.
+
+\section{Derived System Properties}
+
+\subsection{Naming and Resolution}
+
+Naming is implemented through signed bindings:
+
+\begin{equation}
+(n, v, pk, \sigma)
+\end{equation}
+
+Resolution procedure:
+
+\begin{enumerate}
+\item Query name $n$
+\item Retrieve $(v, pk, \sigma)$
+\item Verify $\sigma$
+\item Accept $v$ if verification succeeds
+\end{enumerate}
+
+This replaces hierarchical trust with signature verification.
+
+\subsection{Content Addressing}
+
+Content is referenced by cryptographic hash:
+
+\begin{equation}
+CID = H(content)
+\end{equation}
+
+Integrity holds if recomputed hashes match.
+
+\subsection{Execution}
+
+Execution equivalence is defined by identical inputs, environment specifications, and commands producing identical outputs.
+
+Hash comparison may be used to verify equivalence.
+
+\subsection{Connectivity}
+
+Overlay networking enables communication independent of underlying addressing constraints, without introducing additional trust assumptions.
+
+\subsection{Economic Interaction}
+
+Attribution of actions to identities enables incentive mechanisms without centralized coordination.
+
+\section{Deployment and Operation}
+
+The system is deployed and publicly verifiable.
+
+\begin{center}
+\url{https://explorer.emercoin.com/dpo/PrivateNESS.Network}
+\end{center}
+
+Verification procedure:
+
+\begin{enumerate}
+\item Retrieve record from the directory
+\item Extract public key and signature
+\item Verify signature
+\item Accept binding if valid
+\end{enumerate}
+
+Any participant running a compatible node can independently perform this verification.
+
+\section{Implementation}
+
+The system is implemented using Emercoin Name-Value Storage (EmerDNS), anchored via Auxiliary Proof-of-Work (AuxPoW).
+
+Identity bindings are stored as signed records and resolved through DNS-compatible mechanisms (RFC 1035 semantics).
+
+Additional integrations support SSH key distribution and TLS-related bindings without requiring modification to client software.
+
+\section{Evaluation}
+
+Authentication requires only signature verification and directory lookup, resulting in low computational overhead.
+
+The system has operated continuously in production environments for multiple years with publicly verifiable records.
+
+\section{Discussion}
+
+The system demonstrates that naming, resolution, execution, and coordination can be derived from a minimal identity substrate.
+
+No additional trust assumptions are introduced beyond signature security and directory integrity.
+
+\section{Conclusion}
+
+A minimal cryptographic identity substrate, combined with an append-only directory, is sufficient to support a distributed system with verifiable behavior and reduced reliance on centralized infrastructure.
+
+\section*{Acknowledgments}
+
+Portions of this document were developed with the assistance of AI-based language models. All technical design and implementation described herein are the work of the author.
+
+\begin{thebibliography}{9}
+
+\bibitem{rompel1990}
+John Rompel.
+\textit{One-Way Functions are Necessary and Sufficient for Secure Signatures}.
+STOC, 1990.
+
+\bibitem{rfc1035}
+P. Mockapetris.
+\textit{Domain Names - Implementation and Specification}.
+RFC 1035, 1987.
+
+\bibitem{nakamoto2008}
+Satoshi Nakamoto.
+\textit{Bitcoin: A Peer-to-Peer Electronic Cash System}.
+2008.
+
+\bibitem{emercoin}
+Emercoin.
+\textit{Emercoin NVS and EmerDNS Documentation}.
+\url{https://emercoin.com/tech-solutions/}
+
+\end{thebibliography}
+
+\end{document}

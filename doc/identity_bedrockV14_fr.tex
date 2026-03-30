@@ -1,0 +1,853 @@
+% Socle Identitaire V14-FR — Version académique française
+% Version originale en anglais : identity_bedrockV14.tex
+% Sans PBAT, sans présence physique.
+% Compilation : pdflatex -> pdflatex
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[french]{babel}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue]{hyperref}
+\usepackage{geometry}
+
+\geometry{a4paper,margin=25mm}
+
+\newtheorem{theoreme}{Théorème}[section]
+\newtheorem{definition}[theoreme]{Définition}
+\newtheorem{remarque}[theoreme]{Remarque}
+\newtheorem{corollaire}[theoreme]{Corollaire}
+\renewcommand{\proofname}{Démonstration}
+
+\title{\textbf{Socle Identitaire : Opérationnalisation du Substrat\\
+Cryptographique Minimal de Rompel\\
+pour l'Identité Souveraine}}
+\author{Jean-François Bouchard\\
+  \small PrivateNess Network (co-fondateur, DT)\\
+  \small Emercoin (contributeur communautaire)\\
+  \small \texttt{[contact via privateness.network]}}
+\date{Mars 2026}
+
+\begin{document}
+
+\maketitle
+
+\noindent\textbf{Divulgation relative à l'IA.} L'auteur a eu recours à des
+outils de traitement automatique du langage pour la rédaction et la révision
+du manuscrit.  L'ensemble des contributions techniques, la conception du
+système, les réalisations, le cadrage théorique et les idées directrices
+décrits ci-après sont issus de l'auteur, qui s'appuie sur neuf années
+d'expérience opérationnelle dans le déploiement d'infrastructures fondées sur
+Emercoin.
+
+\begin{abstract}
+Le Socle Identitaire n'a pas émergé de la théorie.  Il a émergé d'une
+exigence~: éliminer toute clé institutionnelle en dessous de l'individu.  En
+suivant cette exigence jusqu'à son plancher logique---en nous demandant quel
+est le primitif cryptographique minimal permettant l'authentification
+publique---nous
+avons abouti aux fonctions à sens unique comme fondement irréductible.  La
+démonstration de Rompel, en 1990, que les FSU sont nécessaires et suffisantes
+pour les schémas de signature à infalsifiabilité existentielle sous attaque
+adaptative à messages choisis~\cite{rompel1990} a été découverte \emph{après}
+cette convergence.  Il avait déjà prouvé que nous nous tenions sur le socle.
+
+Le système découple la cryptographie d'identité du consensus du répertoire
+au moyen d'une couche d'ancrage en ajout exclusif, indépendante de la chaîne
+de blocs, permettant la portabilité entre substrats hétérogènes tout en
+préservant la vérifiabilité.  Nous instancions cette construction à l'aide du Stockage
+Nom--Valeur (SNV) d'Emercoin ancré à Bitcoin par Preuve de Travail Auxiliaire
+(AuxPoW), avec un déploiement publiquement vérifiable opérationnel depuis 2020.
+
+Nous montrons en outre que des capacités système supplémentaires---nommage,
+représentation structurée, récupération par contenu, exécution déterministe,
+connectivité en réseau superposé, interaction économique---émergent comme
+propriétés dérivées de ce substrat identitaire, sans nécessiter de nouvelles
+racines de confiance.
+
+La contribution n'est pas un nouveau primitif, mais une composition de
+primitifs existants en un système qui réduit les hypothèses de confiance au
+minimum irréductible, tout en restant déployable sur des infrastructures
+matérielles grand public.
+\end{abstract}
+
+\noindent\textbf{Mots-clés :} fonctions à sens unique $\cdot$ signatures
+numériques $\cdot$ identité souveraine $\cdot$ identité sur chaîne de blocs
+$\cdot$ architecture agnostique $\cdot$ annuaire en ajout exclusif $\cdot$
+migration post-quantique
+
+%--------------------------------------------------------------------
+\section{Introduction}
+%--------------------------------------------------------------------
+
+\subsection{Le problème : la capture institutionnelle}
+
+Tout système d'identité numérique déployé à ce jour place des clés
+institutionnelles en dessous de l'utilisateur~: autorités de certification,
+fournisseurs d'identité, registres de clés, opérateurs de plateforme.  Ces
+entités peuvent révoquer, refuser, surveiller ou contrôler l'identité sans le
+consentement de l'utilisateur.
+
+Le modèle de menace qui motive ce travail suppose un adversaire disposant de
+ressources conventionnelles substantielles, d'un soutien politique potentiel
+et d'un contrôle total sur l'infrastructure d'identité traditionnelle.  La
+question centrale est la suivante~: \emph{l'identité peut-elle exister sans
+clé institutionnelle en dessous de l'individu~?}
+
+\subsection{La réponse théorique : Rompel 1990}
+
+Rompel a démontré que les FSU sont à la fois nécessaires et suffisantes pour
+les schémas $\mathrm{SIG}_{\mathrm{EUF\text{-}AAMC}}$~\cite{rompel1990}.
+Il s'agit du minimum prouvable~: aucune hypothèse strictement plus faible ne
+suffit pour l'authentification publique sous les hypothèses standard.
+
+Notre thèse est la suivante~: en fixant la FSU comme plancher cryptographique
+et en n'ajoutant qu'un annuaire en ajout exclusif, indépendant de toute chaîne
+de blocs particulière, on obtient une construction identitaire qui réduit à
+zéro la capture institutionnelle sous la clé individuelle.
+
+\subsection{L'idée directrice}
+
+Ce travail s'inscrit dans un motif récurrent de l'innovation cryptographique~:
+la valeur ne réside pas dans l'invention de nouveaux primitifs, mais dans la
+reconnaissance que des primitifs existants, liés d'une manière spécifique,
+produisent des propriétés émergentes qu'aucun d'eux ne présente isolément.
+Chaque composant du Socle Identitaire---signatures fondées sur les FSU,
+annuaires en ajout exclusif---existe indépendamment dans la littérature
+antérieure.  La contribution réside dans la liaison et dans l'argumentation
+formelle des propriétés de sécurité que cette liaison engendre.
+
+\subsection{Contributions}
+
+\begin{enumerate}[label=\textbf{C\arabic*.},leftmargin=*]
+  \item \textbf{Théorie.}  Formalisation d'un système d'identité indépendant
+    de toute chaîne de blocs particulière, ancré dans les FSU à la manière de
+    Rompel, avec
+    des définitions en ligne et un théorème de solidité de l'authentification
+    démontré par réduction de sécurité explicite.
+
+  \item \textbf{Systèmes.}  Architecture~: couche d'identité fondée sur les FSU
+    (Ed25519 par défaut~; cible de migration ML-DSA-65~\cite{fips204}) avec
+    substrat de répertoire enfichable.  Mise en \oe{}uvre~: SNV d'Emercoin
+    ancré à Bitcoin via AuxPoW~\cite{emercoin} et NESS Fiber~\cite{onchain}.
+    Déployé et publiquement vérifiable depuis 2020.
+
+  \item \textbf{Émergence systémique.}  Démonstration que le nommage, la
+    représentation structurée, l'adressage par contenu, l'exécution
+    déterministe, la connectivité en réseau superposé et l'interaction
+    économique émergent tous comme propriétés dérivées du substrat identitaire,
+    sans racines de confiance supplémentaires.
+
+  \item \textbf{Analyse du coût d'attaque.}  Quantification du coût d'attaque
+    sur les composants cryptographique et de répertoire à l'aide du cadre
+    hack51~\cite{hack51}.
+\end{enumerate}
+
+\subsection{Plan de l'article}
+
+La section~2 présente les préliminaires.  La section~3 établit le modèle de
+menace.  La section~4 développe le modèle formel.  La section~5 décrit
+l'architecture.  La section~6 démontre la solidité de l'authentification.
+La section~7 présente les propriétés système émergentes.  La section~8
+traite de l'instanciation concrète et de l'analyse du coût d'attaque.  La
+section~9 décrit le système déployé.  La section~10 examine les travaux
+connexes.  La section~11 discute les limites et perspectives.
+
+%--------------------------------------------------------------------
+\section{Préliminaires}
+%--------------------------------------------------------------------
+
+\subsection{Fonctions à sens unique et signatures numériques}
+
+Une fonction $f : \{0,1\}^* \to \{0,1\}^*$ est une
+\emph{fonction à sens unique} (FSU) si elle est calculable en temps
+polynomial et si, pour tout adversaire probabiliste en temps polynomial (PPT)
+$\mathcal{A}$,
+\[
+  \Pr\bigl[f(x') = f(x) \;\big|\; x \gets \{0,1\}^\lambda,\;
+    x' \gets \mathcal{A}(1^\lambda, f(x))\bigr] \leq \mathrm{negl}(\lambda),
+\]
+où $\mathrm{negl}(\cdot)$ désigne une fonction négligeable.
+
+Rompel~\cite{rompel1990}, complétant le programme de
+Naor--Yung~\cite{naoryung1989} et ultérieurement de Haitner et
+al.~\cite{haitner2010}, a démontré que les FSU sont \emph{nécessaires et
+suffisantes} pour les schémas de signature à sécurité EUF-AAMC :
+\[
+  \mathrm{FSU} \iff \mathrm{SIG}_{\mathrm{EUF\text{-}AAMC}}.
+\]
+
+Cette équivalence signifie que l'existence d'un schéma EUF-AAMC-sécurisé
+contraint le système à exactement une hypothèse d'intractabilité---l'existence
+des FSU---et qu'aucune hypothèse plus faible n'est suffisante.  Le Socle
+Identitaire opérationnalise ce résultat comme principe de conception~: la
+paire de clés de l'individu est l'unique racine cryptographique de l'identité.
+
+\subsection{Architectures d'identité traditionnelles}
+
+L'infrastructure à clé publique (ICP) / X.509~\cite{rfc5280} place une
+hiérarchie d'autorités de certification en dessous de la clé individuelle,
+introduisant des oracles de révocation et des compromissions d'AC comme modes
+de défaillance supplémentaires.  Les systèmes d'identité fédérés (OAuth~2.0,
+OpenID Connect) délèguent l'identité à un fournisseur qui peut désauthentifier
+les utilisateurs unilatéralement.  Même dans les contextes de chaînes de
+blocs, les multisignatures de gouvernance et les clés administratives se
+trouvent souvent en dessous de l'individu dans la pile de confiance.  Ces
+choix architecturaux ajoutent des hypothèses au-delà des FSU sans accroître
+la sécurité cryptographique de l'authentification elle-même.
+
+\subsection{AuxPoW Bitcoin et minage fusionné}
+
+La Preuve de Travail Auxiliaire permet le minage fusionné d'Emercoin avec
+Bitcoin~: Emercoin hérite ainsi d'une fraction de la sécurité de Bitcoin pour
+des applications non monétaires.  Khovayko~\cite{hack51} introduit le
+\emph{coefficient hack51}---défini comme $c_{\mathrm{att}} / c_{\mathrm{cap}}$---comme métrique numériquement mesurable de
+résistance à l'attaque à 51\,\%.  Sous cette métrique, le triple consensus
+d'Emercoin (PoS + PoW + minage fusionné) produit un coefficient nettement
+supérieur à 1,0~: attaquer Emercoin exige des ressources approchant cinq fois
+sa capitalisation boursière.  Nous appliquons ce cadre à la section~\ref{sec:instanciation}.
+
+%--------------------------------------------------------------------
+\section{Modèle de menace}
+%--------------------------------------------------------------------
+
+\subsection{Capacités de l'adversaire}
+
+\textbf{Hypothèses retenues.}  Ressources conventionnelles substantielles et
+soutien politique~; contrôle total de l'infrastructure d'identité traditionnelle
+(AC, fournisseurs d'identité, registres KYC)~; capacité à interdire des
+logiciels, saisir des biens et contraindre des individus~; adversaire
+calculatoire classique (en temps polynomial).
+
+\textbf{Hypothèses non retenues.}  Ne peut pas violer les FSU sous les
+hypothèses de complexité standard~; ne peut pas mener une attaque à 51\,\%
+soutenue sur Bitcoin (quantifiée à la section~\ref{sec:instanciation})~; ne
+peut pas compromettre simultanément une infrastructure distribuée à l'échelle
+mondiale.
+
+\textbf{Périmètre explicite.}  Ce travail traite des adversaires classiques.
+La migration post-quantique vers ML-DSA (FIPS~204~\cite{fips204}) est abordée
+à la section~\ref{sec:discussion}.
+
+\subsection{Exigences de conception}
+
+\begin{description}[leftmargin=*,style=nextline]
+  \item[E1 --- Irréductibilité mathématique.]  FSU comme plancher
+    cryptographique.  Aucun primitif strictement plus faible en dessous.
+  \item[E2 --- Absence de clé institutionnelle.]  La clé individuelle est
+    l'unique racine cryptographique de confiance.  Aucune AC, fournisseur
+    d'identité ou registre en dessous de l'utilisateur.
+  \item[E3 --- Agnosticisme vis-à-vis de la chaîne.]  Cryptographie d'identité
+    indépendante de tout consensus de répertoire particulier.  Portable entre
+    substrats en ajout exclusif.
+  \item[E4 --- Sécurité quantifiable.]  Coûts d'attaque explicites et
+    mesurables.
+  \item[E5 --- Vérification opérationnelle.]  Système déployé, non simple
+    proposition théorique.  Vérification publique de toutes les affirmations.
+\end{description}
+
+%--------------------------------------------------------------------
+\section{Modèle formel}
+%--------------------------------------------------------------------
+
+Soit $\lambda \in \mathbb{N}$ le paramètre de sécurité et
+$\mathrm{negl}(\lambda)$ une fonction négligeable.
+
+\begin{definition}[Schéma de signature]
+  Un \emph{schéma de signature} est un triplet $\Sigma = (\mathsf{KeyGen},
+  \mathsf{Sign}, \mathsf{Verify})$ d'algorithmes PPT où :
+  \begin{itemize}
+    \item $\mathsf{KeyGen}(1^\lambda) \to (sk, pk)$,
+    \item $\mathsf{Sign}(sk, m) \to \sigma$ pour $m \in \{0,1\}^*$,
+    \item $\mathsf{Verify}(pk, m, \sigma) \to \{0,1\}$.
+  \end{itemize}
+  $\Sigma$ est \emph{correct} si $\mathsf{Verify}(pk, m, \mathsf{Sign}(sk,m))
+  = 1$ pour tout $(sk,pk) \gets \mathsf{KeyGen}(1^\lambda)$ et tout $m$.
+\end{definition}
+
+\begin{definition}[Sécurité EUF-AAMC]
+  $\Sigma$ est à \emph{infalsifiabilité existentielle sous attaque adaptative
+  à messages choisis} si pour tout adversaire PPT $\mathcal{A}$,
+  \[
+    \Pr\bigl[\mathsf{EUF\text{-}AAMC}(\mathcal{A},\Sigma,\lambda) = 1\bigr]
+    \leq \mathrm{negl}(\lambda),
+  \]
+  où $\mathsf{EUF\text{-}AAMC}(\mathcal{A},\Sigma,\lambda)$ est le jeu
+  standard~: $(sk,pk) \gets \mathsf{KeyGen}(1^\lambda)$~;
+  $\mathcal{A}^{\mathsf{Sign}(sk,\cdot)}(pk)$ produit $(m^*, \sigma^*)$~;
+  $\mathcal{A}$ gagne si $\mathsf{Verify}(pk, m^*, \sigma^*) = 1$
+  et $m^*$ n'a jamais été soumis à l'oracle de signature.
+\end{definition}
+
+\begin{definition}[Annuaire public]
+  Un \emph{annuaire public} $\mathcal{D}$ est un ensemble de paires
+  $(id, pk) \in \mathcal{ID} \times \mathcal{CP}$ muni du prédicat
+  d'appartenance
+  \[
+    \mathsf{Lier}(id, pk) = 1 \iff (id, pk) \in \mathcal{D}.
+  \]
+  $\mathcal{D}$ est \emph{en ajout exclusif} si, pour tout $(id, pk)$
+  une fois inséré, il n'existe aucune procédure efficace pouvant rendre
+  $\mathsf{Lier}(id, pk)$ égal à $0$.
+\end{definition}
+
+\begin{definition}[$\varepsilon_{\mathrm{dir}}$-Finalité]
+  Un annuaire en ajout exclusif $\mathcal{D}$ possède la
+  \emph{$\varepsilon_{\mathrm{dir}}$-finalité} si, pour tout adversaire PPT
+  $\mathcal{A}$ et toute entrée $(id, pk)$ inscrite dans $\mathcal{D}$ à la
+  profondeur $d$,
+  \[
+    \Pr\bigl[\mathcal{A}\ \text{provoque } \mathsf{Lier}(id,pk) = 0\bigr]
+    \leq \varepsilon_{\mathrm{dir}}(\lambda, d).
+  \]
+  Lorsque la profondeur de confirmation $d \to \infty$,
+  $\varepsilon_{\mathrm{dir}} \to 0$.
+\end{definition}
+
+\begin{definition}[Prédicat d'authentification]
+  Étant donné l'annuaire $\mathcal{D}$, le \emph{prédicat d'authentification}
+  est
+  \[
+    \mathsf{Auth}(id, c, \sigma) := 1 \iff
+    \exists\, pk :\;
+    \mathsf{Lier}(id, pk) = 1
+    \;\wedge\;
+    \mathsf{Verify}(pk, c, \sigma) = 1.
+  \]
+\end{definition}
+
+%--------------------------------------------------------------------
+\section{Architecture}
+%--------------------------------------------------------------------
+
+\subsection{Couche~1 : Cryptographie d'identité}
+
+Un participant génère $(sk, pk) \gets \mathsf{KeyGen}(1^\lambda)$ à partir
+d'une graine de haute entropie.  La clé publique $pk$, associée à un
+identifiant choisi $id \in \mathcal{ID}$, constitue l'objet identitaire
+$\mathcal{I} = (id, pk)$.  L'authentification auprès de tout vérificateur
+capable d'évaluer $\mathsf{Lier}$ se réduit alors à un protocole
+défi--réponse standard~:
+
+\begin{enumerate}[leftmargin=*]
+  \item Le vérificateur tire $c \gets \{0,1\}^\lambda$ et l'envoie au prouveur.
+  \item Le prouveur calcule $\sigma \gets \mathsf{Sign}(sk, c)$ et renvoie $\sigma$.
+  \item Le vérificateur accepte si et seulement si $\mathsf{Auth}(id, c, \sigma) = 1$.
+\end{enumerate}
+
+Aucun certificat, jeton de session ou oracle tiers n'intervient dans cet échange.
+
+\subsection{Couche~2 : Annuaire en ajout exclusif}
+
+L'annuaire $\mathcal{D}$ lie les identifiants aux clés publiques.  Les
+exigences sont exactement celles de la Définition~3 : vérifiabilité globale,
+persistance et $\varepsilon_{\mathrm{dir}}$-finalité.  La couche d'identité
+et la couche de répertoire sont découplées~: tout substrat satisfaisant la
+Définition~3 constitue une instanciation valide.  La section~\ref{sec:instanciation}
+en fournit une concrète.
+
+%--------------------------------------------------------------------
+\section{Analyse de sécurité}
+%--------------------------------------------------------------------
+
+\begin{theoreme}[Solidité de l'authentification]
+  \label{thm:solidite}
+  Soit $\Sigma$ à sécurité EUF-AAMC avec borne d'avantage
+  $\varepsilon_{\mathrm{sig}}$, et soit $\mathcal{D}$ un annuaire en ajout
+  exclusif avec $\varepsilon_{\mathrm{dir}}$-finalité.  Pour tout adversaire
+  PPT $\mathcal{A}$ ne détenant pas $sk$, la probabilité que $\mathcal{A}$
+  amène un vérificateur à accepter sous l'identité $id$ est au plus
+  $\varepsilon_{\mathrm{sig}}(\lambda) + \varepsilon_{\mathrm{dir}}(\lambda, d)$.
+\end{theoreme}
+
+\begin{proof}
+Supposons que l'adversaire $\mathcal{A}$ gagne le jeu d'authentification~:
+il produit un triplet valide $(id, c, \sigma)$ sans détenir $sk$.
+
+\textbf{Réduction.}  Construisons un faussaire $\mathcal{B}$ contre $\Sigma$.
+$\mathcal{B}$ reçoit la clé publique de défi $\hat{pk}$.  Il simule l'annuaire
+pour $\mathcal{A}$ en répondant aux requêtes $\mathsf{Lier}$ portant sur $id$
+par $\hat{pk}$.\footnote{$\mathcal{B}$ simule l'annuaire localement~; il
+n'écrit rien sur un registre réel.}  Nous distinguons deux cas mutuellement
+exclusifs.
+
+\textbf{Cas~1 : l'intégrité de l'annuaire est préservée} (probabilité
+$\geq 1 - \varepsilon_{\mathrm{dir}}$).  La seule clé $pk$ satisfaisant
+$\mathsf{Lier}(id,pk)=1$ est $\hat{pk}$.  Lorsque $\mathcal{A}$ déclenche
+l'authentification, $\mathcal{B}$ lui transmet le défi EUF-AAMC $c$.  Étant
+donné que $c$ est tiré fraîchement après que $\mathcal{A}$ a fixé sa stratégie
+et n'a jamais été soumis à l'oracle $\mathsf{Sign}(sk,\cdot)$ légitime,
+tout $\sigma$ valide renvoyé par $\mathcal{A}$ est une falsification
+existentielle.  Par sécurité EUF-AAMC de $\Sigma$ :
+\[
+  \Pr[\mathcal{A}\ \text{gagne} \mid \text{Cas~1}]
+  \leq \varepsilon_{\mathrm{sig}}(\lambda).
+\]
+
+\textbf{Cas~2 : l'intégrité de l'annuaire est compromise} (probabilité
+$\leq \varepsilon_{\mathrm{dir}}$).  $\mathcal{A}$ remplace $(id, \hat{pk})$
+par $(id, pk')$ pour une clé dont il contrôle la clé secrète correspondante.
+Cet événement se produit avec probabilité au plus $\varepsilon_{\mathrm{dir}}(\lambda,d)$
+d'après la Définition~4.  Les attaques sur l'annuaire ramènent le coût à la
+couche de répertoire, quantifiée à la section~\ref{sec:instanciation}.
+
+Par union :
+$\Pr[\mathcal{A}\ \text{gagne}] \leq
+\varepsilon_{\mathrm{sig}} + \varepsilon_{\mathrm{dir}}$,
+toutes deux négligeables sous les hypothèses énoncées.
+\end{proof}
+
+\begin{corollaire}
+  Toute usurpation réussie de l'identité $id$ exige soit (i) de violer $\Sigma$
+  avec avantage $> \varepsilon_{\mathrm{sig}}$, soit (ii) de corrompre
+  l'annuaire à un coût excédant le seuil économique impliqué par
+  $\varepsilon_{\mathrm{dir}}$.  Aucun secret institutionnel n'apparaît dans
+  l'une ou l'autre condition.
+\end{corollaire}
+
+%--------------------------------------------------------------------
+\section{Propriétés système émergentes}
+\label{sec:derivees}
+%--------------------------------------------------------------------
+
+Dès lors qu'un substrat identitaire satisfaisant les Définitions~1--5 existe,
+des capacités système supplémentaires deviennent disponibles comme propriétés
+dérivées, sans introduction de nouvelles racines de confiance.
+
+\subsection{Nommage et résolution}
+
+Les liaisons en ajout exclusif entre noms intelligibles et clés publiques
+mettent en \oe{}uvre un nommage décentralisé.  La résolution est une
+vérification d'identité~: pour résoudre le nom $n$, récupérer $(n, pk)$
+dans $\mathcal{D}$ et vérifier $\mathsf{Lier}(n, pk) = 1$.  Aucune autorité
+hiérarchique n'est requise.  Cette approche subsume la fonctionnalité des
+propositions de nommage sur chaîne de blocs~\cite{handshake} sans modèle de
+confiance séparé.
+
+\subsection{Représentation structurée des enregistrements}
+
+Un schéma JSON canonique en ajout exclusif---le format WORM (\emph{Write-Once
+Read-Many})~\cite{worm}---définit des enregistrements typés stockés comme
+valeurs dans l'annuaire.  La sérialisation déterministe permet à des n\oe{}uds
+indépendants d'analyser, d'indexer et d'interroger les enregistrements sans
+autorité de schéma partagée.
+
+\subsection{Adressage par contenu}
+
+La récupération de contenu utilise des hachés cryptographiques~: un n\oe{}ud
+stocke une donnée $m$ à l'adresse $h = H(m)$ et tout récupérateur vérifie
+$H(m') = h$ avant utilisation.  L'intégrité est indépendante du
+transport~\cite{ipfs}.  Combinée à la couche d'identité, une partie
+publiante peut signer une adresse de contenu, liant l'intégrité de la
+récupération à l'authenticité de l'identité.
+
+\subsection{Exécution déterministe}
+
+Un calcul est modélisé comme une fonction pure $F$ appliquée à des entrées
+adressées par contenu~: étant données les entrées $\{h_i\}$ et un programme
+adressé par contenu $h_F$, la sortie $h_{\mathrm{sortie}} = H(F(m_1,
+\ldots, m_k))$ est déterministe et indépendamment reproductible par tout
+n\oe{}ud capable de récupérer les entrées.  La vérification de l'exécution
+se réduit à vérifier que le haché de sortie publié correspond à l'évaluation
+locale indépendante.
+
+\subsection{Connectivité en réseau superposé}
+
+La découverte de pairs et l'acheminement de messages peuvent être mis en
+\oe{}uvre sur des points d'extrémité adressés par identité.  Chaque point
+d'extrémité étant authentifié via $\mathsf{Auth}$, le réseau superposé
+hérite de la sécurité de la couche d'identité et ne requiert pas d'ICP
+séparée pour l'authentification du transport.
+
+\subsection{Interaction économique}
+
+Des modèles de récompense et de paiement fondés sur la participation peuvent
+être construits à l'aide de l'attribution liée à l'identité.  Chaque action
+économique est signée par $sk$ de l'acteur, rendant les contributions
+attribuables et auditables sans opérateur de registre centralisé.
+
+%--------------------------------------------------------------------
+\section{Instanciation concrète}
+\label{sec:instanciation}
+%--------------------------------------------------------------------
+
+\subsection{Schéma de signature}
+
+Nous instancions $\Sigma$ avec Ed25519~\cite{eddsa}, un schéma de type
+Schnorr sur Curve25519 offrant une sécurité d'environ $2^{128}$ contre les
+attaques connues.  La génération de clés utilise une graine multi-source à
+haute entropie~: plusieurs blocs de 1024~octets issus de \texttt{os.urandom}
+(1\,536~bits d'état interne total), la sortie RC4OK du générateur de nombres aléatoires (GNA) du c\oe{}ur Emercoin, la gigue temporelle du processeur et des identifiants matériels,
+mélangés via UHEPRNG~\cite{uheprng}.
+
+\subsection{Répertoire : SNV Emercoin + AuxPoW}
+
+L'annuaire public $\mathcal{D}$ est mis en \oe{}uvre à l'aide du Stockage
+Nom--Valeur (SNV) d'Emercoin~\cite{emercoin}, un magasin clé--valeur natif de la chaîne de blocs.  Les blocs Emercoin sont minés de façon fusionnée avec
+Bitcoin via AuxPoW~\cite{hack51}, ancrant l'état de l'annuaire à la preuve
+de travail cumulée de Bitcoin.
+
+Les enregistrements d'identité sont écrits comme objets JSON WORM sous des
+clés SNV de la forme \texttt{id:$\langle$identifiant$\rangle$}.  Une fois
+écrits, les enregistrements peuvent être renouvelés mais non supprimés,
+satisfaisant l'exigence d'ajout exclusif de la Définition~3.
+
+\subsection{Analyse du coût d'attaque}
+
+\begin{center}
+\begin{tabular}{lll}
+  \toprule
+  \textbf{Vecteur d'attaque} & \textbf{Condition} & \textbf{Résultat} \\
+  \midrule
+  Violer Ed25519       & Violer l'hypothèse FSU & Infaisable ($2^{128}$ op.) \\
+  Réécrire le SNV Emercoin & Maj. PoS + 51\,\% AuxPoW & 5$\times$ cap. EMC~\cite{hack51} \\
+  Compromettre NESS Fiber  & Vol des clés de publication & Déni de service uniquement ; aucune falsification \\
+  Contraindre un utilisateur & Coercition physique / légale & Hors du périmètre crypto \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Falsification de signature.}  Violer Ed25519 exige de résoudre le
+problème du logarithme discret sur Curve25519~; aucun algorithme sous-exponentiel
+n'est connu ($O(2^{128})$ opérations, infaisable classiquement).
+
+\textbf{Réécriture de l'annuaire.}  Modifier une entrée SNV finalisée exige
+une attaque à $>50\,\%$ sur la chaîne AuxPoW d'Emercoin.  Sous le cadre
+hack51~\cite{hack51}, ce coût approche cinq fois la capitalisation boursière
+d'Emercoin.  Nuzzi et al.~\cite{nuzzi2024} estiment le coût d'une attaque
+soutenue contre Bitcoin à entre 5 et 20~milliards USD, fournissant une borne
+inférieure sur la seule composante AuxPoW.
+
+\textbf{Compromission des clés NESS Fiber.}  Une clé de publication volée
+ne peut pas réécrire les blocs passés (la BoltDB en ajout exclusif rend
+impossible la réécriture de l'historique).  La seule action disponible est
+une réinitialisation vers le bloc de genèse, immédiatement visible pour tous
+les participants.  La compromission de clé est donc immédiatement détectable dans tous les cas.
+
+%--------------------------------------------------------------------
+\section{Démonstration opérationnelle}
+%--------------------------------------------------------------------
+
+Le système est opérationnel depuis 2020 sur le réseau PrivateNess.
+L'enregistrement d'identité canonique en chaîne~\cite{onchain}---adresse de
+genèse, clé publique de chaîne de blocs et signature de genèse---est ancré
+dans le bloc SNV Emercoin \#445\,669 (1\textsuperscript{er}~novembre~2020,
+22:16:45~UTC), transitivement ancré à Bitcoin via AuxPoW, et
+indépendamment auditable à l'adresse
+\url{https://explorer.emercoin.com/dpo/PrivateNESS.Network} par tout tiers
+sans recours à un intermédiaire de confiance.  Ceci n'est pas un article
+décrivant ce qui pourrait être construit.  C'est un article décrivant ce qui
+fonctionne depuis 2020.
+
+\textbf{NESS Fiber.}  NESS Fiber emploie le consensus Fiber de type
+Skycoin~\cite{skycoin} avec des clés de publication annoncées dans le SNV
+Emercoin, créant une chaîne de confiance vérifiable~: la sécurité de NESS
+Fiber s'ancre dans le SNV Emercoin, qui s'ancre à Bitcoin via AuxPoW.  Tout
+vérificateur peut confirmer indépendamment la liaison à l'explorateur de
+blocs Emercoin, sans recours à un intermédiaire.
+
+\textbf{Flux de résolution.}
+\begin{enumerate}[leftmargin=*]
+  \item Rechercher \texttt{id:$\langle$nom$\rangle$} dans le SNV Emercoin~;
+    vérifier $\mathsf{Lier}(\mathit{nom}, pk) = 1$.
+  \item Récupérer le contenu associé par haché~;
+    vérifier $H(m') = h$.
+  \item Vérifier la signature du publieur~:
+    $\mathsf{Verify}(pk, h, \sigma) = 1$.
+  \item Exécuter le programme adressé par contenu de façon déterministe.
+\end{enumerate}
+
+Chaque étape est indépendamment vérifiable par tout n\oe{}ud disposant d'un
+accès à l'annuaire public et aux fonctions de hachage standard.  Aucun
+intermédiaire de confiance n'y participe.  Le système fonctionne sur du
+matériel grand public incluant des ordinateurs à carte unique de classe
+RK3528 et des systèmes grand public réaffectés, avec un coût de déploiement
+complet vérifié inférieur à 50~CAD~\cite{onchain}.
+
+%--------------------------------------------------------------------
+\section{Travaux connexes}
+\label{sec:connexes}
+%--------------------------------------------------------------------
+
+\textbf{X.509 et ICP.}  La RFC~5280~\cite{rfc5280} place une hiérarchie
+d'AC en dessous des clés individuelles.  Les AC peuvent émettre des
+certificats erronés, être compromises ou contraintes, violant l'exigence
+qu'aucune clé institutionnelle ne se trouve en dessous de
+l'individu~\cite{goldreich2001}.  Le Socle Identitaire supprime entièrement
+cette couche.
+
+\textbf{Identifiants décentralisés (DID).}  La spécification W3C
+DID~\cite{did2022} définit un cadre générique pour les identifiants
+auto-souverains.  Le Socle Identitaire est compatible avec le modèle DID au
+niveau de la couche d'identifiant, mais fournit un fondement formel de
+sécurité plus robuste et un argument de finalité économique concret absent de
+la spécification de base des DID.
+
+\textbf{FIDO2 / WebAuthn.}  La norme FIDO2~\cite{webauthn2021} élimine les
+mots de passe en utilisant des clés asymétriques liées aux appareils, s'alignant
+étroitement sur le primitif d'identité de la Définition~1.  Cependant,
+FIDO2 s'appuie sur des certificats d'attestation des fabricants de matériel,
+réintroduisant une ancre de confiance institutionnelle.  Le Socle Identitaire
+ne requiert aucune couche d'attestation.
+
+\textbf{Connexion avec Ethereum (EIP-4361).}  L'EIP-4361~\cite{eip4361} lie
+l'identité aux clés de comptes Ethereum et utilise l'état Ethereum comme
+répertoire.  Cela couple la finalité de l'identité au consensus et à la
+gouvernance Ethereum, et restreint le schéma de signature à secp256k1.  Le
+Socle Identitaire généralise ce motif à des schémas EUF-AAMC arbitraires et
+à des annuaires en ajout exclusif arbitraires.
+
+\textbf{ENS et Handshake.}  L'Ethereum Name Service (ENS) et
+Handshake~\cite{handshake} proposent un nommage décentralisé mais ne
+définissent pas de substrat d'authentification formel.  Ils peuvent être vus
+comme des instanciations concrètes de la couche de répertoire $\mathcal{D}$,
+compatibles avec l'architecture présentée ici.
+
+\textbf{Attestations vérifiables.}  Le modèle W3C d'attestations
+vérifiables~\cite{vc2019} prend en charge les déclarations signées par un
+émetteur, introduisant ainsi les clés d'émetteur comme ancres de confiance.
+Le Socle Identitaire opère une couche en dessous des attestations vérifiables~:
+il fournit la liaison d'identité à partir de laquelle la clé du détenteur
+d'une attestation peut être dérivée.
+
+%--------------------------------------------------------------------
+\section{Discussion}
+\label{sec:discussion}
+%--------------------------------------------------------------------
+
+\textbf{Ce que le socle fournit.}  Une liaison vérifiable et infalsifiable
+entre un identifiant et une clé publique, sécurisée par des hypothèses
+cryptographiques standard et un argument de finalité économique quantifié.
+Toutes les propriétés de couche supérieure décrites à la
+section~\ref{sec:derivees} héritent de cette base de sécurité.
+
+\textbf{Ce qui est hors périmètre.}  Le modèle ne traite pas~:
+\begin{itemize}[leftmargin=*]
+  \item \emph{Compromission du point d'extrémité et logiciels malveillants.}
+    Un adversaire ayant accès à l'appareil détenant $sk$ compromet
+    l'authentification indépendamment du protocole.
+  \item \emph{Ingénierie sociale et hameçonnage.}  Attaques hors bande
+    incitant le détenteur légitime de la clé à signer des défis adversariaux.
+  \item \emph{Coercition légale et réglementaire.}  La divulgation forcée de
+    clé est orthogonale à la sécurité cryptographique.
+\end{itemize}
+Ces préoccupations sont opérationnelles et sociales ; elles requièrent des
+couches supplémentaires et sont délibérément hors périmètre.
+
+\textbf{Comparaison avec les approches à divulgation nulle.}  Le protocole
+d'authentification de la section~5.1 révèle la paire défi--réponse
+$(c, \sigma)$, ce qui peut permettre une liaison entre sessions si $pk$ est
+public.  Les schémas d'accréditations anonymes~\cite{goldreich2001} peuvent
+fournir une impossibilité de liaison au prix d'une complexité accrue~; il
+s'agit d'une extension naturelle du socle plutôt que d'une contradiction.
+
+\textbf{Migration post-quantique.}  Ed25519 est vulnérable à l'algorithme de
+Shor.  La trajectoire de migration envisagée est ML-DSA-65 (CRYSTALS-Dilithium3,
+FIPS~204~\cite{fips204})~:
+\begin{itemize}[leftmargin=*]
+  \item Remplacer Ed25519 par ML-DSA-65 (clé publique de 1\,952~octets~;
+    prise en charge par le champ de valeur EmerNVS).
+  \item Le schéma \texttt{<keys>} WORM~\cite{worm} prend en charge nativement
+    plusieurs algorithmes~; la migration ajoute
+    \texttt{<key algo="mldsa65">} sans modifier les enregistrements existants.
+  \item L'ancrage dans l'annuaire, la structure NESS Fiber et le protocole
+    d'authentification demeurent inchangés.
+  \item OpenSSL~3.5 (avril~2025) intègre la prise en charge native de ML-DSA
+    dans Armbian Linux en branche principale.
+\end{itemize}
+Les couches de répertoire et de connectivité n'exigent aucune migration cryptographique~;
+seul le schéma de signature de la couche~1 requiert une migration.
+
+\textbf{Rotation des clés.}  Le modèle de répertoire prend en charge la
+rotation de clé en enregistrant une nouvelle liaison $(id, pk')$ et en
+révoquant l'ancienne par un enregistrement de révocation signé.  La propriété
+d'ajout exclusif implique que les révocations sont elles-mêmes permanentes et
+publiquement vérifiables.
+
+%--------------------------------------------------------------------
+\section{Conclusion}
+%--------------------------------------------------------------------
+
+Le Socle Identitaire démontre qu'un substrat cryptographique minimal---un
+schéma de signature EUF-AAMC et un annuaire en ajout exclusif avec finalité
+quantifiée---est suffisant non seulement pour l'authentification, mais pour
+permettre un ensemble complet de capacités système sans introduction d'ancres
+de confiance institutionnelles.
+
+Le modèle formel, la preuve de sécurité et l'analyse du coût d'attaque
+économique établissent que les seules attaques significatives sur le système
+exigent soit de violer des hypothèses d'intractabilité standard, soit de payer
+un coût économique publiquement quantifiable.  Le système est déployé et
+opérationnel depuis 2020 sur du matériel grand public, validant la faisabilité
+pratique de la construction.
+
+En dérivant le nommage, l'adressage par contenu, l'exécution déterministe, la
+connectivité et l'interaction économique d'un unique primitif identitaire,
+l'architecture réduit la complexité conceptuelle tout en préservant la
+compatibilité avec les protocoles et normes existants.
+
+%--------------------------------------------------------------------
+\section*{Remerciements}
+%--------------------------------------------------------------------
+
+L'auteur remercie Oleg Khovayko pour les travaux fondateurs sur l'infrastructure
+Emercoin et le cadre hack51 d'analyse du coût d'attaque~\cite{hack51}~;
+Aleksej Sokolov (Alex014) pour la conception du format WORM~\cite{worm} et la
+mise en \oe{}uvre de la chaîne d'outils PrivateNess (\texttt{privatenesstools},
+\texttt{pyuheprng}) à partir des spécifications de l'auteur~; Brandon
+\og~Synth~\fg~Smietana et Moses Narrow (\texttt{moe\_narrow} /
+\texttt{0pcom}), responsable du packaging Linux Skywire, pour le transport en
+réseau maillé Skywire et l'infrastructure de consensus Fiber sur lesquels NESS
+est construit~; et la communauté PrivateNess Network, dont le travail collectif
+depuis la fondation publique du projet sur Bitcointalk le 1\textsuperscript{er}
+septembre 2020~\cite{bitcointalk} a rendu ce système déployé possible.  Neuf
+années d'engagement de l'auteur dans l'infrastructure Emercoin constituent le
+fondement opérationnel sur lequel le Socle Identitaire est bâti.
+
+%--------------------------------------------------------------------
+\begin{thebibliography}{99}
+
+\bibitem{rompel1990}
+  J.~Rompel,
+  \og~One-way functions are necessary and sufficient for secure signatures,~\fg
+  in \textit{Proc.\ 22\textsuperscript{e} Symposium annuel ACM sur la théorie
+  de l'informatique (STOC)}, pp.~387--394, 1990.
+
+\bibitem{haitner2010}
+  I.~Haitner, T.~Holenstein, O.~Reingold, S.~Vadhan et H.~Wee,
+  \og~Universal one-way hash functions via inaccessible entropy,~\fg
+  in H.~Gilbert (éd.), \textit{EUROCRYPT 2010},
+  LNCS vol.~6110, pp.~616--637, Springer, 2010.
+
+\bibitem{naoryung1989}
+  M.~Naor et M.~Yung,
+  \og~Universal one-way hash functions and their cryptographic applications,~\fg
+  in \textit{Proc.\ 21\textsuperscript{e} Symposium annuel ACM STOC},
+  pp.~33--43, 1989.
+
+\bibitem{katz2005}
+  J.~Katz et C.-Y.~Koo,
+  \og~On constructing universal one-way hash functions from arbitrary one-way
+  functions,~\fg
+  Cryptology ePrint Archive, Rapport 2005/328, 2005.
+  \url{https://eprint.iacr.org/2005/328}
+
+\bibitem{goldreich2001}
+  O.~Goldreich,
+  \textit{Foundations of Cryptography, Volume~1 : Basic Tools},
+  Cambridge University Press, 2001.
+
+\bibitem{eddsa}
+  S.~Josefsson et I.~Liusvaara,
+  \og~Edwards-Curve Digital Signature Algorithm (EdDSA),~\fg
+  RFC~8032, IETF, janvier 2017.
+  \url{https://www.rfc-editor.org/rfc/rfc8032}
+
+\bibitem{fips204}
+  National Institute of Standards and Technology,
+  \og~Module-Lattice-Based Digital Signature Standard (ML-DSA),~\fg
+  FIPS~204, août 2024.
+  \url{https://doi.org/10.6028/NIST.FIPS.204}
+
+\bibitem{uheprng}
+  S.~Gibson,
+  \og~Ultra-High Entropy Pseudo-Random Number Generator (UHEPRNG),~\fg
+  Gibson Research Corporation.
+  \url{https://www.grc.com/otg/uheprng.htm}
+
+\bibitem{emercoin}
+  Équipe de développement Emercoin,
+  \og~Emercoin~: chaîne de blocs hybride avec minage fusionné,~\fg
+  \url{https://emercoin.com}, 2013--2026.
+
+\bibitem{hack51}
+  O.~Khovayko,
+  \og~Estimation du coût d'une attaque à 51\,\% sur Emercoin~: le coefficient
+  hack51~\fg [en russe],
+  Dzen / Yandex, 2021.
+  \url{https://dzen.ru/a/YUotZkN9nAeElPEQ}
+
+\bibitem{nuzzi2024}
+  L.~Nuzzi et al.,
+  \og~Breaking BFT~: quantifying the cost to attack Bitcoin and Ethereum,~\fg
+  Coin Metrics, 2024.
+
+\bibitem{skycoin}
+  B.~Smietana (\og~Synth~\fg) et al.,
+  \og~Skycoin~: Skywire et consensus Fiber,~\fg
+  Équipe de développement Skycoin, 2014--2026.
+  \url{https://www.skycoin.com}
+  Packaging Linux~: M.~Narrow (\texttt{moe\_narrow} / \texttt{0pcom}).
+
+\bibitem{worm}
+  A.~Sokolov (Alex014) / NESS-Network,
+  \og~WORM --- World Object MaRkup language,~\fg
+  format conçu par A.~Sokolov~; déployé au sein de l'écosystème PrivateNess.
+  \url{https://github.com/ness-network/worm}
+
+\bibitem{onchain}
+  PrivateNess Network,
+  \og~PrivateNess.Network --- enregistrement d'identité canonique en
+  chaîne,~\fg
+  Emercoin NVS DPO, ancré dans le bloc~\#445\,669,
+  1\textsuperscript{er}~novembre~2020, 22:16:45~UTC.  Opérationnel
+  2020--2026.
+  \url{https://explorer.emercoin.com/dpo/PrivateNESS.Network}
+
+\bibitem{bitcointalk}
+  PrivateNess Network,
+  \og~PrivateNess Network (NESS) Privacy CX Fiber Coin,~\fg
+  Bitcointalk Announcements (Altcoins), 1\textsuperscript{er}~septembre~2020.
+  \url{https://bitcointalk.org/index.php?topic=5272741.0}
+
+\bibitem{rfc5280}
+  D.~Cooper et al.,
+  \og~Internet X.509 Public Key Infrastructure Certificate and CRL Profile,~\fg
+  IETF RFC~5280, mai 2008.
+
+\bibitem{did2022}
+  M.~Sporny et al.,
+  \og~Decentralized Identifiers (DIDs) v1.0,~\fg
+  Recommandation W3C, juillet 2022.
+  \url{https://www.w3.org/TR/did-core/}
+
+\bibitem{webauthn2021}
+  D.~Balfanz et al.,
+  \og~Web Authentication~: An API for Accessing Public Key Credentials
+  Level~2,~\fg
+  Recommandation W3C, avril 2021.
+  \url{https://www.w3.org/TR/webauthn-2/}
+
+\bibitem{eip4361}
+  B.~Talsma et al.,
+  \og~EIP-4361~: Sign-In with Ethereum,~\fg
+  Proposition d'amélioration Ethereum, octobre 2021.
+  \url{https://eips.ethereum.org/EIPS/eip-4361}
+
+\bibitem{vc2019}
+  M.~Sporny, D.~Longley et D.~Chadwick,
+  \og~Verifiable Credentials Data Model 1.0,~\fg
+  Recommandation W3C, novembre 2019.
+  \url{https://www.w3.org/TR/vc-data-model/}
+
+\bibitem{handshake}
+  Auteurs Handshake,
+  \og~Handshake~: Decentralized Certificate Authority and Naming,~\fg
+  Article technique, 2018.
+  \url{https://handshake.org/files/handshake.txt}
+
+\bibitem{ipfs}
+  J.~Benet,
+  \og~IPFS---Content Addressed, Versioned, P2P File System,~\fg
+  arXiv:1407.3561, 2014.
+
+\end{thebibliography}
+
+\end{document}

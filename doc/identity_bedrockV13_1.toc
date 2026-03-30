@@ -1,0 +1,51 @@
+\contentsline {section}{\numberline {1}Introduction}{4}{section.1}%
+\contentsline {subsection}{\numberline {1.1}The Problem: Institutional Capture}{4}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}The Theoretical Answer: Rompel 1990}{4}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}The Binding Insight}{4}{subsection.1.3}%
+\contentsline {subsection}{\numberline {1.4}Contributions}{4}{subsection.1.4}%
+\contentsline {subsection}{\numberline {1.5}Paper Organization}{5}{subsection.1.5}%
+\contentsline {section}{\numberline {2}Background and Related Work}{5}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Rompel's Theorem (1990)}{5}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Inaccessible Entropy}{5}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Blockchain-Based Identity Systems}{6}{subsection.2.3}%
+\contentsline {paragraph}{Namecoin / EmerDNS.}{6}{section*.2}%
+\contentsline {paragraph}{W3C DIDs / Ethereum.}{6}{section*.3}%
+\contentsline {paragraph}{Sovrin / Hyperledger Indy.}{6}{section*.4}%
+\contentsline {paragraph}{Identity Bedrock distinction.}{6}{section*.5}%
+\contentsline {subsection}{\numberline {2.4}Bitcoin AuxPoW and Merged Mining}{6}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Bone Conduction Biometric Authentication}{7}{subsection.2.5}%
+\contentsline {subsection}{\numberline {2.6}Skycoin Fiber Consensus}{7}{subsection.2.6}%
+\contentsline {subsection}{\numberline {2.7}Summary of Differences}{7}{subsection.2.7}%
+\contentsline {section}{\numberline {3}Threat Model and Requirements}{7}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Adversary Capabilities}{7}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Design Requirements}{8}{subsection.3.2}%
+\contentsline {section}{\numberline {4}Identity Bedrock Architecture}{8}{section.4}%
+\contentsline {subsection}{\numberline {4.1}The Two-Layer Design}{8}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Authentication Protocol}{9}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Security Proof}{9}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Chain-Agnostic Property and Migration}{10}{subsection.4.4}%
+\contentsline {section}{\numberline {5}Implementation: Emercoin + NESS Fiber}{10}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Directory: Emercoin NVS}{11}{subsection.5.1}%
+\contentsline {paragraph}{Separation of concerns.}{11}{section*.6}%
+\contentsline {subsection}{\numberline {5.2}Infrastructure: NESS Fiber}{11}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Canonical Self-Spend Proof}{12}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}Key Generation and Entropy Provisioning}{12}{subsection.5.4}%
+\contentsline {section}{\numberline {6}Physical Presence Extension}{12}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Motivation}{12}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}The Channel Symmetry Problem}{12}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Bone Conduction Breaks Channel Symmetry}{13}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}Bone Conduction as Physical Inaccessible Entropy}{13}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.5}The Four-Factor Authentication Stack}{14}{subsection.6.5}%
+\contentsline {subsection}{\numberline {6.6}The Physically-Bound Authentication Token (PBAT)}{14}{subsection.6.6}%
+\contentsline {section}{\numberline {7}Evaluation}{15}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Attack Cost Analysis}{15}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Comparison to Related Systems}{16}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}Performance}{16}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}Reference Implementation: Minimum Hardware Floor}{16}{subsection.7.4}%
+\contentsline {section}{\numberline {8}Discussion}{17}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Limitations}{17}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}On the Nature of the Contribution}{18}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}Future Work}{18}{subsection.8.3}%
+\contentsline {section}{\numberline {A}Formal Definitions}{21}{appendix.A}%
+\contentsline {section}{\numberline {B}WORM Identity Record Schema}{22}{appendix.B}%
+\contentsline {section}{\numberline {C}Deployment Verification}{22}{appendix.C}%

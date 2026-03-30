@@ -1,0 +1,93 @@
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{geometry}
+\usepackage{hyperref}
+
+\geometry{a4paper,margin=25mm}
+
+\newtheorem{theorem}{Theorem}[section]
+
+\title{\textbf{Identity Bedrock: A Minimal Cryptographic Substrate and Its Systemic Implications}}
+\author{Jean-François Bouchard}
+\date{March 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We present Identity Bedrock, a deployed identity system constructed from a minimal cryptographic substrate grounded in one-way functions (OWFs).
+
+The system separates identity cryptography from directory consensus via a chain-agnostic append-only binding layer.
+
+The system has been deployed in production for over five years, with publicly verifiable records.
+
+We show that naming, content resolution, execution, connectivity, and economic interaction emerge from this identity substrate.
+\end{abstract}
+
+\section{Introduction}
+
+This work documents a deployed system.
+
+\section{Architecture}
+
+\subsection{Identity}
+
+Users control identity via keypairs $(sk, pk)$.
+
+\subsection{Directory}
+
+An append-only substrate binds identifiers to public keys.
+
+\section{Security}
+
+\begin{theorem}
+Authentication is unforgeable assuming signature security and directory integrity.
+\end{theorem}
+
+\section{Derived Properties}
+
+\subsection{Naming}
+
+\begin{equation}
+(n, v, pk, \sigma), \quad \sigma = \text{Sign}_{sk}(n \parallel v)
+\end{equation}
+
+\subsection{Execution}
+
+\begin{equation}
+Execution = Hash(Input, Environment, Command)
+\end{equation}
+
+\section{Deployment}
+
+\url{https://explorer.emercoin.com/dpo/PrivateNESS.Network}
+
+\section{Implementation}
+
+EmerDNS, NVS, AuxPoW, Fiber.
+
+\section{Conclusion}
+
+Minimal identity substrate is sufficient.
+
+\section*{Acknowledgments}
+
+AI-assisted editing.
+
+\begin{thebibliography}{3}
+
+\bibitem{rompel1990} Rompel.
+\bibitem{rfc1035} Mockapetris.
+\bibitem{nakamoto2008} Nakamoto.
+
+\end{thebibliography}
+
+\end{document}

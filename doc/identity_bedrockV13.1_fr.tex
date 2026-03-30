@@ -1,0 +1,462 @@
+% Socle Identitaire V13.1-FR — Version académique française
+% Version originale en anglais : identity_bedrockV13.1.tex
+% Compilation : pdflatex -> pdflatex
+
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[french]{babel}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue]{hyperref}
+\usepackage{geometry}
+\geometry{a4paper,margin=25mm}
+
+\newtheorem{theoreme}{Théorème}[section]
+\newtheorem{definition}[theoreme]{Définition}
+\newtheorem{corollaire}[theoreme]{Corollaire}
+\renewcommand{\proofname}{Démonstration}
+
+\title{\textbf{Socle Identitaire : Un Substrat Cryptographique Minimal\\
+et ses Implications Systémiques}}
+\author{Jean-François Bouchard\\
+  \small PrivateNess Network (co-fondateur, Directeur technique)\\
+  \small Emercoin (contributeur communautaire)\\
+  \small \texttt{[contact via privateness.network]}}
+\date{Mars 2026}
+
+\begin{document}
+\maketitle
+
+\noindent\textbf{Divulgation relative à l'IA.} L'auteur a eu recours à des
+outils de traitement automatique du langage pour la rédaction et la révision
+du manuscrit.  Les contributions techniques, la conception du système, les
+réalisations, le cadrage théorique et les idées directrices décrits ci-après
+sont issus de l'auteur, qui s'appuie sur neuf années d'expérience
+opérationnelle dans le déploiement d'infrastructures fondées sur Emercoin.
+
+\begin{abstract}
+Nous présentons le Socle Identitaire, un système d'identité déployé construit
+à partir d'un substrat cryptographique minimal.  En partant de l'exigence
+qu'aucune clé institutionnelle n'existe sous la clé individuelle, nous
+dérivons une architecture fondée sur les fonctions à sens unique (FSU), qui
+sont nécessaires et suffisantes pour les schémas de signature à
+infalsifiabilité existentielle sous attaque adaptative à messages choisis.
+
+Le système sépare la cryptographie d'identité du consensus de répertoire au
+moyen d'une couche d'ancrage en ajout exclusif, indépendante de la chaîne de
+blocs, permettant la portabilité entre substrats hétérogènes tout en
+préservant la vérifiabilité.
+
+Nous montrons en outre que des capacités système supplémentaires---nommage,
+représentation structurée, récupération de contenu, exécution déterministe,
+connectivité et interaction économique---émergent comme propriétés dérivées de
+ce substrat identitaire plutôt que comme sous-systèmes indépendants.
+
+La contribution n'est pas un nouveau primitif, mais une composition de
+primitifs existants en un système qui réduit les hypothèses de confiance au
+minimum irréductible tout en permettant un déploiement pratique sur
+infrastructures matérielles grand public.
+\end{abstract}
+
+\noindent\textbf{Mots-clés :} fonctions à sens unique $\cdot$ signatures
+numériques $\cdot$ identité souveraine $\cdot$ annuaire en ajout exclusif
+$\cdot$ propriétés émergentes $\cdot$ architecture indépendante de la chaîne
+de blocs $\cdot$ déploiement opérationnel
+
+%--------------------------------------------------------------------
+\section{Introduction}
+%--------------------------------------------------------------------
+
+Les systèmes d'identité numérique font communément appel à des ancres de
+confiance institutionnelles---autorités de certification, fournisseurs
+d'identité, opérateurs de registre.  Ces entités introduisent des points de
+contrôle extérieurs sur l'identité et créent des dépendances affectant la
+disponibilité, la portabilité et la souveraineté de l'utilisateur.
+
+Ce travail examine si l'identité peut être construite en réduisant au minimum
+de telles dépendances, en ne reposant que sur des hypothèses cryptographiques
+nécessaires.  Nous examinons également les implications plus larges d'une
+telle construction, en montrant que de multiples capacités au niveau système
+peuvent être dérivées d'un substrat identitaire minimal.
+
+\subsection{Contributions}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Construction minimale.}  Identité fondée sur des schémas de
+    signature ancrés dans les FSU.
+  \item \textbf{Architecture indépendante de la chaîne de blocs.}  Séparation
+    de la cryptographie d'identité du consensus de répertoire.
+  \item \textbf{Système déployé.}  Mise en œuvre publiquement vérifiable,
+    opérationnelle depuis 2020 sur le réseau PrivateNess~\cite{onchain}.
+  \item \textbf{Émergence systémique.}  Démonstration que les capacités de
+    couche supérieure émergent du substrat identitaire sans racines de
+    confiance supplémentaires.
+\end{itemize}
+
+%--------------------------------------------------------------------
+\section{Préliminaires}
+%--------------------------------------------------------------------
+
+Les fonctions à sens unique sont nécessaires et suffisantes pour les schémas
+de signature à infalsifiabilité existentielle sous attaque adaptative à
+messages choisis~\cite{rompel1990}.  Cette équivalence contraint toute
+construction reposant sur ce primitif à une unique hypothèse d'intractabilité,
+et aucune hypothèse strictement plus faible n'est suffisante.
+
+Les systèmes d'identité traditionnels outrepassent cette exigence minimale en
+introduisant des modèles de confiance hiérarchiques.  L'infrastructure à clé
+publique (ICP)~\cite{rfc5280} en est l'exemple canonique~: les autorités de
+certification peuvent délivrer des certificats erronés, être compromises ou
+contraintes, introduisant des modes de défaillance absents du primitif
+sous-jacent.  Les systèmes d'identité fédérés (OAuth~2.0, OpenID~Connect)
+délèguent l'identité à un fournisseur tiers susceptible de désauthentifier
+les utilisateurs unilatéralement.
+
+\begin{definition}[Schéma de signature EUF-AAMC]
+  \label{def:sig}
+  Un \emph{schéma de signature} $\Sigma = (\mathsf{KeyGen}, \mathsf{Sign},
+  \mathsf{Verify})$ est à \emph{infalsifiabilité existentielle sous attaque
+  adaptative à messages choisis} (EUF-AAMC) si pour tout adversaire PPT
+  $\mathcal{A}$ ayant accès à un oracle de signature,
+  \[
+    \Pr[\mathcal{A}\ \text{produit une falsification valide}]
+    \leq \mathrm{negl}(\lambda),
+  \]
+  où $\lambda \in \mathbb{N}$ est le paramètre de sécurité et $\mathrm{negl}$
+  une fonction négligeable.
+\end{definition}
+
+\begin{definition}[Annuaire en ajout exclusif]
+  \label{def:dir}
+  Un \emph{annuaire en ajout exclusif} $\mathcal{D}$ est un ensemble de
+  paires $(id, pk)$ muni d'un prédicat de liaison $\mathsf{Lier}(id, pk)$
+  tel que toute paire une fois inscrite ne peut plus être supprimée par
+  aucune procédure efficace.  $\mathcal{D}$ possède la \emph{finalité} si
+  la probabilité de réversion d'une entrée à la profondeur $d$ est négligeable
+  en $\lambda$ et décroissante en $d$.
+\end{definition}
+
+%--------------------------------------------------------------------
+\section{Architecture}
+%--------------------------------------------------------------------
+
+\subsection{Couche d'identité}
+
+Un participant génère une paire de clés
+$(sk, pk) \gets \mathsf{KeyGen}(1^\lambda)$ à partir d'une graine à haute
+entropie.  L'authentification consiste à signer un défi et à vérifier la
+signature à l'aide de la clé publique~:
+
+\begin{enumerate}[leftmargin=*]
+  \item Le vérificateur émet un défi $c \gets \{0,1\}^\lambda$.
+  \item Le prouveur calcule $\sigma \gets \mathsf{Sign}(sk, c)$ et renvoie $\sigma$.
+  \item Le vérificateur accepte si et seulement si $\mathsf{Verify}(pk, c, \sigma) = 1$.
+\end{enumerate}
+
+Aucun certificat, jeton de session ou oracle tiers n'intervient dans cet échange.
+
+\subsection{Substrat de répertoire}
+
+Un annuaire en ajout exclusif lie les identifiants aux clés publiques.  Les
+exigences sont les suivantes~:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Vérifiabilité globale.}  Tout nœud peut vérifier
+    l'appartenance indépendamment.
+  \item \textbf{Persistance.}  Les liaisons publiées ne peuvent être supprimées.
+  \item \textbf{Finalité.}  Une liaison confirmée à profondeur suffisante est
+    irréversible avec probabilité négligeable en $\lambda$.
+\end{itemize}
+
+La couche d'identité et la couche de répertoire sont découplées~: tout
+substrat satisfaisant ces exigences constitue une instanciation valide,
+permettant la portabilité entre substrats hétérogènes sans modification de
+la couche cryptographique.
+
+%--------------------------------------------------------------------
+\section{Analyse de sécurité}
+%--------------------------------------------------------------------
+
+\begin{theoreme}[Solidité de l'authentification]
+  \label{thm:solidite}
+  Si le schéma de signature $\Sigma$ satisfait la Définition~\ref{def:sig}
+  et si l'annuaire $\mathcal{D}$ satisfait la Définition~\ref{def:dir},
+  alors l'authentification est infalsifiable sous les hypothèses standard.
+\end{theoreme}
+
+\begin{proof}
+Une falsification réussie implique soit (i) une rupture du schéma de
+signature---produire une signature valide sans détenir $sk$---soit (ii) une
+violation de l'intégrité de l'annuaire---substituer $(id, pk')$ à $(id, pk)$
+afin de tromper le vérificateur sur la clé publique légitime.  Le cas (i)
+contredit la sécurité EUF-AAMC de $\Sigma$~; le cas (ii) contredit la
+propriété d'ajout exclusif avec finalité de $\mathcal{D}$.  Les deux cas
+étant exclus par hypothèse, aucune falsification n'est réalisable.
+\end{proof}
+
+\begin{corollaire}
+  Toute usurpation réussie de l'identité $id$ exige soit de casser le
+  schéma de signature, soit de corrompre l'annuaire.  Aucune de ces
+  conditions ne fait intervenir un secret institutionnel.
+\end{corollaire}
+
+%--------------------------------------------------------------------
+\section{Propriétés système émergentes}
+%--------------------------------------------------------------------
+
+Dès lors qu'un substrat identitaire satisfaisant les
+Définitions~\ref{def:sig} et~\ref{def:dir} existe, des capacités système
+supplémentaires deviennent disponibles comme propriétés dérivées, sans
+introduction de nouvelles racines de confiance.
+
+\subsection{Nommage et résolution}
+
+L'identité permet un nommage décentralisé via des liaisons en ajout exclusif
+entre identifiants intelligibles et clés publiques.  La résolution devient un
+processus de vérification de l'appartenance plutôt que de confiance envers
+des autorités hiérarchiques.  Pour résoudre le nom $n$, il suffit de
+récupérer $(n, pk)$ dans $\mathcal{D}$ et de vérifier $\mathsf{Lier}(n, pk) = 1$.
+
+\subsection{Représentation structurée des données}
+
+Des objets peuvent être représentés selon des formats structurés déterministes.
+La sérialisation canonique permet l'analyse, l'indexation et l'interrogation
+cohérentes entre nœuds indépendants, rendant possible la découverte
+décentralisée sans autorité de schéma partagée.
+
+\subsection{Adressage par contenu}
+
+La récupération de contenu est effectuée à l'aide de hachés cryptographiques~:
+pour une donnée $m$, son adresse est $h = H(m)$ et tout récupérateur vérifie
+$H(m') = h$ avant utilisation.  L'intégrité est ainsi indépendante du
+mécanisme de transport~\cite{ipfs}.
+
+\subsection{Exécution déterministe}
+
+L'exécution peut être modélisée comme une fonction pure~:
+\[
+  h_{\mathrm{sortie}} = H\bigl(F(m_1, \ldots, m_k)\bigr),
+\]
+où $F$ est un programme adressé par contenu et $\{m_i\}$ ses entrées,
+elles-mêmes adressées par contenu.  Cela permet un calcul reproductible et
+des résultats vérifiables indépendamment par tout nœud ayant accès aux entrées.
+
+\subsection{Connectivité en réseau superposé}
+
+Les techniques de réseau superposé permettent aux nœuds de communiquer
+indépendamment des contraintes du réseau sous-jacent.  L'acheminement fondé
+sur l'identité réduit la dépendance à l'égard d'une infrastructure de
+routage centralisée~; chaque point d'extrémité étant authentifié via le
+substrat d'identité, le réseau superposé hérite de la sécurité de la couche
+d'identité sans ICP séparée.
+
+\subsection{Interaction économique}
+
+Des mécanismes d'incitation peuvent être construits à l'aide de l'attribution
+liée à l'identité, permettant des modèles de récompense fondés sur la
+participation sans coordination centralisée.  Chaque action économique est
+signée par la clé secrète de l'acteur, rendant les contributions
+attribuables et auditables sans opérateur de registre centralisé.
+
+%--------------------------------------------------------------------
+\section{Démonstration pratique}
+%--------------------------------------------------------------------
+
+L'architecture a été mise en œuvre et déployée.  Le système est opérationnel
+depuis 2020 sur le réseau PrivateNess~\cite{onchain}.
+
+\subsection{Déploiement applicatif}
+
+Les applications peuvent être résolues via le nommage décentralisé,
+récupérées par adressage par contenu, et exécutées dans un environnement
+déterministe.  L'ensemble du flux ne requiert aucun intermédiaire de confiance.
+
+\subsection{Déploiement nodal}
+
+Les nœuds fonctionnent sur du matériel grand public, incluant des dispositifs
+à faible coût (classe RK3528) et des systèmes réaffectés.  Un coût de
+déploiement complet vérifié inférieur à 50~CAD a été constaté~\cite{onchain},
+validant la faisabilité sur des infrastructures sans spécialisation.
+
+\subsection{Flux de résolution}
+
+Une interaction typique suit les étapes~:
+
+\begin{enumerate}[leftmargin=*]
+  \item Résoudre l'identifiant en liaison clé publique dans l'annuaire.
+  \item Récupérer le contenu associé par son haché.
+  \item Vérifier l'intégrité~: $H(m') = h$.
+  \item Exécuter de façon déterministe.
+\end{enumerate}
+
+Chaque étape est indépendamment vérifiable par tout nœud disposant d'un
+accès à l'annuaire public et aux fonctions de hachage standard.
+
+%--------------------------------------------------------------------
+\section{Mise en œuvre}
+%--------------------------------------------------------------------
+
+Le système est mis en œuvre à l'aide d'un substrat nom--valeur en ajout
+exclusif ancré à des mécanismes de consensus externes.  Les liaisons
+d'identité sont publiquement vérifiables et portables entre substrats.
+
+Concrètement, l'annuaire public $\mathcal{D}$ est instancié à l'aide du
+Stockage Nom--Valeur (SNV) d'Emercoin~\cite{emercoin}, un magasin
+clé--valeur natif de la chaîne de blocs Emercoin, ancré à Bitcoin via
+Preuve de Travail Auxiliaire (AuxPoW)~\cite{hack51}.  Les enregistrements
+d'identité sont écrits sous des clés SNV de la forme
+\texttt{id:$\langle$identifiant$\rangle$} selon le format WORM (\emph{Write-Once
+Read-Many})~\cite{worm}.  Une fois écrits, les enregistrements peuvent être
+renouvelés mais non supprimés, satisfaisant la Définition~\ref{def:dir}.
+
+%--------------------------------------------------------------------
+\section{Évaluation}
+%--------------------------------------------------------------------
+
+L'authentification n'exige que la vérification de signature et une
+consultation de l'annuaire, ce qui se traduit par un faible coût calculatoire
+et une latence minimale.
+
+\textbf{Complexité calculatoire.}  La vérification d'une authentification
+exige une vérification de signature Ed25519~\cite{eddsa} ($O(1)$ en taille
+du message) et une consultation de l'annuaire SNV ($O(\log n)$ dans l'arbre
+de Merkle).  Ces deux opérations sont réalisables sur du matériel embarqué
+de classe RK3528.
+
+\textbf{Stabilité opérationnelle.}  L'enregistrement d'identité canonique
+en chaîne~\cite{onchain} est ancré dans le bloc SNV Emercoin \#445\,669
+(1\textsuperscript{er}~novembre~2020, 22:16:45~UTC), transitivement ancré à
+Bitcoin via AuxPoW, et auditable à l'adresse
+\url{https://explorer.emercoin.com/dpo/PrivateNESS.Network}.  Cinq années
+d'exploitation continue (2020--2026) sans interruption de service liée à la
+couche cryptographique valident l'adéquation du substrat minimal pour des
+déploiements en production.
+
+%--------------------------------------------------------------------
+\section{Discussion}
+%--------------------------------------------------------------------
+
+L'architecture n'introduit pas de sous-systèmes indépendants pour le nommage,
+l'exécution ou la connectivité.  Ces capacités émergent au contraire d'un
+substrat identitaire unifié, réduisant la complexité conceptuelle tout en
+préservant la compatibilité avec les protocoles existants.
+
+\textbf{Limites du périmètre.}  Le modèle traite des adversaires
+calculatoires classiques.  La compromission du point d'extrémité, l'ingénierie
+sociale et les attaques quantiques sur la couche de signature sont hors
+périmètre.  La migration post-quantique vers ML-DSA-65 (FIPS~204~\cite{fips204})
+est envisageable sans modifier les couches de répertoire ou de connectivité.
+
+\textbf{Généralité de la couche de répertoire.}  La Définition~\ref{def:dir}
+étant intentionnellement abstraite, toute implémentation satisfaisant les
+propriétés d'ajout exclusif et de finalité constitue une instanciation
+valide---chaînes de blocs alternatives, journaux distribués vérifiables, ou
+systèmes de fichiers en ajout exclusif pour des cas d'usage à moindre risque.
+
+%--------------------------------------------------------------------
+\section{Conclusion}
+%--------------------------------------------------------------------
+
+Le Socle Identitaire démontre qu'un substrat cryptographique minimal---un
+schéma de signature EUF-AAMC et un annuaire en ajout exclusif avec
+finalité---est suffisant non seulement pour l'authentification, mais aussi
+pour permettre un ensemble complet de capacités système sans introduction
+d'ancres de confiance institutionnelles.
+
+En dérivant le comportement système d'un primitif unifié, l'approche réduit
+les hypothèses de confiance au minimum tout en permettant un déploiement
+pratique et l'interopérabilité avec les protocoles existants.
+
+%--------------------------------------------------------------------
+\section*{Remerciements}
+%--------------------------------------------------------------------
+
+L'auteur remercie Oleg Khovayko pour les travaux fondateurs sur
+l'infrastructure Emercoin et le cadre hack51~\cite{hack51}~; Aleksej Sokolov
+(Alex014) pour la conception du format WORM~\cite{worm} et la mise en œuvre
+de la chaîne d'outils PrivateNess~; Brandon \og~Synth~\fg~Smietana et Moses
+Narrow (\texttt{moe\_narrow} / \texttt{0pcom}) pour le transport Skywire et
+l'infrastructure de consensus Fiber~; et la communauté PrivateNess Network
+depuis la fondation publique du projet le
+1\textsuperscript{er}~septembre~2020~\cite{bitcointalk}.
+
+%--------------------------------------------------------------------
+\begin{thebibliography}{99}
+
+\bibitem{rompel1990}
+  J.~Rompel,
+  \og~One-way functions are necessary and sufficient for secure signatures,~\fg
+  in \textit{Proc.\ 22\textsuperscript{e} Symposium annuel ACM STOC},
+  pp.~387--394, 1990.
+
+\bibitem{goldreich2001}
+  O.~Goldreich,
+  \textit{Foundations of Cryptography, Volume~1 : Basic Tools},
+  Cambridge University Press, 2001.
+
+\bibitem{eddsa}
+  S.~Josefsson et I.~Liusvaara,
+  \og~Edwards-Curve Digital Signature Algorithm (EdDSA),~\fg
+  RFC~8032, IETF, janvier 2017.
+  \url{https://www.rfc-editor.org/rfc/rfc8032}
+
+\bibitem{fips204}
+  National Institute of Standards and Technology,
+  \og~Module-Lattice-Based Digital Signature Standard (ML-DSA),~\fg
+  FIPS~204, août 2024.
+  \url{https://doi.org/10.6028/NIST.FIPS.204}
+
+\bibitem{rfc5280}
+  D.~Cooper et al.,
+  \og~Internet X.509 Public Key Infrastructure Certificate and CRL Profile,~\fg
+  IETF RFC~5280, mai 2008.
+
+\bibitem{emercoin}
+  Équipe de développement Emercoin,
+  \og~Emercoin~: chaîne de blocs hybride avec minage fusionné,~\fg
+  \url{https://emercoin.com}, 2013--2026.
+
+\bibitem{hack51}
+  O.~Khovayko,
+  \og~Estimation du coût d'une attaque à 51\,\% sur Emercoin~: le coefficient
+  hack51~\fg [en russe],
+  Dzen / Yandex, 2021.
+  \url{https://dzen.ru/a/YUotZkN9nAeElPEQ}
+
+\bibitem{worm}
+  A.~Sokolov (Alex014) / NESS-Network,
+  \og~WORM --- World Object MaRkup language,~\fg
+  \url{https://github.com/ness-network/worm}
+
+\bibitem{onchain}
+  PrivateNess Network,
+  \og~PrivateNess.Network --- enregistrement d'identité canonique en chaîne,~\fg
+  Emercoin NVS DPO, bloc~\#445\,669,
+  1\textsuperscript{er}~novembre~2020, 22:16:45~UTC.
+  \url{https://explorer.emercoin.com/dpo/PrivateNESS.Network}
+
+\bibitem{bitcointalk}
+  PrivateNess Network,
+  \og~PrivateNess Network (NESS) Privacy CX Fiber Coin,~\fg
+  Bitcointalk Announcements, 1\textsuperscript{er}~septembre~2020.
+  \url{https://bitcointalk.org/index.php?topic=5272741.0}
+
+\bibitem{eip4361}
+  B.~Talsma et al.,
+  \og~EIP-4361~: Sign-In with Ethereum,~\fg
+  Proposition d'amélioration Ethereum, octobre 2021.
+  \url{https://eips.ethereum.org/EIPS/eip-4361}
+
+\bibitem{ipfs}
+  J.~Benet,
+  \og~IPFS---Content Addressed, Versioned, P2P File System,~\fg
+  arXiv:1407.3561, 2014.
+
+\end{thebibliography}
+
+\end{document}
