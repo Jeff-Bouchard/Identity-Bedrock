@@ -22,7 +22,7 @@ Acronym summary (for quick reference):
 - **PKI** – Public Key Infrastructure.
 - **IdP** – Identity Provider (centralized auth authority we purposely avoid).
 
-Operational note: all production keys referenced in this document are minted through our Ultra-High Entropy (UHE) 1536-bit generation pipeline, i.e. Gibson’s UHEPRNG vectors fed through Emercoin core’s RC4OK conditioner, providing supplemental assurance far above default OS RNG baselines.
+Operational note: production keys are minted locally through KeyGen using OS entropy (e.g., `os.urandom`) mixed into a UHEPRNG state before key material is produced. This document does not assume Emercoin RC4OK in the local keygen path.
 
 Above this floor we add only:
 
@@ -208,7 +208,7 @@ This is an optional strengthening; the bedrock authentication only needs (id, pk
 8. Threat model
 8.1 Assumptions
 Hardness: One‑way functions exist (⇔ EUF‑CMA signatures exist).
-Key generation: KeyGen has access to high‑entropy sources (OS RNG, UHEPRNG, RC4OK, etc.) so sk is unpredictable.
+Key generation: KeyGen has access to high-entropy local sources (OS RNG and UHEPRNG-based mixing) so `sk` is unpredictable.
 Directory consistency: Emer’s PoS + Bitcoin‑AuxPoW consensus maintains an append‑only NVS view. Once a WORM record (id, pk) is deeply buried (including behind BTC‑AuxPoW “PoW” walls), rewriting it requires large‑scale consensus capture.
 8.2 Adversary capabilities
 We do not claim to prevent:

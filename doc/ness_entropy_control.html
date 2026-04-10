@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NESS Entropy Control Panel</title>
+<style>
+  body { font-family: Arial; background: #0f172a; color: #e2e8f0; padding: 20px; }
+  h1 { color: #38bdf8; }
+  .box { background: #1e293b; padding: 15px; border-radius: 10px; margin-bottom: 15px; }
+  input { margin: 5px; }
+  canvas { background: #020617; border-radius: 8px; }
+  .tokens { line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<h1>NESS Entropy Control Panel</h1>
+
+<div class="box">
+  Seed (NVS): <input id="seed" value="ness-elite-001">
+  <button onclick="run()">Run</button>
+</div>
+
+<div class="box">
+  ε max <input id="emax" type="number" step="0.01" value="0.4">
+  ε min <input id="emin" type="number" step="0.01" value="0.05">
+  λ <input id="lambda" type="number" step="0.01" value="0.08">
+  α (pulse) <input id="alpha" type="number" step="0.01" value="0.15">
+  ω <input id="omega" type="number" step="0.1" value="0.5">
+</div>
+
+<div class="box">
+  <canvas id="chart" width="600" height="200"></canvas>
+</div>
+
+<div class="box tokens" id="output"></div>
+
+<div class="box">
+  <div>Final Coherence: <span id="coh"></span></div>
+</div>
+
+<script src="uheprng.js"></script>
+<script>
+
+// deterministic PRNG via Gibson UHEPRNG
+function PRNG(seed) {
+  const rng = uheprng();
+  rng.initState();
+  rng.hashString(seed);
+  return function() {
+    return rng(0x100000000) / 4294967296;
+  };
+}
+
+const vocab = ["network","identity","entropy","coherence","node","proof","anchor","consensus"];
+
+const base = [0.15,0.1,0.08,0.12,0.1,0.15,0.15,0.15];
+
+function softmax(arr){
+  let max = Math.max(...arr);
+  let exps = arr.map(x=>Math.exp(x-max));
+  let sum = exps.reduce((a,b)=>a+b,0);
+  return exps.map(x=>x/sum);
+}
+
+function sample(p, rand){
+  let r = rand(), acc=0;
+  for(let i=0;i<p.length;i++){ acc+=p[i]; if(r<acc) return i;}
+  return p.length-1;
+}
+
+function run(){
+  const seed = document.getElementById("seed").value;
+  const rand = PRNG(seed);
+
+  const emax = parseFloat(emaxEl.value);
+  const emin = parseFloat(eminEl.value);
+  const lambda = parseFloat(lambdaEl.value);
+  const alpha = parseFloat(alphaEl.value);
+  const omega = parseFloat(omegaEl.value);
+
+  let tokens=[];
+  let epsCurve=[];
+  let coherence=1;
+
+  for(let t=0;t<40;t++){
+
+    // base epsilon decay
+    let eps_base = emin + (emax - emin)*Math.exp(-lambda*t);
+
+    // fake confidence (based on base distribution)
+    let probs_base = softmax(base);
+    let C = Math.max(...probs_base);
+
+    // pulse
+    let pulse = 1 + alpha*Math.sin(omega*t);
+
+    // final epsilon
+    let eps = eps_base*(1-C)*pulse;
+
+    // perturb logits
+    let perturbed = base.map(b=>{
+      let noise = (rand()-0.5)*eps;
+      return b + noise;
+    });
+
+    // clamp (drift control)
+    perturbed = perturbed.map((v,i)=>{
+      let drift = Math.abs(v - base[i]);
+      if(drift > 0.1) v = base[i] + Math.sign(v-base[i])*0.1;
+      return v;
+    });
+
+    let probs = softmax(perturbed);
+    let idx = sample(probs, rand);
+
+    tokens.push(vocab[idx]);
+    epsCurve.push(eps);
+
+    coherence -= Math.abs(perturbed[idx]-base[idx])*0.1;
+  }
+
+  document.getElementById("output").innerText = tokens.join(" ");
+  document.getElementById("coh").innerText = coherence.toFixed(3);
+
+  drawChart(epsCurve);
+}
+
+function drawChart(data){
+  const c = document.getElementById("chart");
+  const ctx = c.getContext("2d");
+  ctx.clearRect(0,0,c.width,c.height);
+
+  ctx.beginPath();
+  data.forEach((v,i)=>{
+    let x = i*(c.width/data.length);
+    let y = c.height - v*c.height*2;
+    if(i===0) ctx.moveTo(x,y);
+    else ctx.lineTo(x,y);
+  });
+
+  ctx.strokeStyle = "#38bdf8";
+  ctx.stroke();
+}
+
+const emaxEl = document.getElementById("emax");
+const eminEl = document.getElementById("emin");
+const lambdaEl = document.getElementById("lambda");
+const alphaEl = document.getElementById("alpha");
+const omegaEl = document.getElementById("omega");
+
+run();
+
+</script>
+</body>
+</html>

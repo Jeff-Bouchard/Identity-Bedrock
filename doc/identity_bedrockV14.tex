@@ -65,7 +65,7 @@ identity substrate rather than as independent subsystems requiring their own
 trust roots.
 
 The contribution is not a new primitive but a composition of existing ones
-into a system that minimises trust assumptions to the irreducible minimum
+into a system that minimizes trust assumptions to the irreducible minimum
 while remaining deployable on commodity infrastructure.
 \end{abstract}
 
@@ -99,7 +99,7 @@ weaker supports public authentication under standard assumptions.
 
 Our thesis: fixing OWF as the cryptographic floor and adding only a
 chain-agnostic append-only directory produces an identity construction that
-minimises institutional capture to zero beneath the individual key.
+minimizes institutional capture to zero beneath the individual key.
 
 \subsection{The Binding Insight}
 
@@ -136,20 +136,21 @@ for the security properties that binding produces.
 
 \subsection{Paper Organisation}
 
-Section~2 reviews background.  Section~3 defines the threat model.
-Section~4 gives the formal model.  Section~5 presents the architecture.
-Section~6 proves authentication soundness.  Section~7 describes derived
-system properties.  Section~8 covers the concrete instantiation and
-attack-cost analysis.  Section~9 demonstrates the deployed system.
-Section~10 discusses limitations and future work.
+Section~\ref{sec:background} reviews background.  Section~\ref{sec:threat} defines the threat model.
+Section~\ref{sec:formal} gives the formal model.  Section~\ref{sec:architecture} presents the architecture.
+Section~\ref{sec:security} proves authentication soundness.  Section~\ref{sec:derived} describes derived
+system properties.  Section~\ref{sec:instantiation} covers the concrete instantiation and
+attack-cost analysis.  Section~\ref{sec:demo} demonstrates the deployed system.
+Section~\ref{sec:discussion} discusses limitations and future work.
 
 %--------------------------------------------------------------------
 \section{Background}
+\label{sec:background}
 %--------------------------------------------------------------------
 
 \subsection{One-Way Functions and Digital Signatures}
 
-A function $f : \{0,1\}^* \to \{0,1\}^*$ is a \emph{one-way function} (OWF)
+Following standard cryptographic literature, we quote the standard definition of a one-way function (e.g., from Goldreich~\cite{goldreich2001}): a function $f : \{0,1\}^* \to \{0,1\}^*$ is a \emph{one-way function} (OWF)
 if it is computable in polynomial time and for every probabilistic
 polynomial-time (PPT) adversary $\mathcal{A}$,
 \[
@@ -196,6 +197,7 @@ Section~\ref{sec:instantiation}.
 
 %--------------------------------------------------------------------
 \section{Threat Model}
+\label{sec:threat}
 %--------------------------------------------------------------------
 
 \subsection{Adversary Capabilities}
@@ -230,12 +232,16 @@ Section~\ref{sec:discussion}.
 
 %--------------------------------------------------------------------
 \section{Formal Model}
+\label{sec:formal}
 %--------------------------------------------------------------------
+
+The formalisation in this section combines standard cryptographic primitives with our specific directory model. Standard definitions for signature schemes and EUF-CMA security are quoted from established literature (e.g., Goldreich~\cite{goldreich2001}). The formalisation of the directory and authentication predicate represents the specific operationalisation used in Identity Bedrock.
 
 Let $\lambda \in \mathbb{N}$ denote the security parameter and
 $\mathrm{negl}(\lambda)$ a negligible function.
 
-\begin{definition}[Digital Signature Scheme]
+\begin{definition}[Digital Signature Scheme, quoted from \cite{goldreich2001}]
+  \label{def:sigscheme}
   A digital signature scheme is a triple $\Sigma = (\mathsf{KeyGen},
   \mathsf{Sign}, \mathsf{Verify})$ of PPT algorithms where:
   \begin{itemize}
@@ -247,7 +253,8 @@ $\mathrm{negl}(\lambda)$ a negligible function.
   = 1$ for all $(sk,pk) \gets \mathsf{KeyGen}(1^\lambda)$ and all $m$.
 \end{definition}
 
-\begin{definition}[EUF-CMA Security]
+\begin{definition}[EUF-CMA Security, quoted from \cite{goldreich2001}]
+  \label{def:eufcma}
   $\Sigma$ is \emph{existentially unforgeable under adaptive chosen-message
   attack} if for every PPT $\mathcal{A}$,
   \[
@@ -261,6 +268,7 @@ $\mathrm{negl}(\lambda)$ a negligible function.
 \end{definition}
 
 \begin{definition}[Public Directory]
+  \label{def:directory}
   A \emph{public directory} $\mathcal{D}$ is a set of pairs $(id, pk) \in
   \mathcal{ID} \times \mathcal{PK}$ with membership predicate
   \[
@@ -272,6 +280,7 @@ $\mathrm{negl}(\lambda)$ a negligible function.
 \end{definition}
 
 \begin{definition}[$\varepsilon_{\mathrm{dir}}$-Finality]
+  \label{def:finality}
   An append-only directory $\mathcal{D}$ has \emph{$\varepsilon_{\mathrm{dir}}$-finality}
   if for any PPT adversary $\mathcal{A}$ and any entry $(id, pk)$ written to
   $\mathcal{D}$ at depth $d$,
@@ -283,6 +292,7 @@ $\mathrm{negl}(\lambda)$ a negligible function.
 \end{definition}
 
 \begin{definition}[Authentication Predicate]
+  \label{def:auth}
   Given directory $\mathcal{D}$, the \emph{authentication predicate} is
   \[
     \mathsf{Auth}(id, c, \sigma) := 1 \iff
@@ -295,9 +305,11 @@ $\mathrm{negl}(\lambda)$ a negligible function.
 
 %--------------------------------------------------------------------
 \section{Architecture}
+\label{sec:architecture}
 %--------------------------------------------------------------------
 
 \subsection{Layer~1: Identity Cryptography}
+\label{sec:arch:layer1}
 
 A party generates $(sk, pk) \gets \mathsf{KeyGen}(1^\lambda)$ from a
 high-entropy seed (OS entropy combined with an application-layer PRNG, e.g.,
@@ -318,9 +330,9 @@ exchange.
 \subsection{Layer~2: Append-Only Directory}
 
 The directory $\mathcal{D}$ binds identifiers to public keys.  The
-requirements are exactly those of Definition~3: global verifiability,
+requirements are exactly those of Definition~\ref{def:directory}: global verifiability,
 persistence, and $\varepsilon_{\mathrm{dir}}$-finality.  The identity layer
-and directory layer are decoupled: any substrate satisfying Definition~3 is a
+and directory layer are decoupled: any substrate satisfying Definition~\ref{def:directory} is a
 valid instantiation.  Section~\ref{sec:instantiation} gives a concrete one.
 
 %--------------------------------------------------------------------
@@ -328,7 +340,7 @@ valid instantiation.  Section~\ref{sec:instantiation} gives a concrete one.
 \label{sec:security}
 %--------------------------------------------------------------------
 
-\begin{theorem}[Authentication Soundness]
+\begin{theorem}[Authentication Soundness, adapted from standard reductions]
   \label{thm:soundness}
   Let $\Sigma$ be EUF-CMA secure with advantage bound $\varepsilon_{\mathrm{sig}}$,
   and let $\mathcal{D}$ be an append-only directory with
@@ -364,7 +376,7 @@ forgery.  By EUF-CMA security of $\Sigma$:
 \textbf{Case 2: directory integrity fails} (probability $\leq
 \varepsilon_{\mathrm{dir}}$).  $\mathcal{A}$ replaces $(id, \hat{pk})$ with
 $(id, pk')$ for a key it controls.  This event occurs with probability at
-most $\varepsilon_{\mathrm{dir}}(\lambda,d)$ by Definition~4.  Directory
+most $\varepsilon_{\mathrm{dir}}(\lambda,d)$ by Definition~\ref{def:finality}.  Directory
 attacks shift cost to the directory layer, quantified in
 Section~\ref{sec:instantiation}.
 
@@ -387,7 +399,7 @@ both negligible under the stated assumptions.
 \label{sec:derived}
 %--------------------------------------------------------------------
 
-Once an identity substrate satisfying Definitions~1--5 exists, additional
+Once an identity substrate satisfying Definitions~\ref{def:directory}--\ref{def:auth} exists, additional
 system capabilities are obtainable as derived properties without introducing
 new trust roots.
 
@@ -402,7 +414,7 @@ model.
 
 \subsection{Structured Record Representation}
 
-A canonical, append-only JSON schema---the WORM (Write-Once Read-Many)
+A canonical, well-defined XML schema---the WORM (WORld object Markup language)
 format---defines typed records stored as directory values.  Deterministic
 serialisation allows independent nodes to parse, index, and query records
 without a shared schema authority.
@@ -447,10 +459,10 @@ ledger operator.
 
 We instantiate $\Sigma$ with Ed25519~\cite{eddsa}, a Schnorr-variant
 signature scheme over Curve25519 providing approximately $2^{128}$ security
-against known attacks.  Key generation uses a multi-source high-entropy seed:
-multiple 1024-byte blocks from \texttt{os.urandom} (1536 bits total internal
-state), RC4OK output from Emercoin core RNG, CPU timing jitter, and hardware
-identifiers, mixed via UHEPRNG~\cite{uheprng}.
+against known attacks. Key generation uses local OS entropy
+(multiple 1024-byte \texttt{os.urandom} blocks) mixed through
+UHEPRNG~\cite{uheprng}. Optional host-local sources such as timing jitter
+and hardware identifiers may be added by deployment policy.
 
 \subsection{Directory: Emercoin NVS + AuxPoW}
 
@@ -460,10 +472,10 @@ store.  Emercoin blocks are merge-mined against Bitcoin via Auxiliary
 Proof-of-Work (AuxPoW)~\cite{hack51}, anchoring directory state to
 Bitcoin's cumulative proof-of-work.
 
-Identity records are written as WORM JSON objects under NVS keys of the form
+Identity records are written as WORM well-defined XML objects under NVS keys of the form
 \texttt{id:$\langle$identifier$\rangle$}.  Once written, records can be
 renewed but not deleted, satisfying the append-only requirement of
-Definition~3.
+Definition~\ref{def:directory}.
 
 \subsection{Attack-Cost Analysis}
 
@@ -498,6 +510,7 @@ participants.  Key compromise is thus maximally detectable.
 
 %--------------------------------------------------------------------
 \section{Practical Demonstration}
+\label{sec:demo}
 %--------------------------------------------------------------------
 
 The system has been operational since 2020 on the PrivateNess Network.  The
@@ -526,9 +539,9 @@ Emercoin block explorer without relying on any intermediary.
 
 Each step is independently verifiable by any node with access to the public
 directory and standard hash functions.  No trusted intermediary participates.
-The system operates on commodity hardware including RK3528-class single-board
-computers and repurposed consumer devices, with a verified full-stack
-deployment cost under 50~CAD~\cite{onchain}.
+The system operates on commodity hardware single-board
+computers (Pi3 and up) and repurposed consumer devices, with a verified full-stack
+deployment cost under 80~CAD~\cite{onchain}.
 
 %--------------------------------------------------------------------
 \section{Related Work}
@@ -549,7 +562,7 @@ finality argument absent from the DID core specification.
 
 \textbf{FIDO2 / WebAuthn.}  The FIDO2 standard~\cite{webauthn2021} eliminates
 passwords using device-bound asymmetric keys, closely aligning with the
-identity primitive of Definition~1.  However, FIDO2 relies on attestation
+identity primitive of Definition~\ref{def:sigscheme}.  However, FIDO2 relies on attestation
 certificates from hardware vendors, reintroducing an institutional trust
 anchor.  Identity Bedrock requires no attestation layer.
 
@@ -595,7 +608,7 @@ These are operational and social concerns that require additional layers and
 are deliberately out of scope.
 
 \textbf{Comparison with zero-knowledge approaches.}  The authentication
-protocol in Section~4.1 reveals the challenge--response pair $(c, \sigma)$,
+The protocol in Section~\ref{sec:arch:layer1} reveals the challenge--response pair $(c, \sigma)$,
 which may allow linkability across sessions if $pk$ is public.  Anonymous
 credential schemes~\cite{goldreich2001} can provide unlinkability at the cost
 of additional complexity; this is a natural extension of the bedrock rather

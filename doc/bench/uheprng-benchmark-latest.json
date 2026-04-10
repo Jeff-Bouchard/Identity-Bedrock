@@ -1,0 +1,86 @@
+{
+  "generatedAt": "2026-04-09T14:10:47.672Z",
+  "seed": "ness-demo-123",
+  "iterations": 250000,
+  "environment": {
+    "node": "20.20.1",
+    "platform": "win32",
+    "arch": "x64",
+    "cpus": 4,
+    "cpuModel": "Intel(R) Core(TM) i5-2400 CPU @ 3.10GHz",
+    "totalMemBytes": 17135849472,
+    "release": "10.0.19045"
+  },
+  "deterministic": true,
+  "firstSequence": [
+    306409,
+    580881,
+    787296,
+    79879,
+    901256,
+    268747,
+    788100,
+    686654,
+    848240,
+    899560,
+    71280,
+    274157,
+    604848,
+    782166,
+    289533,
+    600464
+  ],
+  "speedBenchmarks": [
+    {
+      "label": "Math.random()",
+      "iterations": 250000,
+      "seconds": 0.0240333,
+      "opsPerSec": 10402233.567591634,
+      "checksum": 1648379950
+    },
+    {
+      "label": "UHEPRNG random(1000000)",
+      "iterations": 250000,
+      "seconds": 0.017697,
+      "opsPerSec": 14126688.139232637,
+      "checksum": 553890306
+    },
+    {
+      "label": "UHEPRNG string(32)",
+      "iterations": 25000,
+      "seconds": 0.0464153,
+      "opsPerSec": 538615.4996305098,
+      "checksum": 2857527656
+    },
+    {
+      "label": "UHEPRNG initState+hashString",
+      "iterations": 12500,
+      "seconds": 1.8638577,
+      "opsPerSec": 6706.5205675304505,
+      "checksum": 2886952788
+    }
+  ],
+  "trustBenchmarks": [
+    {
+      "label": "UHEPRNG exportState()",
+      "iterations": 5000,
+      "seconds": 1.0578029,
+      "opsPerSec": 4726.778495313258,
+      "checksum": 3046888700
+    },
+    {
+      "label": "UHEPRNG importState()",
+      "iterations": 5000,
+      "seconds": 1.1739828,
+      "opsPerSec": 4259.006179647606,
+      "checksum": 4250883563
+    },
+    {
+      "label": "UHEPRNG clone() replay 16 draws",
+      "iterations": 5000,
+      "seconds": 1.109012,
+      "opsPerSec": 4508.517491244458,
+      "checksum": 784979761
+    }
+  ]
+}

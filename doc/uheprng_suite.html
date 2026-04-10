@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NESS · UHE-PRNG Demo Suite</title>
+  <style>
+    :root {
+      --bg: #070b14;
+      --panel: #0f1629;
+      --panel2: #111b32;
+      --border: #23304d;
+      --text: #e8eefc;
+      --muted: #8fa1c7;
+      --accent: #7c6cff;
+      --accent2: #00d4aa;
+      --warn: #ffca5c;
+      --good: #6bffb8;
+      --shadow: 0 18px 60px rgba(0,0,0,.35);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif;
+      background:
+        radial-gradient(900px 380px at 10% 0%, rgba(124,108,255,.18), transparent 55%),
+        radial-gradient(700px 340px at 100% 100%, rgba(0,212,170,.10), transparent 50%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    .shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 18px 40px;
+    }
+
+    .hero {
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015));
+      border: 1px solid rgba(124,108,255,.22);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--accent2);
+      background: rgba(0,212,170,.08);
+      border: 1px solid rgba(0,212,170,.22);
+      border-radius: 999px;
+      padding: 6px 12px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3.4rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+    }
+
+    .lead {
+      max-width: 900px;
+      margin-top: 16px;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 1.02rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .card {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card h2, .card h3 {
+      margin: 0 0 10px 0;
+      font-size: 1rem;
+    }
+
+    .subtle {
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: .95rem;
+    }
+
+    .links {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .linkcard {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      background: linear-gradient(180deg, rgba(124,108,255,.10), rgba(255,255,255,.03));
+      border: 1px solid rgba(124,108,255,.22);
+      border-radius: 16px;
+      padding: 14px 14px 16px;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease;
+      min-height: 122px;
+    }
+
+    .linkcard:hover {
+      transform: translateY(-2px);
+      border-color: rgba(124,108,255,.42);
+      background: linear-gradient(180deg, rgba(124,108,255,.14), rgba(255,255,255,.04));
+    }
+
+    .link-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .pill {
+      font-size: 11px;
+      color: var(--accent2);
+      border: 1px solid rgba(0,212,170,.22);
+      background: rgba(0,212,170,.06);
+      border-radius: 999px;
+      padding: 4px 8px;
+      white-space: nowrap;
+    }
+
+    .path {
+      margin-top: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      color: #b9c6e7;
+      word-break: break-all;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      background: rgba(17,27,50,.75);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .stat .label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+    }
+
+    .stat .value {
+      margin-top: 8px;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .codebox {
+      background: #06101c;
+      border: 1px solid rgba(124,108,255,.18);
+      border-radius: 14px;
+      padding: 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      line-height: 1.6;
+      color: #d7e3ff;
+      overflow: auto;
+      white-space: pre-wrap;
+      margin-top: 12px;
+    }
+
+    .benchmark {
+      margin-top: 18px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      overflow: hidden;
+      border-radius: 14px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 12px 10px;
+      border-bottom: 1px solid rgba(35,48,77,.8);
+      font-size: .93rem;
+    }
+
+    th {
+      color: #c7d5f7;
+      font-size: .76rem;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      background: rgba(255,255,255,.03);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    .ok { color: var(--good); }
+    .warn { color: var(--warn); }
+    .muted { color: var(--muted); }
+
+    .footer {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: .92rem;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+      .links, .stats { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="eyebrow">NESS · UHE-PRNG suite</div>
+      <h1>Full demo suite for deterministic entropy, replay, and benchmarking</h1>
+      <p class="lead">
+        This page groups the UHE-PRNG demo, the entropy control demo, the longer control-panel view,
+        and the WORM-flavored permaweb gateway mockup. The benchmark script starts a local server, runs
+        a reproducible Node.js benchmark, and writes JSON results into <code>bench/</code>.
+      </p>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>Open the demos</h2>
+        <p class="subtle">These are the concrete user-facing entry points that show how the same seed drives reproducible output, controlled entropy, and resumable state.</p>
+        <div class="links">
+          <a class="linkcard" href="uheprng.html" target="_blank" rel="noreferrer">
+            <div class="link-title">UHE-PRNG demo <span class="pill">core</span></div>
+            <div class="subtle">Seeded entropy stream, replayable draws, and deterministic string generation.</div>
+            <div class="path">./uheprng.html</div>
+          </a>
+          <a class="linkcard" href="ness_entropy_demo.html" target="_blank" rel="noreferrer">
+            <div class="link-title">Entropy inference demo <span class="pill">toy model</span></div>
+            <div class="subtle">Shows how epsilon changes token exploration and coherence.</div>
+            <div class="path">./ness_entropy_demo.html</div>
+          </a>
+          <a class="linkcard" href="ness_entropy_control.html" target="_blank" rel="noreferrer">
+            <div class="link-title">Entropy control panel <span class="pill">control</span></div>
+            <div class="subtle">Uses decay, pulse, and clamp logic to modulate generation over time.</div>
+            <div class="path">./ness_entropy_control.html</div>
+          </a>
+          <a class="linkcard" href="privateness-ardropin.html" target="_blank" rel="noreferrer">
+            <div class="link-title">Permaweb gateway <span class="pill">WORM</span></div>
+            <div class="subtle">Mocks domain binding, payment mode, and storage target for a WORM-backed publish flow.</div>
+            <div class="path">./privateness-ardropin.html</div>
+          </a>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Benchmark / run instructions</h2>
+        <p class="subtle">Use the bash launcher to run the benchmark, pick a free port above 50000, and serve the suite locally.</p>
+        <div class="codebox">bash run_uheprng_suite.sh all
+
+# just the benchmark
+bash run_uheprng_suite.sh bench --seed ness-demo-123 --iters 250000
+
+# serve without auto-benchmarking
+bash run_uheprng_suite.sh serve --port 50077</div>
+        <div class="stats" style="margin-top:12px;">
+          <div class="stat">
+            <div class="label">Benchmark output</div>
+            <div class="value">bench/uheprng-benchmark-latest.json</div>
+          </div>
+          <div class="stat">
+            <div class="label">Local server</div>
+            <div class="value">127.0.0.1 + random port &gt; 50000</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid benchmark">
+      <div class="card">
+        <h2>What the benchmark measures</h2>
+        <p class="subtle">
+          This benchmark now splits the story into two parts: <strong>speed</strong> and <strong>trust</strong>.
+          Speed measures raw generator overhead on the same hardware. Trust measures state export, restore,
+          and replay behavior.
+        </p>
+        <div class="stats">
+          <div class="stat">
+            <div class="label">Determinism check</div>
+            <div class="value" id="deterministic">waiting...</div>
+          </div>
+          <div class="stat">
+            <div class="label">Seed</div>
+            <div class="value" id="seed">waiting...</div>
+          </div>
+          <div class="stat">
+            <div class="label">Iterations</div>
+            <div class="value" id="iterations">waiting...</div>
+          </div>
+          <div class="stat">
+            <div class="label">Generated at</div>
+            <div class="value" id="generatedAt">waiting...</div>
+          </div>
+        </div>
+
+        <div class="stats" style="margin-top:12px;">
+          <div class="stat">
+            <div class="label">Node</div>
+            <div class="value" id="nodeVersion">waiting...</div>
+          </div>
+          <div class="stat">
+            <div class="label">CPU</div>
+            <div class="value" id="cpuModel">waiting...</div>
+          </div>
+          <div class="stat">
+            <div class="label">Platform</div>
+            <div class="value" id="platform">waiting...</div>
+          </div>
+          <div class="stat">
+            <div class="label">RAM</div>
+            <div class="value" id="memory">waiting...</div>
+          </div>
+        </div>
+
+        <h3 style="margin-top:18px;">Speed benchmarks</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Label</th>
+              <th>Iterations</th>
+              <th>Seconds</th>
+              <th>Ops/sec</th>
+              <th>Checksum</th>
+            </tr>
+          </thead>
+          <tbody id="speedRows">
+            <tr><td colspan="5" class="muted">No benchmark JSON found yet. Run the bash script first.</td></tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin-top:18px;">Trust benchmarks</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Label</th>
+              <th>Iterations</th>
+              <th>Seconds</th>
+              <th>Ops/sec</th>
+              <th>Checksum</th>
+            </tr>
+          </thead>
+          <tbody id="trustRows">
+            <tr><td colspan="5" class="muted">No benchmark JSON found yet. Run the bash script first.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Why this suite matters</h2>
+        <p class="subtle">
+          The point is not just random numbers. The point is replayable stochastic behavior:
+          same seed, same state, same output, same audit trail. That is what makes the demos useful
+          for verifiable AI, fairness, and state recovery.
+        </p>
+        <div class="codebox">- deterministic replay
+- bounded entropy control
+- seed-anchored output verification
+- resumable state snapshots
+- local-only / offline-friendly execution</div>
+        <div class="footer">
+          The benchmark is intentionally lightweight and can be run on the same machine that serves the demos.
+          If you need a more formal benchmark, I can extend this into per-test latency percentiles, memory usage,
+          and multi-seed stability runs.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    async function loadBenchmark() {
+      const speedRows = document.getElementById('speedRows');
+      const trustRows = document.getElementById('trustRows');
+      try {
+        const res = await fetch('bench/uheprng-benchmark-latest.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error('benchmark file not ready');
+        const data = await res.json();
+
+        document.getElementById('deterministic').textContent = data.deterministic ? 'true' : 'false';
+        document.getElementById('deterministic').className = data.deterministic ? 'value ok' : 'value warn';
+        document.getElementById('seed').textContent = data.seed;
+        document.getElementById('iterations').textContent = String(data.iterations);
+        document.getElementById('generatedAt').textContent = new Date(data.generatedAt).toLocaleString();
+        document.getElementById('nodeVersion').textContent = data.environment?.node || 'unknown';
+        document.getElementById('cpuModel').textContent = data.environment?.cpuModel || 'unknown';
+        document.getElementById('platform').textContent = `${data.environment?.platform || 'unknown'} / ${data.environment?.arch || 'unknown'}`;
+        document.getElementById('memory').textContent = data.environment?.totalMemBytes ? `${(data.environment.totalMemBytes / 1024 / 1024 / 1024).toFixed(2)} GiB` : 'unknown';
+
+        const speedData = data.speedBenchmarks || data.benchmarks || [];
+        const trustData = data.trustBenchmarks || [];
+
+        speedRows.innerHTML = speedData.length ? speedData.map(b => `
+          <tr>
+            <td>${b.label}</td>
+            <td>${b.iterations.toLocaleString()}</td>
+            <td>${Number(b.seconds).toFixed(4)}</td>
+            <td>${Math.round(b.opsPerSec).toLocaleString()}</td>
+            <td class="muted">${b.checksum >>> 0}</td>
+          </tr>
+        `).join('') : '<tr><td colspan="5" class="muted">No speed benchmarks available.</td></tr>';
+
+        trustRows.innerHTML = trustData.length ? trustData.map(b => `
+          <tr>
+            <td>${b.label}</td>
+            <td>${b.iterations.toLocaleString()}</td>
+            <td>${Number(b.seconds).toFixed(4)}</td>
+            <td>${Math.round(b.opsPerSec).toLocaleString()}</td>
+            <td class="muted">${b.checksum >>> 0}</td>
+          </tr>
+        `).join('') : '<tr><td colspan="5" class="muted">No trust benchmarks available.</td></tr>';
+      } catch (err) {
+        document.getElementById('deterministic').textContent = 'not loaded';
+        document.getElementById('seed').textContent = 'run script';
+        document.getElementById('iterations').textContent = 'run script';
+        document.getElementById('generatedAt').textContent = 'run script';
+        document.getElementById('nodeVersion').textContent = 'run script';
+        document.getElementById('cpuModel').textContent = 'run script';
+        document.getElementById('platform').textContent = 'run script';
+        document.getElementById('memory').textContent = 'run script';
+        speedRows.innerHTML = '<tr><td colspan="5" class="muted">Run <code>bash run_uheprng_suite.sh bench</code> to generate the benchmark JSON.</td></tr>';
+        trustRows.innerHTML = '<tr><td colspan="5" class="muted">Run <code>bash run_uheprng_suite.sh bench</code> to generate the benchmark JSON.</td></tr>';
+      }
+    }
+
+    loadBenchmark();
+  </script>
+</body>
+</html>

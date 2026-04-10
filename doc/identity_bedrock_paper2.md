@@ -178,8 +178,8 @@ under the usual definitions, and we rely on \[1,7,9\] for the underlying constru
 **Layer 1: Identity Cryptography (Chain-Agnostic)**
 
 ```plaintext
-Seed (1536-bit UHEPRNG) 
-  → Ed25519 KeyGen 
+Local entropy (os.urandom) + UHEPRNG mixing
+  → Ed25519 KeyGen
   → (sk, pk)
 
 Identity = (id, pk)
@@ -215,7 +215,7 @@ Requirements:
 **Setup:**
 
 ```plaintext
-1. User generates (sk, pk) from UHEPRNG seed
+1. User generates (sk, pk) via local KeyGen using OS entropy mixed through UHEPRNG
 2. User publishes (id, pk) to directory D
 3. Wait for finality (directory-dependent)
 4. Binding is now global: Bind(id, pk) = 1

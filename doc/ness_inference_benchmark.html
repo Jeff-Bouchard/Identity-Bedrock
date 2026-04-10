@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NESS · Inference Benchmark</title>
+<style>
+:root{
+  --bg:#070b14;--panel:#0f1629;--panel2:#111b32;--border:#23304d;
+  --text:#e8eefc;--muted:#8fa1c7;--accent:#7c6cff;--teal:#00d4aa;
+  --warn:#ffca5c;--good:#6bffb8;--bad:#ff6b7a;
+  --c0:#7c6cff;--c1:#00d4aa;--c2:#ffca5c;--c3:#ff8fa0;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:var(--bg);color:var(--text);font-family:Inter,'Segoe UI',system-ui,sans-serif;font-size:15px;line-height:1.6;}
+a{color:var(--accent);}
+
+.shell{max-width:1080px;margin:0 auto;padding:28px 18px 60px;}
+
+/* ── HERO ── */
+.hero{
+  background:linear-gradient(135deg,rgba(124,108,255,.15),rgba(0,212,170,.08));
+  border:1px solid rgba(124,108,255,.25);border-radius:20px;
+  padding:28px 32px;margin-bottom:24px;
+}
+.eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--teal);border:1px solid rgba(0,212,170,.25);border-radius:999px;padding:5px 12px;margin-bottom:14px;}
+.hero h1{font-size:clamp(1.5rem,3vw,2.2rem);font-weight:800;letter-spacing:-.03em;margin-bottom:8px;}
+.hero p{color:var(--muted);font-size:.95rem;max-width:700px;}
+
+/* ── SECTIONS ── */
+.section-title{font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:28px 0 10px;}
+
+/* ── CARDS ── */
+.card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:16px;padding:18px 20px;margin-bottom:12px;}
+.card-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;}
+
+/* ── INPUTS ── */
+input,select,textarea{
+  background:#0b1525;border:1px solid var(--border);border-radius:9px;
+  color:var(--text);padding:9px 12px;font-size:.88rem;font-family:inherit;
+  outline:none;transition:border-color .2s;
+}
+input:focus,select:focus{border-color:var(--accent);}
+input[type=text],input[type=url]{width:100%;}
+label{font-size:.8rem;color:var(--muted);display:block;margin-bottom:4px;}
+.field{flex:1;min-width:140px;}
+.field-sm{flex:0 0 120px;}
+.field-xs{flex:0 0 80px;}
+
+/* ── BUTTONS ── */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  border-radius:10px;padding:9px 18px;font-size:.88rem;font-weight:600;
+  cursor:pointer;border:1px solid transparent;transition:all .18s;
+  font-family:inherit;
+}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn-primary:hover{background:#6a5ae0;}
+.btn-primary:disabled{background:rgba(124,108,255,.3);cursor:not-allowed;}
+.btn-ghost{background:transparent;color:var(--muted);border-color:var(--border);}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+.btn-teal{background:rgba(0,212,170,.12);color:var(--teal);border-color:rgba(0,212,170,.3);}
+.btn-teal:hover{background:rgba(0,212,170,.2);}
+.btn-sm{padding:6px 12px;font-size:.8rem;}
+.btn-danger{background:transparent;color:var(--bad);border-color:rgba(255,107,122,.3);}
+.btn-danger:hover{background:rgba(255,107,122,.08);}
+
+/* ── ENDPOINT CARDS ── */
+.ep-card{border-radius:16px;padding:16px 18px;margin-bottom:10px;border:1px solid var(--border);background:rgba(255,255,255,.025);}
+.ep-card.ep0{border-top:3px solid var(--c0);}
+.ep-card.ep1{border-top:3px solid var(--c1);}
+.ep-card.ep2{border-top:3px solid var(--c2);}
+.ep-card.ep3{border-top:3px solid var(--c3);}
+.ep-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.ep-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+.ep-name{font-weight:700;font-size:.95rem;}
+
+/* ── PROMPT BATTERY ── */
+.prompt-list{display:flex;flex-direction:column;gap:7px;}
+.prompt-item{display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:10px;padding:10px 14px;}
+.prompt-item input[type=checkbox]{width:16px;height:16px;margin-top:2px;accent-color:var(--accent);flex-shrink:0;}
+.prompt-cat{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;border-radius:999px;padding:2px 8px;border:1px solid;margin-right:6px;flex-shrink:0;margin-top:2px;}
+.cat-speed{color:var(--teal);border-color:rgba(0,212,170,.3);background:rgba(0,212,170,.06);}
+.cat-logic{color:var(--accent);border-color:rgba(124,108,255,.3);background:rgba(124,108,255,.06);}
+.cat-code{color:var(--warn);border-color:rgba(255,202,92,.3);background:rgba(255,202,92,.06);}
+.cat-long{color:#ff8fa0;border-color:rgba(255,143,160,.3);background:rgba(255,143,160,.06);}
+.prompt-text{font-size:.87rem;color:var(--muted);}
+
+/* ── STATUS BAR ── */
+#statusBar{
+  background:rgba(124,108,255,.08);border:1px solid rgba(124,108,255,.2);
+  border-radius:10px;padding:12px 16px;margin:14px 0;
+  font-size:.88rem;color:var(--accent);display:none;
+}
+.progress-outer{height:4px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:8px;}
+.progress-inner{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--teal));transition:width .3s;}
+
+/* ── WARN BOX ── */
+.warn-box{background:rgba(255,202,92,.06);border:1px solid rgba(255,202,92,.25);border-radius:10px;padding:12px 16px;font-size:.84rem;color:var(--warn);margin:10px 0;display:none;}
+
+/* ── RESULTS ── */
+#results{display:none;}
+.result-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:18px;}
+.metric-card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:14px;padding:14px 16px;}
+.metric-label{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.metric-value{font-size:1.3rem;font-weight:800;line-height:1.2;}
+.metric-sub{font-size:.78rem;color:var(--muted);margin-top:3px;}
+.grade{font-size:1.6rem;font-weight:900;}
+.grade-A{color:var(--good);}
+.grade-B{color:var(--teal);}
+.grade-C{color:var(--warn);}
+.grade-D{color:#ffaa44;}
+.grade-F{color:var(--bad);}
+
+/* ── CHART WRAPPER ── */
+.chart-section{margin-bottom:22px;}
+.chart-title{font-size:.88rem;font-weight:700;color:var(--text);margin-bottom:10px;}
+.chart-explain{font-size:.8rem;color:var(--muted);margin-bottom:8px;}
+canvas{border-radius:10px;background:rgba(255,255,255,.02);border:1px solid var(--border);}
+
+/* ── DETAIL TABLE ── */
+.detail-table{width:100%;border-collapse:collapse;font-size:.84rem;margin-top:10px;}
+.detail-table th{text-align:left;padding:9px 12px;background:rgba(255,255,255,.03);color:var(--muted);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border);}
+.detail-table td{padding:9px 12px;border-bottom:1px solid rgba(35,48,77,.5);vertical-align:middle;}
+.detail-table tr:last-child td{border-bottom:none;}
+.dot-badge{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:4px;margin-bottom:14px;}
+.tab{padding:7px 14px;border-radius:8px;font-size:.83rem;cursor:pointer;border:1px solid transparent;color:var(--muted);}
+.tab.active{background:rgba(124,108,255,.15);border-color:rgba(124,108,255,.3);color:var(--accent);font-weight:600;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* ── LEGEND ── */
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted);}
+.legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+/* ── EXPORT ── */
+#exportBtn{display:none;}
+
+/* ── TEST MODE TABS ── */
+.tmode-row{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0 6px;}
+.tmode-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:9px 16px;border-radius:10px;font-size:.85rem;font-weight:600;
+  cursor:pointer;border:1px solid var(--border);color:var(--muted);
+  background:rgba(255,255,255,.025);transition:all .15s;font-family:inherit;
+}
+.tmode-btn:hover{border-color:var(--accent);color:var(--accent);}
+.tmode-btn.active{background:rgba(124,108,255,.18);border-color:rgba(124,108,255,.45);color:var(--accent);}
+.tmode-btn.tmode-sov.active{background:rgba(0,212,170,.12);border-color:rgba(0,212,170,.4);color:var(--teal);}
+
+/* ── PRESET BUTTONS ── */
+.preset-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+.preset-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 12px;border-radius:7px;font-size:.78rem;font-weight:600;
+  cursor:pointer;border:1px solid var(--border);color:var(--muted);
+  background:rgba(255,255,255,.02);transition:all .15s;font-family:inherit;
+}
+.preset-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* ── CORS FIX HINT ── */
+.cors-fix{
+  background:rgba(255,202,92,.05);border:1px solid rgba(255,202,92,.2);
+  border-radius:8px;padding:8px 12px;font-size:.8rem;color:var(--warn);
+  margin-top:10px;
+}
+.cors-fix code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:.78rem;}
+
+/* ── DET/BURST NOTE + ADV ── */
+.det-note{
+  background:rgba(124,108,255,.05);border:1px solid rgba(124,108,255,.15);
+  border-radius:10px;padding:11px 15px;font-size:.84rem;color:var(--muted);
+  margin-bottom:14px;line-height:1.55;
+}
+.sov-adv{
+  background:rgba(0,212,170,.05);border:1px solid rgba(0,212,170,.18);
+  border-radius:10px;padding:13px 16px;font-size:.85rem;color:var(--text);
+  margin-top:14px;line-height:1.55;
+}
+
+@media(max-width:600px){
+  .card-row{flex-direction:column;}
+  .field-sm,.field-xs{flex:1;}
+  .tmode-row{gap:4px;}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- HERO -->
+<div class="hero">
+  <div class="eyebrow">NESS · Sovereign Inference</div>
+  <h1>Inference Benchmark &amp; Comparison</h1>
+  <p>Compare NESS nodes, Ollama, OpenAI, and Claude across <strong>four dimensions</strong>: Sovereignty Score (structural properties), Determinism (on-chain auditable reproducibility), Burst resilience (no rate limits), and raw Speed. No accounts, no logging — runs entirely in your browser.</p>
+</div>
+
+<!-- ── STEP 1: ENDPOINTS ── -->
+<div class="section-title">Step 1 — Add Inference Endpoints</div>
+<div id="epContainer"></div>
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px;">
+  <button class="btn btn-ghost btn-sm" id="addEpBtn" onclick="addEndpoint()">+ Add endpoint</button>
+</div>
+<div class="preset-row">
+  <span style="font-size:.76rem;color:var(--muted);align-self:center;">Quick add:</span>
+  <button class="preset-btn" onclick="addPreset('ness')">⬡ NESS Node</button>
+  <button class="preset-btn" onclick="addPreset('ollama')">🦙 Ollama</button>
+  <button class="preset-btn" onclick="addPreset('openai')">◆ OpenAI</button>
+  <button class="preset-btn" onclick="addPreset('claude')">✦ Claude</button>
+</div>
+
+<!-- ── STEP 2: TEST MODE ── -->
+<div class="section-title" style="margin-top:22px;">Step 2 — Choose What to Measure</div>
+<div class="tmode-row">
+  <button class="tmode-btn tmode-sov active" data-mode="sovereignty" onclick="setTestMode('sovereignty')">🛡️ Sovereignty Score</button>
+  <button class="tmode-btn" data-mode="determinism" onclick="setTestMode('determinism')">🔬 Determinism</button>
+  <button class="tmode-btn" data-mode="burst" onclick="setTestMode('burst')">💪 Burst / Rate Limits</button>
+  <button class="tmode-btn" data-mode="speed" onclick="setTestMode('speed')">⚡ Speed</button>
+</div>
+
+<!-- ── STEP 3: PROMPT BATTERY (hidden for sovereignty/burst) ── -->
+<div id="promptSection">
+  <div class="section-title" style="margin-top:18px;">Step 3 — Choose Prompt Battery</div>
+  <div class="prompt-list" id="promptList"></div>
+</div>
+
+<!-- ── RUN ── -->
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:18px;">
+  <button class="btn btn-primary" id="runBtn" onclick="runBenchmark()">▶ Run</button>
+  <button class="btn btn-ghost btn-sm" id="exportBtn" onclick="exportJSON()">⬇ Export JSON</button>
+  <span style="font-size:.8rem;color:var(--muted);">Sovereignty Score renders instantly — other modes call your endpoints.</span>
+</div>
+
+<!-- STATUS BAR -->
+<div id="statusBar">
+  <span id="statusText">Initializing…</span>
+  <div class="progress-outer"><div class="progress-inner" id="progressBar" style="width:0%"></div></div>
+</div>
+
+<!-- ── RESULTS ── -->
+<div id="results" style="display:none;">
+  <div class="section-title" style="margin-top:26px;">Results</div>
+
+  <!-- Sovereignty panel (static, no API calls) -->
+  <div id="sovResults" style="display:none;"></div>
+
+  <!-- Determinism panel -->
+  <div id="detResults" style="display:none;"></div>
+
+  <!-- Burst panel -->
+  <div id="burstResults" style="display:none;"></div>
+
+  <!-- Speed charts panel -->
+  <div id="speedResults" style="display:none;">
+    <div class="chart-section">
+      <div class="chart-title">Time to First Token (ms) — lower is better</div>
+      <div class="chart-explain">Latency to first streamed token. Under 500ms feels instant; over 3s is noticeable. Local nodes skip network round-trip to a remote datacenter.</div>
+      <div class="legend" id="ttftLegend"></div>
+      <canvas id="ttftChart" height="180"></canvas>
+    </div>
+    <div class="chart-section">
+      <div class="chart-title">Tokens per Second — higher is better</div>
+      <div class="chart-explain">Generation throughput. Human reading speed ≈ 4 tok/s. Above 10 tok/s feels smooth. Cloud frontier APIs: 80–120 tok/s. Local 7B models: 10–35 tok/s on good hardware.</div>
+      <canvas id="tpsChart" height="180"></canvas>
+    </div>
+    <div class="chart-section">
+      <div class="chart-title">Total Response Time per Prompt (ms)</div>
+      <div class="chart-explain">Wall-clock from request sent to last token received. Shorter = better overall experience.</div>
+      <canvas id="totalChart" height="220"></canvas>
+    </div>
+  </div>
+
+  <!-- Speed detail table -->
+  <div id="speedDetail" style="display:none;">
+    <div class="section-title" style="margin-top:18px;">Raw Results</div>
+    <div style="overflow-x:auto;">
+      <table class="detail-table">
+        <thead><tr id="detailHead"></tr></thead>
+        <tbody id="detailBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Verdict (speed mode) -->
+  <div class="card" style="margin-top:18px;display:none;" id="verdict"></div>
+</div>
+
+</div><!-- .shell -->
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  DATA
+// ════════════════════════════════════════════════════════════
+const EP_HEX = ['#7c6cff','#00d4aa','#ffca5c','#ff8fa0'];
+
+const PROMPTS = [
+  { id:'p1', cat:'speed',  label:'Ping',   text:'Reply with exactly one word: ready.',                                           maxTokens:5   },
+  { id:'p2', cat:'logic',  label:'Math',   text:'What is 17 multiplied by 23? Show only the final number.',                      maxTokens:10  },
+  { id:'p3', cat:'code',   label:'Code',   text:'Write a Python one-liner to reverse a string s.',                               maxTokens:50  },
+  { id:'p4', cat:'logic',  label:'Reason', text:'List exactly 3 advantages of decentralized AI inference. Be brief.',            maxTokens:100 },
+  { id:'p5', cat:'long',   label:'Long',   text:'Explain what a PRNG is and why determinism matters in distributed AI systems.', maxTokens:180 },
+];
+
+// Sovereignty matrix: [NESS, OpenAI, Claude, Ollama-local]
+const SOV = [
+  {prop:'No API key to revoke',              note:'Chain identity vs revocable credential',        scores:[1,0,0,1]},
+  {prop:'No prompt logging (architectural)', note:'Structural guarantee vs ToS promise',            scores:[1,0,0,1]},
+  {prop:'No kill switch',                    note:'WORM+AuxPoW moat vs provider discretion',        scores:[1,0,0,1]},
+  {prop:'No rate limits',                    note:'Hardware-bound only — no 429 errors',            scores:[1,0,0,1]},
+  {prop:'Censorship resistant',              note:'Model answers what it is configured to answer',  scores:[1,0,0,1]},
+  {prop:'Auditable deterministic entropy',   note:'UHE-PRNG seed on-chain vs opaque sampling',     scores:[1,0,0,0]},
+  {prop:'Chain-anchored identity (no KYC)', note:'privatenessID on Emercoin NVS',                   scores:[1,0,0,0]},
+  {prop:'Mesh transport (no BGP block)',     note:'Skywire pubkey routing vs IP-based',             scores:[1,0,0,0]},
+];
+const SOV_LABELS = ['NESS','OpenAI','Claude','Ollama'];
+
+const PRESETS = {
+  ness:   {nick:'NESS Node',    url:'http://batman1.private.ness:54321', model:'llama3-8b-q4',            key:'',  apiType:'openai'},
+  ollama: {nick:'Local Ollama', url:'http://127.0.0.1:11434',           model:'llama3',                  key:'',  apiType:'openai'},
+  openai: {nick:'OpenAI',       url:'https://api.openai.com',           model:'gpt-4o-mini',             key:'',  apiType:'openai'},
+  claude: {nick:'Claude',       url:'https://api.anthropic.com',        model:'claude-3-haiku-20240307', key:'',  apiType:'anthropic'},
+};
+function addPreset(type){ addEndpoint({...PRESETS[type]}); }
+
+let endpoints = [];
+let results   = {};
+let lastRaw   = null;
+let testMode  = 'sovereignty';
+
+// ════════════════════════════════════════════════════════════
+//  ENDPOINT MANAGEMENT
+// ════════════════════════════════════════════════════════════
+function addEndpoint(preset){
+  if(endpoints.length >= 4){ alert('Maximum 4 endpoints.'); return; }
+  const d = preset || PRESETS.ness;
+  endpoints.push({ nick:'', url:'', model:'', key:'', apiType:'openai', ...d });
+  renderEndpoints();
+}
+
+function removeEndpoint(idx){
+  endpoints.splice(idx,1);
+  renderEndpoints();
+}
+
+function corsHint(ep){
+  const u = ep.url || '';
+  const isLocal = u.includes('127.') || u.includes('localhost');
+  if(!isLocal || !u) return '';
+  const isOllama = u.includes('11434') || ep.nick.toLowerCase().includes('ollama');
+  const isLlamaCpp = u.includes('54321') || u.includes('8081') || ep.nick.toLowerCase().includes('llama') || ep.nick.toLowerCase().includes('ness');
+  if(isOllama) return `<div class="cors-fix">⚙️ <strong>Ollama CORS fix:</strong> restart with <code>OLLAMA_ORIGINS="*" ollama serve</code> &nbsp;or set <code>OLLAMA_ORIGINS=*</code> in your environment before launching Ollama.</div>`;
+  if(isLlamaCpp) return `<div class="cors-fix">⚙️ <strong>llama.cpp CORS fix:</strong> add <code>--cors</code> flag when starting the server, e.g. <code>./llama-server --cors -m model.gguf</code></div>`;
+  return `<div class="cors-fix">⚙️ <strong>CORS fix:</strong> your server must send <code>Access-Control-Allow-Origin: *</code> on responses. Check your nginx/caddy config.</div>`;
+}
+
+function renderEndpoints(){
+  const container = document.getElementById('epContainer');
+  container.innerHTML = '';
+  endpoints.forEach((ep, idx) => {
+    const div = document.createElement('div');
+    div.className = `ep-card ep${idx}`;
+    div.innerHTML = `
+      <div class="ep-header">
+        <div class="ep-dot" style="background:${EP_HEX[idx]};"></div>
+        <div class="ep-name">Endpoint ${idx+1}</div>
+        <select style="margin-left:auto;background:#0b1525;border:1px solid var(--border);border-radius:7px;color:var(--text);padding:5px 8px;font-size:.8rem;" onchange="endpoints[${idx}].apiType=this.value">
+          <option value="openai" ${ep.apiType!=='anthropic'?'selected':''}>OpenAI-compatible</option>
+          <option value="anthropic" ${ep.apiType==='anthropic'?'selected':''}>Anthropic (Claude)</option>
+        </select>
+        <button class="btn btn-danger btn-sm" style="margin-left:8px;" onclick="removeEndpoint(${idx})">✕</button>
+      </div>
+      <div class="card-row">
+        <div class="field">
+          <label>Nickname</label>
+          <input type="text" value="${ep.nick}" oninput="endpoints[${idx}].nick=this.value" placeholder="My NESS Node">
+        </div>
+        <div class="field">
+          <label>Base URL <span style="color:var(--muted);font-size:.76em;">(no /v1)</span></label>
+          <input type="url" value="${ep.url}" oninput="endpoints[${idx}].url=this.value.replace(/\/+$/,'');renderEndpoints();" placeholder="http://localhost:54321">
+        </div>
+        <div class="field-sm">
+          <label>Model</label>
+          <input type="text" value="${ep.model}" oninput="endpoints[${idx}].model=this.value" placeholder="llama3-8b-q4">
+        </div>
+        <div class="field-sm">
+          <label>API key <span style="color:var(--muted);font-size:.76em;">(opt)</span></label>
+          <input type="text" value="${ep.key}" oninput="endpoints[${idx}].key=this.value" placeholder="sk-… or privatenessID">
+        </div>
+      </div>
+      ${corsHint(ep)}`;
+    container.appendChild(div);
+  });
+  document.getElementById('addEpBtn').style.display = endpoints.length >= 4 ? 'none' : '';
+}
+
+function renderPrompts(){
+  const list = document.getElementById('promptList');
+  PROMPTS.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'prompt-item';
+    div.innerHTML = `
+      <input type="checkbox" id="chk_${p.id}" checked>
+      <div>
+        <span class="prompt-cat cat-${p.cat}">${p.label}</span>
+        <span class="prompt-text">${p.text}</span>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+//  BENCHMARK ENGINE
+// ════════════════════════════════════════════════════════════
+function isCORSError(e){ return e instanceof TypeError && (e.message.includes('fetch')||e.message.includes('network')||e.message.includes('Failed')||e.message.includes('CORS')); }
+function errResult(msg){ return {error:msg, ttft:null, totalTime:null, tokensPerSec:null, tokenCount:0, text:''}; }
+
+async function callOpenAI(ep, prompt, maxTokens){
+  const url = ep.url.replace(/\/+$/, '') + '/v1/chat/completions';
+  const headers = { 'Content-Type':'application/json', ...(ep.key?{'Authorization':'Bearer '+ep.key}:{}) };
+  const body = JSON.stringify({ model:ep.model, messages:[{role:'user',content:prompt}], stream:true, max_tokens:maxTokens, temperature:0.1 });
+  const t0 = performance.now();
+  let ttft=null, fullText='', tokenCount=0, resp;
+  try { resp = await fetch(url,{method:'POST',headers,body}); }
+  catch(e){ return errResult(isCORSError(e)?'CORS_ERROR':'NET:'+e.message); }
+  if(!resp.ok) return errResult('HTTP '+resp.status);
+  const reader=resp.body.getReader(), dec=new TextDecoder();
+  let buf='';
+  while(true){
+    const {done,value}=await reader.read(); if(done) break;
+    buf+=dec.decode(value,{stream:true});
+    const lines=buf.split('\n'); buf=lines.pop();
+    for(const line of lines){
+      if(!line.startsWith('data: ')) continue;
+      const d=line.slice(6).trim(); if(d==='[DONE]') continue;
+      try{ const j=JSON.parse(d); const c=j?.choices?.[0]?.delta?.content; if(c){if(ttft===null)ttft=performance.now()-t0;fullText+=c;tokenCount++;} }catch(_){}
+    }
+  }
+  const totalTime=performance.now()-t0;
+  return {error:null, ttft:ttft??totalTime, totalTime, tokensPerSec:tokenCount>0?tokenCount/(totalTime/1000):0, tokenCount, text:fullText.trim()};
+}
+
+async function callAnthropic(ep, prompt, maxTokens){
+  const url = ep.url.replace(/\/+$/,'') + '/v1/messages';
+  const headers = { 'Content-Type':'application/json', 'anthropic-version':'2023-06-01', ...(ep.key?{'x-api-key':ep.key}:{}) };
+  const body = JSON.stringify({ model:ep.model, messages:[{role:'user',content:prompt}], max_tokens:maxTokens, stream:true });
+  const t0=performance.now();
+  let ttft=null, fullText='', tokenCount=0, resp;
+  try { resp=await fetch(url,{method:'POST',headers,body}); }
+  catch(e){ return errResult(isCORSError(e)?'CORS_ERROR':'NET:'+e.message); }
+  if(!resp.ok) return errResult('HTTP '+resp.status);
+  const reader=resp.body.getReader(), dec=new TextDecoder();
+  let buf='';
+  while(true){
+    const {done,value}=await reader.read(); if(done) break;
+    buf+=dec.decode(value,{stream:true});
+    const lines=buf.split('\n'); buf=lines.pop();
+    for(const line of lines){
+      if(!line.startsWith('data:')) continue;
+      const d=line.slice(5).trim();
+      try{ const j=JSON.parse(d); const t=j?.delta?.text; if(t){if(ttft===null)ttft=performance.now()-t0;fullText+=t;tokenCount++;} }catch(_){}
+    }
+  }
+  const totalTime=performance.now()-t0;
+  return {error:null, ttft:ttft??totalTime, totalTime, tokensPerSec:tokenCount>0?tokenCount/(totalTime/1000):0, tokenCount, text:fullText.trim()};
+}
+
+function callEndpoint(ep, prompt, maxTokens){
+  return ep.apiType==='anthropic' ? callAnthropic(ep,prompt,maxTokens) : callOpenAI(ep,prompt,maxTokens);
+}
+
+function setStatus(text, pct){
+  const bar = document.getElementById('statusBar');
+  bar.style.display = 'block';
+  document.getElementById('statusText').textContent = text;
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+function setTestMode(mode){
+  testMode = mode;
+  document.querySelectorAll('.tmode-btn').forEach(b=>b.classList.toggle('active', b.dataset.mode===mode));
+  const ps = document.getElementById('promptSection');
+  if(ps) ps.style.display = (mode==='sovereignty'||mode==='burst') ? 'none' : '';
+  if(mode==='sovereignty'){ document.getElementById('results').style.display='block'; renderSovereigntyScore(); }
+  else document.getElementById('results').style.display='none';
+}
+
+async function runBenchmark(){
+  if(endpoints.length===0){ alert('Add at least one endpoint.'); return; }
+  if(testMode==='sovereignty'){ renderSovereigntyScore(); return; }
+  if(testMode==='speed') await runSpeedTest();
+  else if(testMode==='determinism') await runDeterminismTest();
+  else if(testMode==='burst') await runBurstTest();
+}
+
+// ── Speed Test ──────────────────────────────────────────────
+async function runSpeedTest(){
+  const sel = PROMPTS.filter(p=>document.getElementById('chk_'+p.id)?.checked);
+  if(!sel.length){ alert('Select at least one prompt.'); return; }
+  const btn=document.getElementById('runBtn'); btn.disabled=true; btn.textContent='⏳ Running…';
+  results={}; endpoints.forEach(ep=>results[ep.nick]={ep,runs:[]});
+  const total=endpoints.length*sel.length; let done=0;
+  for(const prompt of sel){
+    for(const ep of endpoints){
+      setStatus(`Speed: "${ep.nick}" — ${prompt.label}…`, Math.round(done/total*100));
+      results[ep.nick].runs.push({prompt, ...await callEndpoint(ep,prompt.text,prompt.maxTokens)});
+      done++;
+    }
+  }
+  setStatus('Done!',100); setTimeout(()=>{document.getElementById('statusBar').style.display='none';},2000);
+  btn.disabled=false; btn.textContent='▶ Run';
+  lastRaw=JSON.parse(JSON.stringify(results));
+  document.getElementById('exportBtn').style.display='';
+  renderSpeedResults();
+}
+
+// ── Determinism Test ────────────────────────────────────────
+async function runDeterminismTest(){
+  const btn=document.getElementById('runBtn'); btn.disabled=true; btn.textContent='⏳ Running…';
+  const PROMPT='Explain in exactly 2 sentences why the sky is blue.';
+  const detR={};
+  for(const ep of endpoints){
+    const runs=[];
+    for(let i=0;i<3;i++){
+      setStatus(`Determinism: "${ep.nick}" — run ${i+1}/3…`, 10+Math.round(i/3*80));
+      runs.push(await callEndpoint(ep,PROMPT,100));
+    }
+    const texts=runs.map(r=>r.text||'').filter(t=>t.length>0);
+    detR[ep.nick]={ep, runs, sim: texts.length>=2 ? avgJaccard(texts) : null};
+  }
+  setStatus('Done!',100); setTimeout(()=>{document.getElementById('statusBar').style.display='none';},2000);
+  btn.disabled=false; btn.textContent='▶ Run';
+  lastRaw=detR; document.getElementById('exportBtn').style.display='';
+  renderDeterminismResults(detR);
+}
+function avgJaccard(texts){
+  let s=0,c=0;
+  for(let i=0;i<texts.length;i++) for(let j=i+1;j<texts.length;j++){s+=jaccard(texts[i],texts[j]);c++;}
+  return c?s/c:0;
+}
+function jaccard(a,b){
+  const sa=new Set(a.toLowerCase().split(/\W+/).filter(w=>w.length>2));
+  const sb=new Set(b.toLowerCase().split(/\W+/).filter(w=>w.length>2));
+  const inter=[...sa].filter(w=>sb.has(w)).length;
+  const union=new Set([...sa,...sb]).size;
+  return union>0?inter/union:0;
+}
+
+// ── Burst Test ──────────────────────────────────────────────
+async function runBurstTest(){
+  const btn=document.getElementById('runBtn'); btn.disabled=true; btn.textContent='⏳ Running…';
+  const N=10; const bR={};
+  for(const ep of endpoints){
+    setStatus(`Burst: "${ep.nick}" — ${N} parallel requests…`, 30);
+    const t0=performance.now();
+    const settled=await Promise.allSettled(Array.from({length:N},()=>callEndpoint(ep,'Reply with only the word: pong',5)));
+    const elapsed=performance.now()-t0;
+    const ok=settled.filter(r=>r.status==='fulfilled'&&!r.value.error).length;
+    const times=settled.filter(r=>r.status==='fulfilled'&&r.value.totalTime).map(r=>r.value.totalTime);
+    bR[ep.nick]={ep,n:N,ok,elapsed,rate:ok/N,avg:times.length?times.reduce((a,b)=>a+b,0)/times.length:0};
+  }
+  setStatus('Done!',100); setTimeout(()=>{document.getElementById('statusBar').style.display='none';},2000);
+  btn.disabled=false; btn.textContent='▶ Run';
+  lastRaw=bR; document.getElementById('exportBtn').style.display='';
+  renderBurstResults(bR);
+}
+
+// ════════════════════════════════════════════════════════════
+//  RENDER RESULTS
+// ════════════════════════════════════════════════════════════
+function avg(arr){ return arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0; }
+
+function hideAllPanels(){
+  ['speedResults','speedDetail','detResults','burstResults','sovResults','verdict'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.style.display='none';
+  });
+  document.getElementById('results').style.display='block';
+}
+
+// ── Speed Results ──────────────────────────────────────────
+function renderSpeedResults(){
+  hideAllPanels();
+  ['speedResults','speedDetail','verdict'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='';});
+  const epList=Object.values(results);
+  if(!epList.length) return;
+  const legendEl=document.getElementById('ttftLegend');
+  legendEl.innerHTML='';
+  epList.forEach((ep,idx)=>{ const li=document.createElement('div'); li.className='legend-item'; li.innerHTML=`<div class="legend-dot" style="background:${EP_HEX[idx]};"></div>${ep.ep.nick}`; legendEl.appendChild(li); });
+  const labels=[...new Set(epList[0].runs.map(r=>r.prompt.label))];
+  drawGroupedChart('ttftChart',labels,epList,r=>r.ttft,EP_HEX);
+  drawGroupedChart('tpsChart',labels,epList,r=>r.tokensPerSec,EP_HEX);
+  drawTotalChart('totalChart',labels,epList,EP_HEX);
+  const headRow=document.getElementById('detailHead');
+  headRow.innerHTML='<th>Prompt</th>'+epList.map((ep,i)=>`<th><span class="dot-badge" style="background:${EP_HEX[i]};"></span>${ep.ep.nick}</th>`).join('');
+  const body=document.getElementById('detailBody'); body.innerHTML='';
+  labels.forEach(label=>{
+    const tr=document.createElement('tr');
+    let html=`<td><strong>${label}</strong></td>`;
+    epList.forEach(ep=>{
+      const run=ep.runs.find(r=>r.prompt.label===label);
+      if(!run||run.error){ html+=`<td style="color:var(--bad);">${run?.error==='CORS_ERROR'?'CORS — see fix':'Error: '+(run?.error||'?')}</td>`; return; }
+      html+=`<td><div style="font-size:.82rem;"><strong>${run.ttft?run.ttft.toFixed(0)+'ms':'—'}</strong> TTFT</div><div style="font-size:.78rem;color:var(--muted);">${run.tokensPerSec?run.tokensPerSec.toFixed(1)+' tok/s':'—'} · ${run.tokenCount} tok</div></td>`;
+    });
+    tr.innerHTML=html; body.appendChild(tr);
+  });
+  const medals=['🥇','🥈','🥉','  '];
+  const sorted=[...epList].sort((a,b)=>avg(a.runs.filter(r=>!r.error).map(r=>r.ttft||9999))-avg(b.runs.filter(r=>!r.error).map(r=>r.ttft||9999)));
+  let v=`<div style="font-size:.9rem;font-weight:700;color:var(--accent);margin-bottom:8px;">⚡ Speed Verdict</div>`;
+  sorted.forEach((ep,rank)=>{
+    const vr=ep.runs.filter(r=>!r.error&&r.ttft!==null);
+    if(!vr.length){ v+=`<div style="font-size:.85rem;color:var(--muted);">${medals[rank]||'—'} <strong>${ep.ep.nick}</strong> — all failed${ep.runs[0]?.error==='CORS_ERROR'?' (CORS — see fix above)':' (check URL)'}</div>`; return; }
+    v+=`<div style="font-size:.85rem;margin-bottom:4px;">${medals[rank]||'—'} <strong>${ep.ep.nick}</strong> — ${avg(vr.map(r=>r.ttft)).toFixed(0)}ms TTFT · ${avg(vr.map(r=>r.tokensPerSec)).toFixed(1)} tok/s</div>`;
+  });
+  v+=`<div style="font-size:.78rem;color:var(--muted);margin-top:10px;border-top:1px solid var(--border);padding-top:8px;">Speed is one dimension. For NESS's structural advantages, see <strong>Sovereignty Score</strong> and <strong>Determinism</strong> modes.</div>`;
+  document.getElementById('verdict').innerHTML=v;
+}
+
+// ── Determinism Results ────────────────────────────────────
+function renderDeterminismResults(data){
+  hideAllPanels();
+  const el=document.getElementById('detResults'); el.style.display='';
+  el.innerHTML=`<div class="section-title" style="margin-top:0">Determinism Test — Same Prompt × 3 Runs</div>
+  <div class="det-note"><strong>What this measures:</strong> Consistency of output across 3 identical requests at temperature=0.1. Any provider can be deterministic at temp=0. NESS uniquely guarantees cross-node reproducibility via an <em>on-chain auditable UHE-PRNG seed</em> stored as a WORM record on Emercoin NVS.</div>`;
+  const grid=document.createElement('div'); grid.className='result-grid';
+  Object.values(data).forEach((d,idx)=>{
+    const sim=d.sim; const valid=d.runs.filter(r=>!r.error&&r.text);
+    const pct=sim!==null?(sim*100).toFixed(1)+'%':'—';
+    const col=sim===null?'var(--muted)':sim>0.85?'var(--good)':sim>0.6?'var(--warn)':'var(--bad)';
+    const label=sim===null?'—':sim>0.85?'🟢 Consistent':sim>0.6?'🟡 Somewhat variable':'🔴 Variable';
+    const card=document.createElement('div'); card.className='metric-card'; card.style.borderTop=`3px solid ${EP_HEX[idx]}`;
+    card.innerHTML=`<div class="metric-label">${d.ep.nick}</div>
+      <div style="font-size:2rem;font-weight:900;color:${col};line-height:1.1;">${pct}</div>
+      <div class="metric-sub">Jaccard similarity · ${valid.length}/3 runs OK</div>
+      <div class="metric-sub" style="margin-top:4px;">${label}</div>
+      ${valid[0]?`<div style="margin-top:8px;font-size:.76rem;font-style:italic;color:var(--muted);">"${valid[0].text.slice(0,100)}${valid[0].text.length>100?'…':''}"</div>`:''}`;
+    grid.appendChild(card);
+  });
+  el.appendChild(grid);
+  const adv=document.createElement('div'); adv.className='sov-adv';
+  adv.innerHTML=`<div style="font-weight:700;color:var(--accent);margin-bottom:6px;">🔬 NESS Advantage — Publicly Auditable Entropy</div>The UHE-PRNG seed lives in a WORM record on Emercoin NVS. Any operator can retrieve it and independently reproduce the expected output. This is <strong>cross-node, on-chain verifiable determinism</strong> — not just local reproducibility.`;
+  el.appendChild(adv);
+}
+
+// ── Burst Results ──────────────────────────────────────────
+function renderBurstResults(data){
+  hideAllPanels();
+  const el=document.getElementById('burstResults'); el.style.display='';
+  el.innerHTML=`<div class="section-title" style="margin-top:0">Burst Test — 10 Parallel Requests</div>
+  <div class="det-note"><strong>What this measures:</strong> 10 requests fired simultaneously. Cloud APIs throttle above your tier limit (HTTP 429). NESS nodes are hardware-bound only — no artificial rate ceilings, no per-user accounting.</div>`;
+  const grid=document.createElement('div'); grid.className='result-grid';
+  Object.values(data).forEach((d,idx)=>{
+    const pct=Math.round(d.rate*100);
+    const col=d.rate>=0.9?'var(--good)':d.rate>=0.5?'var(--warn)':'var(--bad)';
+    const label=d.rate>=0.9?'🟢 No throttling':d.rate>=0.5?'🟡 Partial throttle':'🔴 Heavy throttle / down';
+    const card=document.createElement('div'); card.className='metric-card'; card.style.borderTop=`3px solid ${EP_HEX[idx]}`;
+    card.innerHTML=`<div class="metric-label">${d.ep.nick}</div>
+      <div style="font-size:2rem;font-weight:900;color:${col};line-height:1.1;">${pct}%</div>
+      <div class="metric-sub">${d.ok}/${d.n} succeeded · ${d.elapsed.toFixed(0)}ms total</div>
+      <div class="metric-sub">${d.avg?'avg: '+d.avg.toFixed(0)+'ms/req':''}</div>
+      <div class="metric-sub" style="margin-top:4px;">${label}</div>`;
+    grid.appendChild(card);
+  });
+  el.appendChild(grid);
+  const adv=document.createElement('div'); adv.className='sov-adv';
+  adv.innerHTML=`<div style="font-weight:700;color:var(--accent);margin-bottom:6px;">🛡️ NESS Advantage — No Rate Limit Architecture</div>Cloud tiers enforce limits by user, by minute, by geography. NESS nodes have no such accounting layer. Throughput is bounded by hardware — and there is no centralized entity to impose limits retroactively.`;
+  el.appendChild(adv);
+}
+
+// ── Sovereignty Score (no API calls needed) ─────────────────
+function renderSovereigntyScore(){
+  hideAllPanels();
+  const el=document.getElementById('sovResults'); el.style.display='';
+  const totals=SOV_LABELS.map((_,i)=>SOV.reduce((s,r)=>s+r.scores[i],0));
+  let html=`<div class="section-title" style="margin-top:0">Sovereignty Score — Structural Properties</div>
+  <div class="det-note"><strong>The real battlefield.</strong> Speed is measurable. Model quality is benchmarkable. But sovereignty is <em>structural</em> — it is about what the provider is <em>architecturally incapable</em> of doing to you. These are properties of system design, not performance.</div>
+  <div class="result-grid" style="margin-bottom:16px;">`;
+  totals.forEach((score,i)=>{
+    const pct=Math.round(score/SOV.length*100);
+    const col=pct>=80?'var(--good)':pct>=50?'var(--warn)':'var(--bad)';
+    html+=`<div class="metric-card" style="border-top:3px solid ${EP_HEX[i]}"><div class="metric-label">${SOV_LABELS[i]}</div><div style="font-size:2.4rem;font-weight:900;color:${col};line-height:1;">${score}<span style="font-size:1rem;color:var(--muted);">/${SOV.length}</span></div><div class="metric-sub">${pct}% sovereign</div></div>`;
+  });
+  html+=`</div><div style="overflow-x:auto;"><table class="detail-table"><thead><tr><th>Property</th>${SOV_LABELS.map((l,i)=>`<th><span class="dot-badge" style="background:${EP_HEX[i]};"></span>${l}</th>`).join('')}<th style="color:var(--muted);">Note</th></tr></thead><tbody>`;
+  SOV.forEach(row=>{
+    html+=`<tr><td><strong>${row.prop}</strong></td>${row.scores.map(s=>s?`<td style="color:var(--good);font-weight:700;text-align:center;">✓</td>`:`<td style="color:var(--bad);text-align:center;">✗</td>`).join('')}<td style="color:var(--muted);font-size:.8rem;">${row.note}</td></tr>`;
+  });
+  html+=`</tbody></table></div><div class="sov-adv" style="margin-top:14px;"><div style="font-weight:700;color:var(--accent);margin-bottom:6px;">🏆 Why this matters more than tok/s</div>GPT-4o is faster and smarter than any 7B local model. The question is not "who wins the benchmark" — it is "who can turn off your inference." Only NESS makes that question <strong>architecturally unanswerable</strong>.</div>`;
+  el.innerHTML=html;
+}
+
+// ════════════════════════════════════════════════════════════
+//  CHART DRAWING  (pure Canvas, no libs)
+// ════════════════════════════════════════════════════════════
+function setupCanvas(id){
+  const canvas = document.getElementById(id);
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.parentElement.clientWidth || 900;
+  canvas.style.width  = w + 'px';
+  canvas.width  = w * dpr;
+  canvas.height = parseInt(canvas.getAttribute('height')) * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { ctx, w, h: parseInt(canvas.getAttribute('height')) };
+}
+
+function drawGroupedChart(id, labels, epList, valueGetter, colors, higherBetter=false){
+  const { ctx, w, h } = setupCanvas(id);
+  const pad = { l:52, r:16, t:18, b:42 };
+  const chartW = w - pad.l - pad.r;
+  const chartH = h - pad.t - pad.b;
+
+  // Collect values
+  const data = epList.map(ep => labels.map(lbl => {
+    const run = ep.runs.find(r=>r.prompt.label===lbl);
+    return (run && !run.error && valueGetter(run) > 0) ? valueGetter(run) : 0;
+  }));
+  const allVals = data.flat().filter(v=>v>0);
+  const maxVal  = allVals.length ? Math.max(...allVals) * 1.15 : 1;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#070b14';
+  ctx.fillRect(0, 0, w, h);
+
+  // Grid lines
+  for(let i=0;i<=4;i++){
+    const y = pad.t + chartH - (i/4)*chartH;
+    ctx.strokeStyle = 'rgba(255,255,255,.05)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l+chartW, y); ctx.stroke();
+    ctx.fillStyle = '#8fa1c7';
+    ctx.font = '11px Inter,system-ui,sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(formatNum(maxVal*i/4), pad.l-6, y+4);
+  }
+
+  // Bars
+  const groupW = chartW / labels.length;
+  const nEp    = epList.length;
+  const barW   = Math.min(groupW / (nEp+1), 40);
+  const gapInner = barW * 0.15;
+
+  labels.forEach((lbl, gi) => {
+    const gx = pad.l + gi * groupW + groupW/2 - (nEp*barW + (nEp-1)*gapInner)/2;
+    epList.forEach((ep, ei) => {
+      const val = data[ei][gi];
+      const bx  = gx + ei*(barW+gapInner);
+      const bh  = val > 0 ? (val/maxVal)*chartH : 0;
+      const by  = pad.t + chartH - bh;
+
+      // Bar fill
+      const grad = ctx.createLinearGradient(bx, by, bx, by+bh);
+      grad.addColorStop(0, colors[ei]);
+      grad.addColorStop(1, colors[ei]+'60');
+      ctx.fillStyle = val > 0 ? grad : 'rgba(255,255,255,.04)';
+      ctx.beginPath();
+      ctx.roundRect(bx, by, barW, bh, [3,3,0,0]);
+      ctx.fill();
+
+      // Value label
+      if(val > 0){
+        ctx.fillStyle = '#e8eefc';
+        ctx.font = 'bold 10px Inter,system-ui,sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(formatNum(val), bx+barW/2, by-4);
+      }
+    });
+
+    // X-axis label
+    ctx.fillStyle = '#8fa1c7';
+    ctx.font = '11px Inter,system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(lbl, pad.l + gi*groupW + groupW/2, pad.t+chartH+16);
+  });
+}
+
+function drawTotalChart(id, labels, epList, colors){
+  const { ctx, w, h } = setupCanvas(id);
+  const pad = { l:52, r:16, t:18, b:42 };
+  const chartW = w - pad.l - pad.r;
+  const chartH = h - pad.t - pad.b;
+
+  const data = epList.map(ep => labels.map(lbl => {
+    const run = ep.runs.find(r=>r.prompt.label===lbl);
+    return (run && !run.error && run.totalTime) ? run.totalTime : 0;
+  }));
+  const maxVal = Math.max(...data.flat().filter(v=>v>0), 1) * 1.15;
+
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='#070b14'; ctx.fillRect(0,0,w,h);
+
+  for(let i=0;i<=4;i++){
+    const y = pad.t + chartH - (i/4)*chartH;
+    ctx.strokeStyle='rgba(255,255,255,.05)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+chartW,y); ctx.stroke();
+    ctx.fillStyle='#8fa1c7'; ctx.font='11px Inter,system-ui,sans-serif'; ctx.textAlign='right';
+    ctx.fillText(formatNum(maxVal*i/4), pad.l-6, y+4);
+  }
+
+  const groupW = chartW/labels.length;
+  const nEp = epList.length;
+  const barW = Math.min(groupW/(nEp+1), 40);
+  const gap  = barW*0.15;
+
+  labels.forEach((lbl,gi) => {
+    const gx = pad.l + gi*groupW + groupW/2 - (nEp*barW+(nEp-1)*gap)/2;
+    epList.forEach((ep,ei) => {
+      const val = data[ei][gi];
+      const bx  = gx + ei*(barW+gap);
+      const bh  = val > 0 ? (val/maxVal)*chartH : 4;
+      const by  = pad.t+chartH-bh;
+      const grad = ctx.createLinearGradient(bx,by,bx,by+bh);
+      grad.addColorStop(0, colors[ei]);
+      grad.addColorStop(1, colors[ei]+'55');
+      ctx.fillStyle = val > 0 ? grad : 'rgba(255,255,255,.04)';
+      ctx.beginPath(); ctx.roundRect(bx,by,barW,bh,[3,3,0,0]); ctx.fill();
+      if(val > 0){
+        ctx.fillStyle='#e8eefc'; ctx.font='bold 10px Inter,system-ui,sans-serif'; ctx.textAlign='center';
+        ctx.fillText(formatNum(val), bx+barW/2, by-4);
+      }
+    });
+    ctx.fillStyle='#8fa1c7'; ctx.font='11px Inter,system-ui,sans-serif'; ctx.textAlign='center';
+    ctx.fillText(lbl, pad.l+gi*groupW+groupW/2, pad.t+chartH+16);
+  });
+}
+
+function formatNum(n){
+  if(n >= 1000) return (n/1000).toFixed(1)+'k';
+  return n >= 10 ? n.toFixed(0) : n.toFixed(1);
+}
+
+// ════════════════════════════════════════════════════════════
+//  EXPORT
+// ════════════════════════════════════════════════════════════
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(lastRaw, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ness-inference-benchmark-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+}
+
+// ════════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  addPreset('ness');
+  addPreset('ollama');
+  renderPrompts();
+  setTestMode('sovereignty');
+});
+
+window.addEventListener('resize', () => {
+  if(lastRaw && testMode==='speed') renderSpeedResults();
+});
+</script>
+</body>
+</html>

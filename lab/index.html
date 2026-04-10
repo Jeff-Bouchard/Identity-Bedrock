@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrivateNess NVS Namespace Registry</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600;700&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;1,300&display=swap');
+
+    :root {
+      --bg:        #090e14;
+      --surface:   #0f1822;
+      --surface2:  #141f2c;
+      --border:    #1c2d3e;
+      --accent:    #5ec4ff;
+      --green:     #2ee8a8;
+      --amber:     #ffbe44;
+      --red:       #ff5f6d;
+      --purple:    #b48eff;
+      --teal:      #22d3cc;
+      --text:      #ccd8e4;
+      --muted:     #4d6478;
+      --mono:      'IBM Plex Mono', monospace;
+      --sans:      'IBM Plex Sans', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14.5px;
+      line-height: 1.7;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.035) 2px, rgba(0,0,0,0.035) 4px);
+      pointer-events: none; z-index: 9999;
+    }
+
+    .page { max-width: 940px; margin: 0 auto; padding: 0 2em 6em; }
+
+    /* HEADER */
+    header { padding: 3.2em 0 2.2em; border-bottom: 1px solid var(--border); margin-bottom: 2.8em; }
+    .eyebrow { font-family: var(--mono); font-size: 0.72em; color: var(--muted); letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 0.7em; }
+    h1 { font-family: var(--mono); font-weight: 700; font-size: clamp(1.9em, 4.5vw, 3em); line-height: 1.1; letter-spacing: -0.02em; color: var(--accent); }
+    h1 .slash { color: var(--muted); }
+    .header-sub { margin-top: 0.75em; color: var(--muted); font-size: 0.97em; max-width: 600px; }
+    .pills { display: flex; gap: 0.7em; flex-wrap: wrap; margin-top: 1.4em; }
+    .pill { font-family: var(--mono); font-size: 0.74em; padding: 0.18em 0.7em; border-radius: 3px; border: 1px solid; }
+    .p-b { color: var(--accent);  border-color: #5ec4ff40; background: #5ec4ff0d; }
+    .p-g { color: var(--green);   border-color: #2ee8a840; background: #2ee8a80d; }
+    .p-a { color: var(--amber);   border-color: #ffbe4440; background: #ffbe440d; }
+    .p-t { color: var(--teal);    border-color: #22d3cc40; background: #22d3cc0d; }
+
+    /* PREFIX GRID */
+    .prefix-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.6em; margin-bottom: 3em; }
+    .prefix-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.85em 1em; text-decoration: none; transition: border-color 0.15s, background 0.15s; display: block; }
+    .prefix-card:hover { background: var(--surface2); }
+    .prefix-card .pc-key { font-family: var(--mono); font-size: 1.05em; font-weight: 700; display: block; margin-bottom: 0.2em; }
+    .prefix-card .pc-desc { font-size: 0.82em; color: var(--muted); }
+    .prefix-card .pc-url  { font-family: var(--mono); font-size: 0.68em; color: #2a4055; margin-top: 0.35em; display: block; }
+
+    .pc-blue   { border-left: 3px solid var(--accent);  } .pc-blue   .pc-key { color: var(--accent);  }
+    .pc-green  { border-left: 3px solid var(--green);   } .pc-green  .pc-key { color: var(--green);   }
+    .pc-amber  { border-left: 3px solid var(--amber);   } .pc-amber  .pc-key { color: var(--amber);   }
+    .pc-purple { border-left: 3px solid var(--purple);  } .pc-purple .pc-key { color: var(--purple);  }
+    .pc-red    { border-left: 3px solid var(--red);     } .pc-red    .pc-key { color: var(--red);     }
+    .pc-teal   { border-left: 3px solid var(--teal);    } .pc-teal   .pc-key { color: var(--teal);    }
+    .pc-muted  { border-left: 3px solid var(--muted);   } .pc-muted  .pc-key { color: var(--muted);   }
+
+    /* SECTIONS */
+    section { margin-bottom: 4.5em; }
+    .section-anchor { display: block; position: relative; top: -72px; }
+
+    h2 { font-family: var(--mono); font-size: 1.18em; font-weight: 700; display: flex; align-items: baseline; gap: 0.7em; flex-wrap: wrap; padding-bottom: 0.65em; border-bottom: 1px solid var(--border); margin-bottom: 1.5em; }
+    h2 .ns { font-size: 1.08em; padding: 0.08em 0.55em; border-radius: 4px; border: 1px solid; }
+    h2 .ns.blue   { color: var(--accent);  background: #5ec4ff0f; border-color: #5ec4ff30; }
+    h2 .ns.green  { color: var(--green);   background: #2ee8a80f; border-color: #2ee8a830; }
+    h2 .ns.amber  { color: var(--amber);   background: #ffbe440f; border-color: #ffbe4430; }
+    h2 .ns.purple { color: var(--purple);  background: #b48eff0f; border-color: #b48eff30; }
+    h2 .ns.red    { color: var(--red);     background: #ff5f6d0f; border-color: #ff5f6d30; }
+    h2 .ns.teal   { color: var(--teal);    background: #22d3cc0f; border-color: #22d3cc30; }
+    h2 .ns.muted  { color: var(--muted);   background: #4d647818; border-color: #4d647830; }
+    h2 .role { color: var(--muted); font-size: 0.78em; font-weight: 300; }
+    h2 .explorer-link { font-size: 0.68em; font-weight: 300; color: #2a4055; text-decoration: none; margin-left: auto; font-family: var(--mono); }
+    h2 .explorer-link:hover { color: var(--accent); }
+
+    /* TABLE */
+    .tbl { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 0.85em; margin-bottom: 1.5em; }
+    .tbl th { text-align: left; color: var(--muted); font-size: 0.7em; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.4em 0.75em; border-bottom: 1px solid var(--border); }
+    .tbl td { padding: 0.6em 0.75em; border-bottom: 1px solid #12202e; vertical-align: top; }
+    .tbl tr:last-child td { border-bottom: none; }
+    .tbl tr:hover td { background: #0f1a26; }
+    .k { white-space: nowrap; }
+    .k.b { color: var(--accent); } .k.g { color: var(--green); } .k.a { color: var(--amber); }
+    .k.p { color: var(--purple); } .k.r { color: var(--red);   } .k.t { color: var(--teal);  } .k.m { color: var(--muted); }
+    .vt { color: #2a4a60; font-size: 0.88em; }
+    .dc { font-family: var(--sans); font-size: 0.92em; color: var(--text); }
+    .dc code { font-family: var(--mono); font-size: 0.88em; background: #ffffff0d; padding: 0.1em 0.35em; border-radius: 3px; }
+
+    /* CODE */
+    pre { background: #060b10; border: 1px solid var(--border); border-radius: 6px; padding: 1.1em 1.3em; font-family: var(--mono); font-size: 0.83em; overflow-x: auto; line-height: 1.8; position: relative; margin-bottom: 1.2em; }
+    pre.b { border-left: 3px solid var(--accent); }
+    pre.g { border-left: 3px solid var(--green); }
+    pre.a { border-left: 3px solid var(--amber); }
+    pre.p { border-left: 3px solid var(--purple); }
+    pre.t { border-left: 3px solid var(--teal); }
+    pre .lbl { position: absolute; top: 0.5em; right: 0.85em; font-size: 0.68em; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+    .cb { color: var(--accent); } .cg { color: var(--green); } .ca { color: var(--amber); }
+    .cp { color: var(--purple); } .ct { color: var(--teal);  } .cm { color: #2a4055; } .cmu { color: var(--muted); } .cw { color: var(--text); }
+
+    /* NOTE */
+    .note { border-radius: 6px; padding: 0.8em 1.1em; font-size: 0.9em; margin: 1em 0; border-left: 3px solid; line-height: 1.6; }
+    .note.b { background: #5ec4ff0a; border-color: var(--accent); color: #8dd8ff; }
+    .note.g { background: #2ee8a80a; border-color: var(--green);  color: #6ef5c8; }
+    .note.a { background: #ffbe440a; border-color: var(--amber);  color: #ffd480; }
+    .note code { font-family: var(--mono); font-size: 0.9em; background: #ffffff10; padding: 0.1em 0.35em; border-radius: 3px; }
+
+    /* FLOW */
+    .flow { background: #060b10; border: 1px solid var(--border); border-radius: 6px; padding: 1.4em 1.6em; font-family: var(--mono); font-size: 0.82em; color: var(--muted); line-height: 2.1; overflow-x: auto; }
+
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); padding: 2em 0; font-family: var(--mono); font-size: 0.82em; color: var(--muted); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.6em; }
+    footer a { color: var(--accent); text-decoration: none; }
+
+    @media (max-width: 600px) {
+      .page { padding: 0 1em 4em; }
+      h1 { font-size: 1.8em; }
+      .tbl { font-size: 0.76em; }
+      h2 .explorer-link { display: none; }
+      .prefix-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="eyebrow">Emercoin NVS · PrivateNess Network · Namespace Specification v1.0</div>
+    <h1>PrivateNess<span class="slash"> / </span>NVS Namespace Registry</h1>
+    <p class="header-sub">Canonical top-level NVS prefix definitions, WORM XML schemas, and EmerDNS service discovery records for the PrivateNess Network.</p>
+    <div class="pills">
+      <span class="pill p-b">Emercoin NVS</span>
+      <span class="pill p-g">WORM XML v1.0</span>
+      <span class="pill p-a">EmerDNS SRV · CAA</span>
+      <span class="pill p-t">AuxPoW hardened</span>
+    </div>
+  </header>
+
+  <!-- PREFIX OVERVIEW GRID -->
+  <div class="prefix-grid">
+    <a class="prefix-card pc-blue" href="#ness">
+      <span class="pc-key">ness:</span>
+      <span class="pc-desc">Namespace meta · registry · schemas · indexes</span>
+      <span class="pc-url">explorer.emercoin.com/nvs/ness/</span>
+    </a>
+    <a class="prefix-card pc-green" href="#id">
+      <span class="pc-key">id:</span>
+      <span class="pc-desc">privatenessID · sovereign identity records</span>
+      <span class="pc-url">explorer.emercoin.com/nvs/id/</span>
+    </a>
+    <a class="prefix-card pc-amber" href="#worm">
+      <span class="pc-key">worm:</span>
+      <span class="pc-desc">WORM XML schemas · type definitions</span>
+      <span class="pc-url">explorer.emercoin.com/nvs/worm/</span>
+    </a>
+    <a class="prefix-card pc-blue" href="#inf">
+      <span class="pc-key">inf:</span>
+      <span class="pc-desc">Inference-as-a-Service node records</span>
+      <span class="pc-url">explorer.emercoin.com/nvs/inf/</span>
+    </a>
+    <a class="prefix-card pc-teal" href="#node">
+      <span class="pc-key">node:</span>
+      <span class="pc-desc">General node registration · transports</span>
+      <span class="pc-url">explorer.emercoin.com/nvs/node/</span>
+    </a>
+    <a class="prefix-card pc-purple" href="#dns">
+      <span class="pc-key">dns:</span>
+      <span class="pc-desc">EmerDNS · SRV · CAA · A records</span>
+      <span class="pc-url">explorer.emercoin.com/nvs/dns/</span>
+    </a>
+    <a class="prefix-card pc-muted" href="#prng">
+      <span class="pc-key">prng:</span>
+      <span class="pc-desc">PRNG service endpoint records</span>
+      <span class="pc-url">explorer.emercoin.com/nvs/prng/</span>
+    </a>
+    <a class="prefix-card pc-red" href="#meme">
+      <span class="pc-key">meme:</span>
+      <span class="pc-desc">NESSMeme · uncensorable on-chain content</span>
+      <span class="pc-url">explorer.emercoin.com/nvs/meme/</span>
+    </a>
+    <a class="prefix-card pc-green" href="#rep">
+      <span class="pc-key">rep:</span>
+      <span class="pc-desc">Node reputation · attestations</span>
+      <span class="pc-url">explorer.emercoin.com/nvs/rep/</span>
+    </a>
+  </div>
+
+  <!-- ness: -->
+  <section>
+    <a class="section-anchor" id="ness"></a>
+    <h2>
+      <span class="ns blue">ness:</span>
+      <span class="role">namespace root · meta records · well-known indexes</span>
+      <a class="explorer-link" href="https://explorer.emercoin.com/nvs/ness/" target="_blank">explorer.emercoin.com/nvs/ness/ ↗</a>
+    </h2>
+    <table class="tbl">
+      <thead><tr><th>NVS Key</th><th>Value</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="k b">ness:version</td>
+          <td class="vt">plain text</td>
+          <td class="dc">Current namespace spec version. Format: <code>MAJOR.MINOR</code>. Read by PrivatenessTools for compatibility checks.</td>
+        </tr>
+        <tr>
+          <td class="k b">ness:index:<em>type</em></td>
+          <td class="vt">JSON array</td>
+          <td class="dc">Append-only enumeration list of all known records of a given type: <code>id</code>, <code>inf</code>, <code>node</code>, <code>meme</code>, <code>rep</code>. Used for client discovery when DNS wildcard SRV enumeration is unavailable. Items are never removed — liveness determined by transport, not by index membership.</td>
+        </tr>
+        <tr>
+          <td class="k b">ness:faucet</td>
+          <td class="vt">URL</td>
+          <td class="dc">Well-known faucet. <code>https://faucet.ness.cx</code></td>
+        </tr>
+        <tr>
+          <td class="k b">ness:nvs</td>
+          <td class="vt">URL</td>
+          <td class="dc">Well-known NVS registration UI. <code>https://nvs.ness.cx</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- id: -->
+  <section>
+    <a class="section-anchor" id="id"></a>
+    <h2>
+      <span class="ns green">id:</span>
+      <span class="role">privatenessID · sovereign identity · universal trust anchor</span>
+      <a class="explorer-link" href="https://explorer.emercoin.com/nvs/id/" target="_blank">explorer.emercoin.com/nvs/id/ ↗</a>
+    </h2>
+    <table class="tbl">
+      <thead><tr><th>NVS Key</th><th>Value</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="k g">id:<em>username</em></td>
+          <td class="vt">WORM XML · <code>worm:id:1.0</code></td>
+          <td class="dc">Root identity record. Contains public key, on-chain creation block, optional Skywire pubkey. The <strong>universal trust anchor</strong> — all downstream trust chains here. Referenced bare (no prefix) in CAA <code>issue</code> tags to terminate TLS trust on-chain instead of in X.509.</td>
+        </tr>
+        <tr>
+          <td class="k g">id:<em>username</em>:sub:<em>n</em></td>
+          <td class="vt">WORM XML · <code>worm:id:1.0</code></td>
+          <td class="dc">Sub-identity record. Inherits trust from parent <code>id:</code>. Used for device-scoped or service-scoped signing keys without exposing the master key.</td>
+        </tr>
+      </tbody>
+    </table>
+    <pre class="g"><span class="lbl">WORM XML — id:username</span><span class="cb">&lt;worm</span> <span class="ca">version</span>=<span class="cg">"1.0"</span> <span class="ca">type</span>=<span class="cg">"id"</span><span class="cb">&gt;</span>
+  <span class="cb">&lt;meta&gt;</span>
+    <span class="cb">&lt;schema&gt;</span><span class="cg">worm:id:1.0</span><span class="cb">&lt;/schema&gt;</span>
+    <span class="cb">&lt;created&gt;</span><span class="cg">2020-11-01T00:00:00Z</span><span class="cb">&lt;/created&gt;</span>
+    <span class="cb">&lt;anchor_block&gt;</span><span class="cg">445669</span><span class="cb">&lt;/anchor_block&gt;</span>    <span class="cm">&lt;!-- canonical PrivateNess origin block --&gt;</span>
+  <span class="cb">&lt;/meta&gt;</span>
+  <span class="cb">&lt;identity&gt;</span>
+    <span class="cb">&lt;nvs_key&gt;</span><span class="cg">id:username</span><span class="cb">&lt;/nvs_key&gt;</span>
+    <span class="cb">&lt;pubkey_algo&gt;</span><span class="cg">Ed25519</span><span class="cb">&lt;/pubkey_algo&gt;</span>    <span class="cm">&lt;!-- ML-DSA-65 migration path --&gt;</span>
+    <span class="cb">&lt;pubkey&gt;</span><span class="cg">...</span><span class="cb">&lt;/pubkey&gt;</span>
+    <span class="cb">&lt;skywire_pubkey&gt;</span><span class="cg">02abc...def</span><span class="cb">&lt;/skywire_pubkey&gt;</span>    <span class="cm">&lt;!-- optional --&gt;</span>
+  <span class="cb">&lt;/identity&gt;</span>
+<span class="cb">&lt;/worm&gt;</span></pre>
+    <div class="note g"><strong>CAA reference format:</strong> <code>'0 issue "id:username"'</code> — the NVS key is the reference. No additional prefix.</div>
+  </section>
+
+  <!-- worm: -->
+  <section>
+    <a class="section-anchor" id="worm"></a>
+    <h2>
+      <span class="ns amber">worm:</span>
+      <span class="role">World Object MaRkup Language · canonical XML schema registry</span>
+      <a class="explorer-link" href="https://explorer.emercoin.com/nvs/worm/" target="_blank">explorer.emercoin.com/nvs/worm/ ↗</a>
+    </h2>
+    <p style="color:var(--muted); margin-bottom:1.2em; font-size:0.93em;">The <code>worm:</code> prefix holds canonical XML schema definitions for every WORM document type. Every WORM record's <code>&lt;schema&gt;</code> tag value is the <code>worm:</code> NVS key of its governing schema.</p>
+    <table class="tbl">
+      <thead><tr><th>NVS Key</th><th>Governs prefix</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td class="k a">worm:id:1.0</td>   <td class="vt">id:</td>   <td class="dc">✓ Deployed — block #445669</td></tr>
+        <tr><td class="k a">worm:inf:1.0</td>  <td class="vt">inf:</td>  <td class="dc">✓ Specified</td></tr>
+        <tr><td class="k a">worm:node:1.0</td> <td class="vt">node:</td> <td class="dc">✓ Specified</td></tr>
+        <tr><td class="k a">worm:meme:1.0</td> <td class="vt">meme:</td> <td class="dc">✓ Specified</td></tr>
+        <tr><td class="k a">worm:rep:1.0</td>  <td class="vt">rep:</td>  <td class="dc">⚠ Specified — not yet implemented</td></tr>
+      </tbody>
+    </table>
+    <div class="note a">All WORM documents share a common <code>&lt;meta&gt;</code> block: <code>&lt;schema&gt;</code> pointing to a <code>worm:*:*</code> NVS key, <code>&lt;created&gt;</code> timestamp, and an ownership reference (<code>&lt;author&gt;</code> or <code>&lt;owner&gt;</code>) pointing to an <code>id:</code> key. Every record is traceable to a sovereign identity without revealing personal information.</div>
+  </section>
+
+  <!-- inf: -->
+  <section>
+    <a class="section-anchor" id="inf"></a>
+    <h2>
+      <span class="ns blue">inf:</span>
+      <span class="role">inference-as-a-service · node capability records</span>
+      <a class="explorer-link" href="https://explorer.emercoin.com/nvs/inf/" target="_blank">explorer.emercoin.com/nvs/inf/ ↗</a>
+    </h2>
+    <table class="tbl">
+      <thead><tr><th>NVS Key</th><th>Value</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="k b">inf:node_<em>&lt;id_hash&gt;</em></td>
+          <td class="vt">WORM XML · <code>worm:inf:1.0</code></td>
+          <td class="dc">Inference node capability record. Declares model, context window, price per 1k tokens in EMC, transport networks, and OpenAI-compatible endpoint path. <code>id_hash</code> = first 16 hex chars of the owning <code>id:</code> pubkey hash.</td>
+        </tr>
+        <tr>
+          <td class="k b">inf:index</td>
+          <td class="vt">JSON array</td>
+          <td class="dc">Append-only list of known <code>inf:node_*</code> keys. Alias of <code>ness:index:inf</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+    <pre class="b"><span class="lbl">WORM XML — inf:node_&lt;hash&gt;</span><span class="cb">&lt;worm</span> <span class="ca">version</span>=<span class="cg">"1.0"</span> <span class="ca">type</span>=<span class="cg">"inf"</span><span class="cb">&gt;</span>
+  <span class="cb">&lt;meta&gt;</span>
+    <span class="cb">&lt;schema&gt;</span><span class="cg">worm:inf:1.0</span><span class="cb">&lt;/schema&gt;</span>
+    <span class="cb">&lt;author&gt;</span><span class="cg">id:username</span><span class="cb">&lt;/author&gt;</span>        <span class="cm">&lt;!-- owning privatenessID --&gt;</span>
+    <span class="cb">&lt;node&gt;</span><span class="cg">node:batman1</span><span class="cb">&lt;/node&gt;</span>           <span class="cm">&lt;!-- host node: record --&gt;</span>
+    <span class="cb">&lt;created&gt;</span><span class="cg">2025-01-01T00:00:00Z</span><span class="cb">&lt;/created&gt;</span>
+  <span class="cb">&lt;/meta&gt;</span>
+  <span class="cb">&lt;service&gt;</span>
+    <span class="cb">&lt;url&gt;</span><span class="cg">http://batman1.private.ness</span><span class="cb">&lt;/url&gt;</span>
+    <span class="cb">&lt;network&gt;</span><span class="cg">inet,skywire</span><span class="cb">&lt;/network&gt;</span>
+    <span class="cb">&lt;tariff</span> <span class="ca">unit</span>=<span class="cg">"NCH/hour"</span><span class="cb">&gt;</span><span class="cg">1000</span><span class="cb">&lt;/tariff&gt;</span>
+    <span class="cb">&lt;capabilities&gt;</span><span class="cg">prng,files,inference</span><span class="cb">&lt;/capabilities&gt;</span>
+  <span class="cb">&lt;/service&gt;</span>
+  <span class="cb">&lt;inference&gt;</span>
+    <span class="cb">&lt;model&gt;</span><span class="cg">llama3-8b-q4_k_m</span><span class="cb">&lt;/model&gt;</span>
+    <span class="cb">&lt;context_window</span> <span class="ca">unit</span>=<span class="cg">"tokens"</span><span class="cb">&gt;</span><span class="cg">8192</span><span class="cb">&lt;/context_window&gt;</span>
+    <span class="cb">&lt;price_per_1k</span> <span class="ca">unit</span>=<span class="cg">"EMC"</span><span class="cb">&gt;</span><span class="cg">0.0001</span><span class="cb">&lt;/price_per_1k&gt;</span>
+    <span class="cb">&lt;endpoint&gt;</span><span class="cg">/v1/chat/completions</span><span class="cb">&lt;/endpoint&gt;</span>
+    <span class="cb">&lt;skywire_pubkey&gt;</span><span class="cg">02abc...def</span><span class="cb">&lt;/skywire_pubkey&gt;</span>    <span class="cm">&lt;!-- omit if inet only --&gt;</span>
+  <span class="cb">&lt;/inference&gt;</span>
+<span class="cb">&lt;/worm&gt;</span></pre>
+  </section>
+
+  <!-- node: -->
+  <section>
+    <a class="section-anchor" id="node"></a>
+    <h2>
+      <span class="ns teal">node:</span>
+      <span class="role">general node registration · multi-transport addresses</span>
+      <a class="explorer-link" href="https://explorer.emercoin.com/nvs/node/" target="_blank">explorer.emercoin.com/nvs/node/ ↗</a>
+    </h2>
+    <table class="tbl">
+      <thead><tr><th>NVS Key</th><th>Value</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="k t">node:<em>name</em></td>
+          <td class="vt">WORM XML · <code>worm:node:1.0</code></td>
+          <td class="dc">Node transport address record. Declares all available networks (inet, skywire, yggdrasil, i2p, tor), owning <code>id:</code> reference, and enrolled services. Referenced by <code>inf:</code> and <code>dns:</code> records.</td>
+        </tr>
+        <tr>
+          <td class="k t">node:<em>name</em>:key</td>
+          <td class="vt">plain text</td>
+          <td class="dc">Node signing pubkey for TLS/Noise cert binding. CAA enforcement verifies the presented cert against this key via the owning <code>id:</code> chain.</td>
+        </tr>
+      </tbody>
+    </table>
+    <pre class="t"><span class="lbl">WORM XML — node:batman1</span><span class="cb">&lt;worm</span> <span class="ca">version</span>=<span class="cg">"1.0"</span> <span class="ca">type</span>=<span class="cg">"node"</span><span class="cb">&gt;</span>
+  <span class="cb">&lt;meta&gt;</span>
+    <span class="cb">&lt;schema&gt;</span><span class="cg">worm:node:1.0</span><span class="cb">&lt;/schema&gt;</span>
+    <span class="cb">&lt;owner&gt;</span><span class="cg">id:username</span><span class="cb">&lt;/owner&gt;</span>
+    <span class="cb">&lt;created&gt;</span><span class="cg">2025-01-01T00:00:00Z</span><span class="cb">&lt;/created&gt;</span>
+  <span class="cb">&lt;/meta&gt;</span>
+  <span class="cb">&lt;transport&gt;</span>
+    <span class="cb">&lt;inet&gt;</span><span class="cg">198.51.100.42</span><span class="cb">&lt;/inet&gt;</span>
+    <span class="cb">&lt;skywire&gt;</span><span class="cg">02abc...def</span><span class="cb">&lt;/skywire&gt;</span>          <span class="cm">&lt;!-- optional --&gt;</span>
+    <span class="cb">&lt;yggdrasil&gt;</span><span class="cg">200:...</span><span class="cb">&lt;/yggdrasil&gt;</span>         <span class="cm">&lt;!-- optional --&gt;</span>
+    <span class="cb">&lt;i2p&gt;</span><span class="cg">...b32.i2p</span><span class="cb">&lt;/i2p&gt;</span>               <span class="cm">&lt;!-- optional --&gt;</span>
+    <span class="cb">&lt;tor&gt;</span><span class="cg">...onion</span><span class="cb">&lt;/tor&gt;</span>                <span class="cm">&lt;!-- optional --&gt;</span>
+  <span class="cb">&lt;/transport&gt;</span>
+  <span class="cb">&lt;services&gt;</span><span class="cg">prng,files,inference</span><span class="cb">&lt;/services&gt;</span>
+<span class="cb">&lt;/worm&gt;</span></pre>
+  </section>
+
+  <!-- dns: -->
+  <section>
+    <a class="section-anchor" id="dns"></a>
+    <h2>
+      <span class="ns purple">dns:</span>
+      <span class="role">EmerDNS · SRV · CAA · A records</span>
+      <a class="explorer-link" href="https://explorer.emercoin.com/nvs/dns/" target="_blank">explorer.emercoin.com/nvs/dns/ ↗</a>
+    </h2>
+    <table class="tbl">
+      <thead><tr><th>NVS Key</th><th>Value</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="k p">dns:_inference._tcp.<em>&lt;host&gt;</em></td>
+          <td class="vt">SRV RR</td>
+          <td class="dc">RFC 2782 SRV for TCP inference endpoint. Format: <code>priority weight port target</code>. Multiple nodes under the same label → RFC 2782 load balancing and failover.</td>
+        </tr>
+        <tr>
+          <td class="k p">dns:_inference._skywire.<em>&lt;host&gt;</em></td>
+          <td class="vt">SRV RR</td>
+          <td class="dc">SRV for Skywire mesh transport. Port <code>0</code> by convention. Target is <code>&lt;skywire_pubkey&gt;.skywire</code>.</td>
+        </tr>
+        <tr>
+          <td class="k p">dns:_prng._tcp.<em>&lt;host&gt;</em></td>
+          <td class="vt">SRV RR</td>
+          <td class="dc">SRV for PRNG service endpoint. Same priority/weight/port/target structure.</td>
+        </tr>
+        <tr>
+          <td class="k p">dns:<em>&lt;host&gt;</em></td>
+          <td class="vt">A / AAAA RR</td>
+          <td class="dc">Address record resolving the SRV target hostname.</td>
+        </tr>
+        <tr>
+          <td class="k p">dns:<em>&lt;host&gt;</em> (CAA)</td>
+          <td class="vt">CAA RR</td>
+          <td class="dc">The <code>issue</code> tag carries the bare <code>id:</code> NVS key of the authorizing identity. Trust terminates on-chain — no X.509, no root CA, no corporate hierarchy. Client-side enforcement in PrivatenessTools.</td>
+        </tr>
+      </tbody>
+    </table>
+    <pre class="p"><span class="lbl">EmerDNS NVS values</span><span class="cm"># Address</span>
+<span class="cp">dns:batman1.private.ness</span>               <span class="cg">"A 198.51.100.42"</span>
+
+<span class="cm"># SRV — inference over TCP</span>
+<span class="cp">dns:_inference._tcp.batman1</span>            <span class="cg">"SRV 10 100 8080 batman1.private.ness"</span>
+
+<span class="cm"># SRV — inference over Skywire (port 0 = transport-native)</span>
+<span class="cp">dns:_inference._skywire.batman1</span>        <span class="cg">"SRV 10 100 0 02abc...def.skywire"</span>
+
+<span class="cm"># SRV — PRNG service</span>
+<span class="cp">dns:_prng._tcp.batman1</span>                 <span class="cg">"SRV 10 100 7777 batman1.private.ness"</span>
+
+<span class="cm"># CAA — issue tag = bare NVS key, no prefix before id:</span>
+<span class="cp">dns:batman1.private.ness</span> (CAA)         <span class="cg">'0 issue "id:username"'</span></pre>
+
+    <pre class="p"><span class="lbl">CAA trust chain</span><span class="cp">dns:batman1.private.ness</span> CAA  <span class="cg">'0 issue "id:username"'</span>
+  <span class="cmu">│</span>
+  <span class="cmu">▼  pull from NVS</span>
+<span class="cg">id:username</span>                   <span class="cm">WORM XML → Ed25519 / ML-DSA-65 pubkey</span>
+  <span class="cmu">│</span>
+  <span class="cmu">▼  verify</span>
+<span class="cg">node TLS / Noise cert</span>         <span class="cm">must be signed by above pubkey</span>
+  <span class="cmu">│</span>
+  <span class="cmu">▼  trust established</span>
+<span class="cg">inference traffic flows</span></pre>
+
+    <div class="note b"><strong>Client-side enforcement only.</strong> Standard DNS resolvers do not enforce CAA on behalf of clients. The check is PrivatenessTools-explicit: resolve CAA → pull <code>id:</code> WORM → verify node cert. Any client that skips this step accepts unauthenticated nodes.</div>
+  </section>
+
+  <!-- prng: -->
+  <section>
+    <a class="section-anchor" id="prng"></a>
+    <h2>
+      <span class="ns muted">prng:</span>
+      <span class="role">PRNG service · pyuheprng endpoint records</span>
+      <a class="explorer-link" href="https://explorer.emercoin.com/nvs/prng/" target="_blank">explorer.emercoin.com/nvs/prng/ ↗</a>
+    </h2>
+    <table class="tbl">
+      <thead><tr><th>NVS Key</th><th>Value</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="k m">prng:<em>node_name</em></td>
+          <td class="vt">WORM XML · <code>worm:node:1.0</code></td>
+          <td class="dc">PRNG service node record. References owning <code>id:</code> and parent <code>node:</code> record. Service discovery via <code>dns:_prng._tcp.*</code> SRV. Provides direct prefix enumeration without scanning the broader <code>node:</code> space.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- meme: -->
+  <section>
+    <a class="section-anchor" id="meme"></a>
+    <h2>
+      <span class="ns red">meme:</span>
+      <span class="role">NESSMeme · uncensorable on-chain content · memetic weapons layer</span>
+      <a class="explorer-link" href="https://explorer.emercoin.com/nvs/meme/" target="_blank">explorer.emercoin.com/nvs/meme/ ↗</a>
+    </h2>
+    <table class="tbl">
+      <thead><tr><th>NVS Key</th><th>Value</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="k r">meme:<em>&lt;id_hash&gt;</em>:<em>&lt;seq&gt;</em></td>
+          <td class="vt">WORM XML · <code>worm:meme:1.0</code></td>
+          <td class="dc">Immutable meme record. WORM-sealed on-chain. Cannot be moderated, removed, or shadow-banned. Sequenced per author. Inference nodes with the <code>meme</code> capability generate and register records autonomously — every synthetic record that bleeds into scrapers is a live data-poisoning event.</td>
+        </tr>
+        <tr>
+          <td class="k r">meme:index</td>
+          <td class="vt">JSON array</td>
+          <td class="dc">Append-only global meme index. Alias of <code>ness:index:meme</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- rep: -->
+  <section>
+    <a class="section-anchor" id="rep"></a>
+    <h2>
+      <span class="ns green">rep:</span>
+      <span class="role">node reputation · signed attestations · trust weight</span>
+      <a class="explorer-link" href="https://explorer.emercoin.com/nvs/rep/" target="_blank">explorer.emercoin.com/nvs/rep/ ↗</a>
+    </h2>
+    <table class="tbl">
+      <thead><tr><th>NVS Key</th><th>Value</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="k g">rep:<em>&lt;node_hash&gt;</em>:<em>&lt;rater_hash&gt;</em></td>
+          <td class="vt">WORM XML · <code>worm:rep:1.0</code></td>
+          <td class="dc">Signed attestation from one <code>id:</code> identity about one <code>inf:</code> or <code>node:</code> record. Trust weight derived from rater's <code>id:</code> anchor age and EMC stake. Cannot be retracted — only superseded by a newer record from the same keypair.</td>
+        </tr>
+        <tr>
+          <td class="k g">rep:index:<em>&lt;node_hash&gt;</em></td>
+          <td class="vt">JSON array</td>
+          <td class="dc">Per-node append-only attestation key list. Aggregates reputation without full NVS keyspace scan.</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="note a"><strong>Not yet implemented.</strong> Trust weight bootstraps from <code>id:</code> anchor age. Sybil resistance from AuxPoW write cost, not identity verification.</div>
+  </section>
+
+  <!-- DISCOVERY FLOW -->
+  <section>
+    <h2>
+      <span class="ns blue">Discovery flow</span>
+      <span class="role">full inference discovery · all prefixes in sequence</span>
+    </h2>
+    <div class="flow">
+<span class="cw">CLIENT</span>
+  <span class="cmu">│</span>
+  <span class="cmu">├─ 1.</span> <span class="cb">ness:index:inf</span>                   <span class="cm">enumerate known nodes (NVS prefix scan)</span>
+  <span class="cmu">│</span>
+  <span class="cmu">├─ 2.</span> <span class="cp">dns:_inference._tcp.*</span>            <span class="cm">SRV → (priority, weight, port, target)</span>
+  <span class="cmu">│         RFC 2782 selection algorithm</span>
+  <span class="cmu">│</span>
+  <span class="cmu">├─ 3.</span> <span class="cp">dns:&lt;target&gt;</span> (CAA)               <span class="cm">→ '0 issue "id:username"'</span>
+  <span class="cmu">│</span>
+  <span class="cmu">├─ 4.</span> <span class="cg">id:username</span>                       <span class="cm">WORM XML → pubkey</span>
+  <span class="cmu">│</span>
+  <span class="cmu">├─ 5.  open TLS/Noise → SRV target:port</span>
+  <span class="cmu">│         verify node cert ← signed by pubkey from step 4</span>
+  <span class="cmu">│         FAIL HARD on mismatch — no fallback, no downgrade</span>
+  <span class="cmu">│</span>
+  <span class="cmu">├─ 6.</span> <span class="cb">inf:node_&lt;hash&gt;</span>                  <span class="cm">WORM XML → model / pricing / capabilities</span>
+  <span class="cmu">│</span>
+  <span class="cmu">├─ 7.</span> <span class="cg">rep:index:&lt;hash&gt;</span>                 <span class="cm">(optional) reputation attestations</span>
+  <span class="cmu">│</span>
+  <span class="cmu">└─ 8.  send inference request · pay EMC per-token</span>
+
+<span class="cm">Trust terminates on-chain at step 4.
+No root CA. No X.509 hierarchy. No corporate kill switch.
+Fiber hostile node resistance: 100% − 1.</span>
+    </div>
+  </section>
+
+  <footer>
+    <span>PrivateNess NVS Namespace · v1.0 · <a href="https://privateness.network" target="_blank">privateness.network</a></span>
+    <span>
+      <a href="https://explorer.emercoin.com/nvs/ness/" target="_blank">ness:</a> ·
+      <a href="https://explorer.emercoin.com/nvs/worm/" target="_blank">worm:</a> ·
+      <a href="https://explorer.emercoin.com/nvs/inf/" target="_blank">inf:</a> ·
+      <a href="https://explorer.emercoin.com/nvs/prng/" target="_blank">prng:</a> ·
+      <a href="https://nvs.ness.cx" target="_blank">nvs.ness.cx</a> ·
+      <a href="https://faucet.ness.cx" target="_blank">faucet.ness.cx</a>
+    </span>
+  </footer>
+
+</div>
+</body>
+</html>

@@ -507,12 +507,12 @@ protection is structural, not block-specific. Verifiable at
 
 \subsection{Key Generation and Entropy Provisioning}
 
-Identity keys are derived from a seed produced by Gibson's
-UHEPRNG~\cite{UHEPRNG}. Entropy sources mixed in include: multiple
-1024-byte blocks from \texttt{os.urandom} ($\geq$1536~bits total); RC4OK
-output from Emercoin core RNG; CPU timing jitter; and hardware
-identifiers (eMMC CID, MAC address, machine-id). Security rests on the
-standard $\approx$128-bit classical security floor of the chosen scheme.
+Identity keys are produced by local KeyGen using Gibson's
+UHEPRNG~\cite{UHEPRNG} with OS entropy input (multiple
+1024-byte \texttt{os.urandom} blocks) mixed into the generator state.
+Optional host-local sources such as timing jitter and hardware
+identifiers (eMMC CID, MAC address, machine-id) may be added by deployment policy.
+Security rests on the standard $\approx$128-bit classical security floor of the chosen scheme.
 
 %%------------------------------------------------------------
 \section{Physical Presence Extension}

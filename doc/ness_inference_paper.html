@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NESS · Sovereign Inference-as-a-Service</title>
+<style>
+:root{
+  --bg:#f8fafd;
+  --ink:#1a2035;
+  --muted:#556080;
+  --accent:#7c6cff;
+  --teal:#00c49a;
+  --warn:#e8842c;
+  --border:#d4dbe8;
+  --code-bg:#06101c;
+  --code-fg:#d7e3ff;
+  --head-bg:linear-gradient(135deg,#0b1227 0%,#131f3e 60%,#1a2d50 100%);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:Georgia,'Times New Roman',Times,serif;
+  font-size:16.5px;
+  line-height:1.75;
+  color:var(--ink);
+  background:var(--bg);
+}
+a{color:var(--accent);text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* ── HEADER ─────────────────────────────────────────────── */
+header{
+  background:var(--head-bg);
+  color:#e8eefc;
+  padding:48px 40px 36px;
+  text-align:center;
+}
+.eyebrow{
+  display:inline-block;
+  font-family:'Segoe UI',system-ui,sans-serif;
+  font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--teal);
+  border:1px solid rgba(0,196,154,.3);
+  border-radius:999px;
+  padding:5px 14px;
+  margin-bottom:20px;
+}
+header h1{
+  font-size:clamp(1.6rem,3.5vw,2.6rem);
+  letter-spacing:-.02em;
+  line-height:1.15;
+  margin-bottom:12px;
+  color:#fff;
+}
+header .subtitle{
+  font-family:'Segoe UI',system-ui,sans-serif;
+  font-size:.97rem;
+  color:#8fa1c7;
+  max-width:680px;
+  margin:0 auto 20px;
+}
+.meta{
+  font-family:'Segoe UI',system-ui,sans-serif;
+  font-size:.82rem;
+  color:#6070a0;
+  margin-top:8px;
+}
+
+/* ── LAYOUT ─────────────────────────────────────────────── */
+.wrap{max-width:860px;margin:0 auto;padding:40px 28px 80px;}
+
+/* ── ABSTRACT ───────────────────────────────────────────── */
+.abstract{
+  border-left:4px solid var(--accent);
+  padding:18px 22px;
+  background:#f0eeff;
+  border-radius:0 12px 12px 0;
+  margin:32px 0;
+  font-style:italic;
+  font-size:.97rem;
+  color:#2a2a50;
+}
+.abstract strong{font-style:normal;color:var(--accent);}
+
+/* ── SECTIONS ───────────────────────────────────────────── */
+h2{
+  font-family:'Segoe UI',system-ui,sans-serif;
+  font-size:1.32rem;
+  font-weight:700;
+  color:var(--ink);
+  margin:42px 0 10px;
+  padding-bottom:6px;
+  border-bottom:2px solid var(--border);
+}
+h3{
+  font-family:'Segoe UI',system-ui,sans-serif;
+  font-size:1.07rem;
+  font-weight:600;
+  color:var(--accent);
+  margin:28px 0 8px;
+}
+h4{
+  font-family:'Segoe UI',system-ui,sans-serif;
+  font-size:.96rem;
+  font-weight:600;
+  color:var(--muted);
+  margin:20px 0 6px;
+}
+p{margin:10px 0 14px;}
+ul,ol{margin:10px 0 14px 22px;}
+li{margin-bottom:5px;}
+
+/* ── CODE ───────────────────────────────────────────────── */
+pre{
+  background:var(--code-bg);
+  color:var(--code-fg);
+  border-radius:12px;
+  padding:18px 20px;
+  overflow-x:auto;
+  font-family:'Cascadia Code','Fira Code','Menlo',Consolas,monospace;
+  font-size:.85rem;
+  line-height:1.6;
+  margin:14px 0 18px;
+  border:1px solid rgba(124,108,255,.18);
+}
+code{
+  background:#eef1fb;
+  color:#3a2d8a;
+  border-radius:4px;
+  padding:1px 5px;
+  font-family:'Cascadia Code','Fira Code',Menlo,Consolas,monospace;
+  font-size:.87em;
+}
+pre code{background:transparent;color:inherit;padding:0;font-size:inherit;}
+
+.kw{color:#bf86f7;}
+.cm{color:#6070a0;font-style:italic;}
+.st{color:#7fc97f;}
+.nm{color:#7cc8ff;}
+.op{color:#00d4aa;}
+
+/* ── MATH ───────────────────────────────────────────────── */
+.formula{
+  background:#f0eeff;
+  border:1px solid rgba(124,108,255,.25);
+  border-radius:10px;
+  padding:16px 22px;
+  margin:16px 0;
+  font-family:'Cascadia Code','Fira Code',Menlo,Consolas,monospace;
+  font-size:.94rem;
+  color:#2a1a6a;
+  text-align:center;
+}
+.formula .var{color:var(--accent);font-weight:700;}
+.formula .num{color:var(--teal);}
+
+/* ── TABLES ─────────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto;margin:14px 0 20px;}
+table{
+  width:100%;border-collapse:collapse;
+  font-family:'Segoe UI',system-ui,sans-serif;
+  font-size:.88rem;
+}
+th{
+  background:#131f3e;color:#c7d5f7;
+  text-align:left;
+  padding:10px 12px;
+  font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;
+}
+td{
+  padding:10px 12px;
+  border-bottom:1px solid var(--border);
+  vertical-align:top;
+}
+tr:last-child td{border-bottom:none;}
+tr:nth-child(even) td{background:#f3f5fc;}
+.ok{color:#0a7c4e;font-weight:600;}
+.bad{color:#b03a2e;font-weight:600;}
+.mid{color:#7c5c0a;}
+
+/* ── CALLOUTS ───────────────────────────────────────────── */
+.note{
+  background:#e6faf6;border-left:4px solid var(--teal);
+  padding:14px 18px;border-radius:0 10px 10px 0;
+  margin:16px 0;font-size:.94rem;
+}
+.warn-box{
+  background:#fff7ed;border-left:4px solid var(--warn);
+  padding:14px 18px;border-radius:0 10px 10px 0;
+  margin:16px 0;font-size:.94rem;
+}
+.oneliner{
+  background:var(--head-bg);color:#e8eefc;
+  border-radius:14px;
+  padding:22px 26px;
+  margin:28px 0;
+  font-family:'Segoe UI',system-ui,sans-serif;
+  font-size:1rem;
+  line-height:1.6;
+}
+
+/* ── LAYER DIAGRAM ──────────────────────────────────────── */
+.layers{margin:18px 0;font-family:'Segoe UI',system-ui,sans-serif;}
+.layer{
+  display:flex;align-items:center;gap:14px;
+  background:#fff;border:1px solid var(--border);
+  border-radius:10px;padding:12px 16px;
+  margin-bottom:4px;font-size:.9rem;
+}
+.layer:first-child{border-color:var(--accent);background:#f5f3ff;}
+.layer-icon{
+  width:32px;height:32px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1rem;flex-shrink:0;
+}
+.layer-lbl{font-weight:700;min-width:220px;color:var(--ink);}
+.layer-role{color:var(--muted);font-size:.84rem;}
+.arrow-down{text-align:center;color:#8899cc;font-size:1.3rem;margin:0;}
+
+/* ── FLOW STEPS ─────────────────────────────────────────── */
+.steps{counter-reset:step;margin:14px 0;}
+.step{
+  display:flex;gap:14px;
+  margin-bottom:12px;
+  font-size:.93rem;
+}
+.step::before{
+  counter-increment:step;
+  content:counter(step);
+  min-width:28px;height:28px;
+  border-radius:50%;
+  background:var(--accent);color:#fff;
+  font-family:'Segoe UI',system-ui,sans-serif;
+  font-weight:700;font-size:.82rem;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;margin-top:2px;
+}
+
+/* ── NAMESPACE TABLE ────────────────────────────────────── */
+.ns-table{margin:14px 0;}
+.ns-row{
+  display:grid;grid-template-columns:140px 1fr;
+  gap:12px;padding:9px 0;
+  border-bottom:1px solid var(--border);
+  font-size:.9rem;
+}
+.ns-key{
+  font-family:'Cascadia Code','Fira Code',Menlo,Consolas,monospace;
+  color:var(--accent);font-weight:700;
+}
+.ns-desc{color:var(--muted);}
+
+/* ── FOOTER ─────────────────────────────────────────────── */
+footer{
+  background:#0b1227;color:#4a5a80;
+  text-align:center;padding:24px;
+  font-family:'Segoe UI',system-ui,sans-serif;
+  font-size:.82rem;line-height:1.7;
+}
+footer a{color:#6070a0;}
+
+/* ── TOC ─────────────────────────────────────────────────── */
+.toc{
+  background:#fff;border:1px solid var(--border);
+  border-radius:14px;padding:20px 24px;
+  margin:28px 0;
+  font-family:'Segoe UI',system-ui,sans-serif;
+  font-size:.9rem;
+}
+.toc h3{margin-top:0;color:var(--ink);font-size:.95rem;}
+.toc ol{margin-left:18px;}
+.toc li{margin-bottom:4px;}
+.toc a{color:var(--muted);}
+.toc a:hover{color:var(--accent);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Technical Paper · Privateness.network</div>
+  <h1>NESS · UHE-PRNG-Anchored<br>Sovereign Inference-as-a-Service</h1>
+  <p class="subtitle">Decentralized AI inference on the PrivateNess stack: Emercoin NVS · Skywire mesh · EMC micropayments · No kill switch</p>
+  <p class="meta">Jeff Bouchard · Privateness Network · privateness.network &nbsp;·&nbsp; 2025</p>
+</header>
+
+<div class="wrap">
+
+<!-- TABLE OF CONTENTS -->
+<div class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#abstract">Abstract</a></li>
+    <li><a href="#intro">Introduction — The Centralized AI Problem</a></li>
+    <li><a href="#uheprng">NESS UHE-PRNG Foundation</a></li>
+    <li><a href="#entropy">Entropy Control Architecture</a></li>
+    <li><a href="#iaas">PrivateNess Inference-as-a-Service</a></li>
+    <li><a href="#discovery">Service Discovery Protocol (EmerDNS SRV + CAA)</a></li>
+    <li><a href="#wiring">Wiring an Inference Client — The Claude Pattern</a></li>
+    <li><a href="#security">Security Analysis</a></li>
+    <li><a href="#limits">Limitations and Open Problems</a></li>
+    <li><a href="#conclusion">Conclusion</a></li>
+    <li><a href="#refs">References</a></li>
+  </ol>
+</div>
+
+<!-- ABSTRACT -->
+<h2 id="abstract">Abstract</h2>
+<div class="abstract">
+<strong>Problem.</strong> Centralized AI inference services share a common failure surface: provider-revocable API keys, default prompt logging, corporate Terms-of-Service as an operational kill switch, BGP-reachable endpoints that can be geofenced or blocked, and fiat payment rails that are fully traceable. Each of these vectors can individually terminate a user's access to inference.
+<br><br>
+<strong>Solution.</strong> This paper specifies a decentralized inference marketplace built on the PrivateNess stack. Service discovery is anchored in Emercoin NVS WORM records (append-only, AuxPoW-hardened). Transport is Skywire mesh (public-key routing, not IP routing). Authentication uses privatenessID chain-anchored identity records. Client-facing billing is denominated in <strong>NCH (NESS Coin Hours)</strong>, settled through the underlying EMC/Coin Hours rail. The entropy layer is grounded in NESS UHE-PRNG (Ultra-High Entropy Pseudo-Random Number Generator), providing bit-for-bit identical, deterministic, bounded randomness across all distributed nodes while still allowing controlled creativity bursts — enabling verifiable, replay-auditable generation without a centralized orchestrator.
+<br><br>
+<strong>Contribution.</strong> We define: (1) the WORM XML capability schema <code>ness:worm:inf:1.0</code>; (2) the EmerDNS SRV + CAA discovery and trust protocol; (3) the full ness: namespace hierarchy; and (4) three concrete wiring patterns for connecting any OpenAI-compatible inference client — including Claude-format applications via a litellm proxy and MCP tool server — to sovereign NESS inference nodes. The result: no provider-revocable API keys, no logging infrastructure, no provider kill switch, no DNS-blockable discovery root, and no fiat-facing billing rail. Identity keys remain owner-revocable; what NESS removes is third-party revocation power.
+</div>
+
+<!-- 1. INTRODUCTION -->
+<h2 id="intro">1. Introduction — The Centralized AI Problem</h2>
+
+<p>Every major AI inference provider — OpenAI, Anthropic, Together.ai, Replicate, Groq — converges on the same threat model against their users. The threat is not malicious intent; it is structural. The following five properties are inherent to any centralized API architecture:</p>
+
+<ul>
+  <li><strong>Provider-revocable API keys.</strong> Authentication is a credential the provider issues and can revoke. One policy violation, one government subpoena, one corporate decision — the key stops working. The user has no recourse. Identity keys remain owner-revocable; the point here is that NESS removes <em>third-party</em> revocation power from the client path.</li>
+  <li><strong>Prompt logging by default.</strong> The provider receives the plaintext prompt. "We don't log" is a Terms-of-Service promise, not a cryptographic guarantee. Every word you send to a centralized inference API is observed and attributable.</li>
+  <li><strong>ToS as the kill switch.</strong> The operational contract between user and provider is a unilateral document the provider can change at any time. Specific users, topics, jurisdictions, or use cases can be terminated by policy update.</li>
+  <li><strong>BGP-reachable = geofenceable.</strong> <code>api.openai.com</code> resolves to IP addresses on the public internet. Those addresses can be blocked by DNS censorship, firewall rule, or ASN-level filtering. An entire country can be cut off overnight.</li>
+  <li><strong>Fiat payment = traceable.</strong> Every inference call is ultimately backed by a credit card, bank transfer, or crypto exchange account linked to a real identity. The financial trail is surveillance infrastructure.</li>
+</ul>
+
+<p>The PrivateNess stack addresses each attack surface structurally — not through better policies, but through architectural elimination. This paper specifies how.</p>
+
+<!-- 2. UHE-PRNG -->
+<h2 id="uheprng">2. NESS UHE-PRNG Foundation</h2>
+
+<p>The entropy layer is built on Gibson Research Corporation's Ultra High Entropy Pseudo-Random Number Generator (UHEPRNG). The critical property is <em>cross-node reproducibility</em>: given the same seed, every node in the network produces the exact same sequence of random values without any coordination. UHEPRNG uses a Multiply-With-Carry (MWC) algorithm with a Germain prime multiplier to guarantee full-period coverage of the state space.</p>
+
+<h3>2.1 Mash Hash Seed Compression</h3>
+
+<p>An arbitrary-length NVS string seed (e.g., <code>"ness-elite-001"</code>) is compressed into the UHEPRNG's internal state using the Mash hash function, which provides avalanche properties:</p>
+
+<pre><code><span class="kw">function</span> <span class="nm">Mash</span>() {
+  <span class="kw">let</span> n = <span class="nm">0xefc8249d</span>;
+  <span class="kw">return function</span>(data) {
+    <span class="kw">if</span> (data) {
+      data = data.toString();
+      <span class="kw">for</span> (<span class="kw">let</span> i = <span class="nm">0</span>; i &lt; data.length; i++) {
+        n += data.charCodeAt(i);
+        <span class="kw">let</span> h = <span class="nm">0.02519603282416938</span> * n;
+        n = h &gt;&gt;&gt; <span class="nm">0</span>;
+        h -= n;
+        h *= n;
+        n = h &gt;&gt;&gt; <span class="nm">0</span>;
+        h -= n;
+        n += h * <span class="nm">0x100000000</span>; <span class="cm">// 2^32</span>
+      }
+      <span class="kw">return</span> (n &gt;&gt;&gt; <span class="nm">0</span>) * <span class="nm">2.3283064365386963e-10</span>; <span class="cm">// 2^-32</span>
+    } <span class="kw">else</span> n = <span class="nm">0xefc8249d</span>;
+  };
+}</code></pre>
+
+<p>The Mash hash ensures that every bit of the input affects every bit of the output approximately 50% of the time, providing strong avalanche properties for seed-to-state mapping.</p>
+
+<h3>2.2 Multiply-With-Carry Generator</h3>
+
+<p>The core generator uses Marsaglia's MWC algorithm with a Germain prime multiplier:</p>
+
+<pre><code><span class="kw">function</span> <span class="nm">rawprng</span>() {
+  <span class="kw">if</span> (++p &gt;= o) p = <span class="nm">0</span>;
+  <span class="kw">let</span> t = <span class="nm">1768863</span> * s[p] + c * <span class="nm">2.3283064365386963e-10</span>; <span class="cm">// 2^-32</span>
+  <span class="kw">return</span> s[p] = t - (c = t | <span class="nm">0</span>);
+}</code></pre>
+
+<p>The multiplier <code>1768863</code> is a Germain prime (where 2p+1 is also prime). This property, combined with the MWC algorithm's carry propagation, guarantees that the internal state visits the entire 2<sup>32</sup> space before repeating — a full period of over 4.29 billion draws. The qualifying MWC multipliers are 187884, 686118, 898134, 1104375, 1250205, 1460910, and 1768863; we use the largest that is &lt; 2<sup>21</sup>.</p>
+
+<h3>2.3 Distributed Consensus Property</h3>
+
+<div class="note">
+  <strong>Key invariant:</strong> If two nodes initialize a PRNG with the same seed string, they will produce the exact same floating-point sequence [0,1) for all subsequent draws, independent of platform, CPU architecture, or execution time. This is a consequence of the integer-only arithmetic (no floating-point non-determinism until the final division by 2<sup>32</sup>).
+</div>
+
+<p>In the Privateness network context: the seed and entropy control parameters (<em>ε<sub>max</sub></em>, <em>ε<sub>min</sub></em>, <em>λ</em>, <em>α</em>, <em>ω</em>) are stored as an NVS WORM record on Emercoin. Any node reading that record initializes with the identical state. All nodes independently compute identical probabilistic output — distributed consensus without a coordinator and without the communication overhead of sharing outputs. The historical cryptography lineage here is separate: Rompel's STOC 1990 result on one-way functions was later given a complete write-up by Katz and Koo, and then revisited through the inaccessible-entropy/UOWHF line of work in EUROCRYPT 2010.</p>
+
+<!-- 3. ENTROPY CONTROL -->
+<h2 id="entropy">3. Entropy Control Architecture</h2>
+
+<p>Raw PRNG output is not injected directly into the logit space. The NESS entropy control panel implements a compound modulation function that governs how much randomness is injected at each generation step <em>t</em>, with three interlocking mechanisms:</p>
+
+<h3>3.1 The Compound Entropy Function</h3>
+
+<div class="formula">
+  <span class="var">ε</span>(t) = [<span class="var">ε<sub>min</sub></span> + (<span class="var">ε<sub>max</sub></span> − <span class="var">ε<sub>min</sub></span>) · e<sup>−<span class="var">λ</span>t</sup>] · (<span class="nm">1</span> − C) · (<span class="nm">1</span> + <span class="var">α</span> · sin(<span class="var">ω</span>t))
+</div>
+
+<p>Each factor serves a distinct role in the generation dynamics:</p>
+
+<div class="tbl-wrap">
+<table>
+  <thead><tr><th>Parameter</th><th>Default</th><th>Role</th><th>Effect at extremes</th></tr></thead>
+  <tbody>
+    <tr><td><strong>ε<sub>max</sub></strong></td><td>0.40</td><td>Initial entropy ceiling</td><td>At t=0: up to 40% logit variance — forces exploration</td></tr>
+    <tr><td><strong>ε<sub>min</sub></strong></td><td>0.05</td><td>Asymptotic entropy floor</td><td>Prevents greedy argmax collapse; maintains 5% creative floor</td></tr>
+    <tr><td><strong>λ</strong></td><td>0.08</td><td>Simulated annealing rate (e<sup>−λt</sup>)</td><td>Higher λ → faster convergence to base distribution</td></tr>
+    <tr><td><strong>C</strong></td><td>max(softmax)</td><td>Confidence inversion (1−C)</td><td>High confidence → noise scaled down; structural integrity preserved</td></tr>
+    <tr><td><strong>α</strong></td><td>0.15</td><td>Pulse amplitude (sinusoidal)</td><td>15% periodic entropy surge — prevents local-minima trapping</td></tr>
+    <tr><td><strong>ω</strong></td><td>0.50</td><td>Pulse frequency (sinusoidal)</td><td>Controls cadence of creativity bursts</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>3.2 Simulated Annealing</h3>
+
+<p>The exponential decay term e<sup>−<em>λt</em></sup> implements simulated annealing: generation starts in a high-exploration state (ε near ε<sub>max</sub>) and cools toward coherence as <em>t</em> increases. This mirrors physical annealing — early randomness explores solution space; later convergence commits to the best path. At λ = 0.08, entropy drops to within 10% of ε<sub>min</sub> after approximately 35 generation steps.</p>
+
+<h3>3.3 Confidence Inversion</h3>
+
+<p>The factor (1 − C), where C = max(softmax(base)), scales noise inversely with model confidence. When the base distribution is sharply peaked on one token (C → 1), the entropy injection approaches zero — the system preserves the mathematically obvious choice without wasting noise. When the base distribution is flat (C ≈ 1/|vocab|), entropy injection is maximized, correctly applying randomness where genuine uncertainty exists.</p>
+
+<h3>3.4 Sinusoidal Pulse</h3>
+
+<p>The factor (1 + α·sin(ω·t)) injects periodic entropy surges even as the annealing decay would otherwise suppress noise. This prevents the generation from settling into a deterministic loop prematurely — it mimics the cyclical creative-logical rhythm of expert reasoning. Critically, the sine function is deterministic given <em>t</em>, <em>α</em>, and <em>ω</em> — the "randomness" of the pulse is fully reproducible across all nodes.</p>
+
+<h3>3.5 L<sub>∞</sub> Drift Clamp</h3>
+
+<p>After logit perturbation, a hard bounding constraint is applied:</p>
+
+<pre><code>perturbed = perturbed.map((v, i) =&gt; {
+  <span class="kw">let</span> drift = Math.abs(v - base[i]);
+  <span class="kw">if</span> (drift &gt; <span class="nm">0.1</span>) v = base[i] + Math.sign(v - base[i]) * <span class="nm">0.1</span>;
+  <span class="kw">return</span> v;
+});</code></pre>
+
+<p>No perturbed logit can deviate more than ±0.1 from its base value (an L<sub>∞</sub> norm constraint). This clamp acts as a Byzantine Fault Tolerance bounding box: even if a malicious or malfunctioning seed drives extreme noise, the output distribution cannot diverge adversarially from the base weights. It guarantees schema coherence — the generated token stream remains grounded in the base knowledge weights regardless of entropy level.</p>
+
+<h3>3.6 Coherence Metric</h3>
+
+<p>The cumulative L<sub>1</sub> deviation from the base distribution is tracked across the generation run:</p>
+
+<div class="formula">
+  Coherence(T) = 1 − <span class="var">δ</span> · Σ<sub>t=0..T</sub> |perturbed[i<sub>t</sub>] − base[i<sub>t</sub>]|
+</div>
+
+<p>A coherence score near 1.0 indicates generation tightly coupled to the base distribution; scores approaching 0 indicate high divergence. This metric provides a verifiable audit trail: any observer with the seed and parameters can independently compute the expected coherence and verify whether a node's output is within bounds.</p>
+
+<!-- 4. INFERENCE-AS-A-SERVICE -->
+<h2 id="iaas">4. PrivateNess Inference-as-a-Service</h2>
+
+<h3>4.1 Layer Architecture</h3>
+
+<p>The stack has five layers, each addressing a distinct attack surface of centralized inference:</p>
+
+<div class="layers">
+  <div class="layer">
+    <div class="layer-icon" style="background:#1a1040;">🔑</div>
+    <div>
+      <div class="layer-lbl">privatenessID / Identity Bedrock</div>
+      <div class="layer-role"><strong>WHO</strong> is calling inference — chain-anchored identity, no KYC</div>
+    </div>
+  </div>
+  <div class="arrow-down">↓</div>
+  <div class="layer">
+    <div class="layer-icon" style="background:#0a1f3a;">📋</div>
+    <div>
+      <div class="layer-lbl">Emercoin NVS Registry</div>
+      <div class="layer-role"><strong>WHERE</strong> inference nodes are · <strong>WHAT</strong> they offer — WORM, AuxPoW-hardened</div>
+    </div>
+  </div>
+  <div class="arrow-down">↓</div>
+  <div class="layer">
+    <div class="layer-icon" style="background:#00352a;">🌐</div>
+    <div>
+      <div class="layer-lbl">Skywire Mesh Transport</div>
+      <div class="layer-role"><strong>HOW</strong> the request gets there — pubkey routing, not IP routing</div>
+    </div>
+  </div>
+  <div class="arrow-down">↓</div>
+  <div class="layer">
+    <div class="layer-icon" style="background:#1f1000;">⚙️</div>
+    <div>
+      <div class="layer-lbl">Sovereign Inference Node</div>
+      <div class="layer-role"><strong>THE COMPUTE</strong> — llama.cpp / ollama on bare metal or via a local/remote model backend, quantized open models</div>
+    </div>
+  </div>
+  <div class="arrow-down">↓</div>
+  <div class="layer">
+    <div class="layer-icon" style="background:#1a0a30;">💎</div>
+    <div>
+      <div class="layer-lbl">EMC Microtransaction</div>
+      <div class="layer-role"><strong>PAYMENT</strong> — per-token billing in EMC, staking subsidizes node operation</div>
+    </div>
+  </div>
+</div>
+
+<h3>4.2 Emercoin NVS as Service Registry</h3>
+
+<p>An inference node registers its capabilities as an NVS record under the <code>inf:</code> namespace prefix:</p>
+
+<pre><code>inf:node_&lt;pubkey_hash&gt;  →  &lt;worm version="1.0" type="inf"&gt;
+  &lt;meta&gt;
+    &lt;schema&gt;ness:worm:inf:1.0&lt;/schema&gt;
+    &lt;author&gt;<span class="st">$USER_NVS</span>&lt;/author&gt;        <span class="cm">&lt;!-- privatenessID, chain-anchored --&gt;</span>
+    &lt;node&gt;<span class="st">$NODE_NVS</span>&lt;/node&gt;
+    &lt;created&gt;2025-04-09T00:00:00Z&lt;/created&gt;
+  &lt;/meta&gt;
+  &lt;service&gt;
+    &lt;network&gt;tcp&lt;/network&gt;             <span class="cm">&lt;!-- tcp | skywire | both --&gt;</span>
+    &lt;tariff&gt;0.0001 EMC/1k tokens&lt;/tariff&gt;
+  &lt;/service&gt;
+  &lt;inference&gt;
+    &lt;model&gt;llama3-8b-q4&lt;/model&gt;
+    &lt;context_window&gt;8192&lt;/context_window&gt;
+    &lt;price_per_1k&gt;0.0001&lt;/price_per_1k&gt;
+    &lt;endpoint&gt;/v1&lt;/endpoint&gt;          <span class="cm">&lt;!-- OpenAI-compatible --&gt;</span>
+    &lt;skywire_pubkey&gt;02abc…def&lt;/skywire_pubkey&gt;  <span class="cm">&lt;!-- omit if inet-only --&gt;</span>
+  &lt;/inference&gt;
+&lt;/worm&gt;</code></pre>
+
+<p>NVS records are Write-Once-Read-Many (WORM): once written, they can only be updated by the key holder. The AuxPoW anchoring to Bitcoin makes historical rewriting economically irrational (requires a simultaneous 51% attack on Bitcoin, costing $5–20B per Coin Metrics 2024). The registry IS the index — no Hugging Face Hub, no API gateway, no centralized registry required.</p>
+
+<h3>4.3 Staking Economics</h3>
+
+<p>EMC Proof-of-Stake staking rewards subsidize node operation at the protocol level. A node staking EMC earns staking income that, with current parameters, exceeds the per-token billing overhead on typical workloads. The client sees NCH (NESS Coin Hours) as the billing unit, but the settlement path is still on-chain and pseudonymous. The network pays node operators to provide inference compute, creating a self-sustaining provider network without venture capital.</p>
+
+<h3>4.4 Skywire Transport</h3>
+
+<p>All inter-node communication uses Skywire mesh routing. The inference node's address is a Skywire public key, not a hostname or IP address. Requests route through the mesh without touching BGP infrastructure in a way that maps to a human identity. Bandwidth is paid in Coin Hours; client-facing invoices are expressed in NCH (NESS Coin Hours). The key property: there is no DNS name to block, no ASN to filter, no IP to firewall. The mesh routes around censorship at the transport layer.</p>
+
+<!-- 5. SERVICE DISCOVERY -->
+<h2 id="discovery">5. Service Discovery Protocol</h2>
+
+<h3>5.1 The ness: Namespace Hierarchy</h3>
+
+<div class="ns-table">
+  <div class="ns-row"><span class="ns-key">ness:</span><span class="ns-desc">Root — version records, schema definitions, enumeration indexes</span></div>
+  <div class="ns-row"><span class="ns-key">id:</span><span class="ns-desc">privatenessID WORM record — the trust anchor; every other record chains to this</span></div>
+  <div class="ns-row"><span class="ns-key">inf:</span><span class="ns-desc">Inference node capability and pricing WORM (<code>ness:worm:inf:1.0</code>)</span></div>
+  <div class="ns-row"><span class="ns-key">node:</span><span class="ns-desc">General node transport addresses across all networks</span></div>
+  <div class="ns-row"><span class="ns-key">dns:</span><span class="ns-desc">EmerDNS records — A, SRV (TCP + Skywire), CAA for trust anchoring</span></div>
+  <div class="ns-row"><span class="ns-key">rep:</span><span class="ns-desc">Node reputation attestations (specified; implementation pending)</span></div>
+  <div class="ns-row"><span class="ns-key">meme:</span><span class="ns-desc">NESSMeme records for the synthetic data poisoner pipeline</span></div>
+</div>
+
+<h3>5.2 EmerDNS SRV + CAA Architecture</h3>
+
+<p>Two NVS record types are <strong>required</strong> per node; the third is <strong>optional</strong> but strongly recommended:</p>
+
+<div class="warn-box"><strong>CAA records are OPTIONAL.</strong> A node is fully discoverable and reachable with only SRV + WORM records. CAA adds the on-chain trust chain (operator identity → public key → TLS cert verification). Nodes without CAA are reachable but treated as <em>unverified</em> by compliant clients — the client connects but cannot confirm the node operator's identity. Absence of CAA is not an error; it is a disclosed trust level.</div>
+
+<pre><code><span class="cm"># REQUIRED — WHERE: service endpoint + port</span>
+dns:_inference._tcp.batman1.private.ness  →  <span class="st">"SRV 10 100 54321 batman1.private.ness"</span>
+
+<span class="cm"># OPTIONAL — WHO: authorized operator identity (repurposed RFC 6844 CAA)</span>
+<span class="cm">#   Omit for unverified / anonymous nodes. Include for verified operator trust.</span>
+dns:batman1.private.ness (CAA)            →  <span class="st">"0 issue \"emc:id:jeff_ness\""</span>
+
+<span class="cm"># REQUIRED — WHAT: capabilities and pricing (WORM XML)</span>
+inf:node_&lt;hash&gt;                           →  &lt;worm version="1.0" type="inf"&gt;...&lt;/worm&gt;</code></pre>
+
+<p>For Skywire-only nodes, port 0 is used by convention and the SRV target is the Skywire public key. For TCP-reachable examples, use a high port such as <code>54321</code> — not <code>8080</code>, which is commonly reserved by other gateway software:</p>
+
+<pre><code>dns:_inference._skywire.batman1.private.ness  →  <span class="st">"SRV 10 100 0 02abc…def.skywire"</span>
+dns:_inference._tcp.batman1.private.ness      →  <span class="st">"SRV 10 100 54321 batman1.private.ness"</span></code></pre>
+
+<h3>5.3 CAA (Optional) — Repurposed for Sovereign Trust</h3>
+
+<p>CAA records are <strong>optional</strong> at the protocol level but constitute the difference between an <em>anonymous node</em> and a <em>verified node</em>. In standard DNS, CAA (RFC 6844) records name the CA authorized to issue TLS certificates for a hostname. In the PrivateNess stack, the <code>issue</code> tag is repurposed: instead of a CA domain, it names the NVS identity record of the node operator:</p>
+
+<pre><code>batman1.private.ness.  CAA  0  issue  <span class="st">"emc:id:jeff_ness"</span></code></pre>
+
+<p>A client verifying this node follows the chain: CAA record → <code>id:jeff_ness</code> NVS WORM → public key → verify node TLS/Noise certificate. The trust chain terminates at the Emercoin blockchain, not at a root CA. No DigiCert, no Let's Encrypt, no X.509 hierarchy anywhere in the path.</p>
+
+<h3>5.4 Discovery and Verification Flow</h3>
+
+<p>The minimum viable flow requires only steps 1–2 and 5–6 (SRV + WORM). Steps 3–4 apply only when the node has published a CAA record, upgrading the connection from anonymous to verified.</p>
+
+<div class="steps">
+  <div class="step"><div>Query EmerDNS NVS prefix scan: <code>dns:_inference._tcp.</code> → list of nodes. Or read the append-only enumeration index: <code>inf:_inference._tcp.private.ness → ["batman1","batman2",…]</code></div></div>
+  <div class="step"><div>Pick node per RFC 2782 priority/weight algorithm (load balancing, failover built-in)</div></div>
+  <div class="step"><div><strong>[If CAA present — Optional]</strong> Pull CAA for target hostname: <code>dns:batman1.private.ness</code> → <code>"0 issue \"emc:id:jeff_ness\""</code>. If no CAA record exists, skip to step 5 and treat connection as <em>anonymous</em>.</div></div>
+  <div class="step"><div><strong>[If CAA present — Optional]</strong> Pull <code>id:jeff_ness</code> NVS WORM record → operator public key. If key is absent or WORM is malformed, treat as anonymous.</div></div>
+  <div class="step"><div>Open TLS/Noise connection to SRV target:port. If CAA steps 3–4 completed: verify server cert is signed by that key; reject if it fails. If no CAA: connect without cert chain verification (anonymous node, user assumes risk).</div></div>
+  <div class="step"><div>Pull <code>inf:node_&lt;hash&gt;</code> WORM for model capabilities and pricing. Start sending tokens.</div></div>
+</div>
+
+<div class="note"><strong>Trust levels defined:</strong><br>
+• <strong>Verified node</strong> — has SRV + CAA + inf: WORM. Client confirms operator identity via on-chain key. Recommended for production use.<br>
+• <strong>Anonymous node</strong> — has SRV + inf: WORM only. No CAA. Client can connect but cannot verify who operates the node. Acceptable for testing or low-sensitivity tasks.</div>
+
+<h3>5.5 Append-Only Node Enumeration</h3>
+
+<p>Standard DNS wildcard queries (<code>_inference._tcp.*.private.ness</code>) do not enumerate nodes in DNS semantics. EmerDNS NVS supports prefix scans because it is a key-value store, not a recursive resolver. Additionally, a human-readable enumeration index is maintained:</p>
+
+<pre><code>inf:_inference._tcp.private.ness  →  <span class="st">["batman1", "batman2", "gotham3"]</span></code></pre>
+
+<p>This index is WORM. Nodes add themselves to it; the list grows monotonically; nobody can remove entries. Append-only enumeration means the network never shrinks from the perspective of any honest observer — only grows.</p>
+
+<!-- 6. WIRING CLAUDE -->
+<h2 id="wiring">6. Wiring an Inference Client — The Claude Pattern</h2>
+
+<p>NESS inference nodes run <strong>llama.cpp</strong> or <strong>ollama</strong>, both of which expose an OpenAI-compatible HTTP API at <code>/v1/chat/completions</code>. This is the lingua franca of open inference — any client built against OpenAI's API works with zero code changes, only a configuration change pointing <code>base_url</code> at a NESS-discovered node.</p>
+
+<p>For applications currently using the Anthropic Claude API, the wiring requires a translation layer because Claude's request/response format differs from OpenAI's. Three patterns follow in increasing order of architectural completeness.</p>
+
+<h3>6.1 Pattern A — Direct OpenAI SDK (Zero-friction)</h3>
+
+<p>If your application already uses the OpenAI Python or JavaScript SDK (or any OpenAI-compatible client), the only change is <code>base_url</code> and <code>api_key</code>:</p>
+
+<pre><code><span class="kw">import</span> requests
+<span class="kw">from</span> openai <span class="kw">import</span> OpenAI
+
+<span class="cm"># Step 1: Discover a NESS inference node</span>
+<span class="kw">def</span> <span class="nm">discover_ness_node</span>(nvs_api=<span class="st">"http://127.0.0.1:6562"</span>):
+    <span class="cm"># Read enumeration index from Emercoin NVS</span>
+    r = requests.post(nvs_api + <span class="st">"/nvget"</span>,
+                      json={<span class="st">"name"</span>: <span class="st">"inf:_inference._tcp.private.ness"</span>})
+    nodes = r.json()[<span class="st">"result"</span>][<span class="st">"value"</span>]  <span class="cm"># e.g. ["batman1","batman2"]</span>
+    <span class="cm"># Resolve SRV for first node</span>
+    srv_key = <span class="st">f"dns:_inference._tcp.</span>{nodes[0]}<span class="st">.private.ness"</span>
+    srv = requests.post(nvs_api + <span class="st">"/nvget"</span>,
+                        json={<span class="st">"name"</span>: srv_key}).json()[<span class="st">"result"</span>][<span class="st">"value"</span>]
+    <span class="cm"># srv → "SRV 10 100 54321 batman1.private.ness"</span>
+    parts = srv.split()
+    <span class="kw">return</span> {<span class="st">"host"</span>: parts[4], <span class="st">"port"</span>: <span class="kw">int</span>(parts[3])}
+
+node = discover_ness_node()
+
+<span class="cm"># Step 2: Wire OpenAI SDK to the NESS node</span>
+client = OpenAI(
+    base_url=<span class="st">f"http://</span>{node[<span class="st">'host'</span>]}<span class="st">:</span>{node[<span class="st">'port'</span>]}<span class="st">/v1"</span>,
+    api_key=<span class="st">"privatenessID:jeff_ness"</span>  <span class="cm"># identity credential, not a secret</span>
+)
+
+<span class="cm"># Step 3: Call inference — same code as OpenAI</span>
+response = client.chat.completions.create(
+    model=<span class="st">"llama3-8b-q4"</span>,
+    messages=[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: prompt}]
+)
+print(response.choices[0].message.content)</code></pre>
+
+<div class="note"><strong>Authentication note:</strong> The <code>api_key</code> field carries the privatenessID NVS identity handle, not a secret token. The node verifies caller identity via the chain-anchored <code>id:</code> WORM record. There is no credential to revoke — the identity is on-chain.</div>
+
+<h3>6.2 Pattern B — litellm Universal Proxy (Claude→NESS)</h3>
+
+<p>For applications using the Anthropic Python SDK or any Claude-format API, <strong>litellm</strong> acts as a universal translation proxy. It accepts requests in any LLM API format (Anthropic, OpenAI, Cohere, etc.) and forwards them to any backend:</p>
+
+<pre><code><span class="cm"># pip install litellm</span>
+<span class="kw">import</span> litellm
+
+<span class="cm"># Configure once — point litellm at the NESS node</span>
+response = litellm.completion(
+    model=<span class="st">"openai/llama3-8b-q4"</span>,        <span class="cm"># openai/ prefix = OpenAI-compat endpoint</span>
+    messages=[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"Hello from NESS"</span>}],
+    api_base=<span class="st">"http://batman1.private.ness:54321/v1"</span>,
+    api_key=<span class="st">"privatenessID:jeff_ness"</span>
+)</code></pre>
+
+<p>Or as a persistent proxy server that any application can point at:</p>
+
+<pre><code><span class="cm"># Start litellm proxy server</span>
+litellm --model openai/llama3-8b-q4 \
+        --api_base http://batman1.private.ness:54321/v1 \
+        --port 54321
+
+<span class="cm"># Now any application pointing at localhost:54321 with Anthropic SDK format</span>
+<span class="cm"># gets transparently routed to the NESS inference node</span></code></pre>
+
+<h3>6.3 Pattern C — MCP Tool Server (Claude as Orchestrator)</h3>
+
+<p>When running Claude (or any MCP-capable AI assistant) as an orchestration agent, NESS inference nodes can be exposed as first-class tools via the Model Context Protocol. The assistant calls NESS inference as a tool rather than replacing its own inference:</p>
+
+<pre><code><span class="cm">// ness-mcp-server.js — MCP server wrapping NESS inference</span>
+<span class="kw">const</span> { McpServer } = <span class="nm">require</span>(<span class="st">'@modelcontextprotocol/sdk/server'</span>);
+<span class="kw">const</span> OpenAI = <span class="nm">require</span>(<span class="st">'openai'</span>);
+
+<span class="kw">const</span> ness = <span class="kw">new</span> OpenAI({
+  baseURL: process.env.NESS_NODE_URL,   <span class="cm">// discovered from NVS</span>
+  apiKey:  process.env.NESS_IDENTITY    <span class="cm">// privatenessID</span>
+});
+
+server.tool(<span class="st">"ness_inference"</span>, {
+  description: <span class="st">"Call a sovereign NESS inference node over Skywire mesh"</span>,
+  inputSchema: { prompt: <span class="st">"string"</span>, model: <span class="st">"string"</span> }
+}, <span class="kw">async</span> ({ prompt, model }) =&gt; {
+  <span class="kw">const</span> res = <span class="kw">await</span> ness.chat.completions.create({
+    model, messages: [{ role: <span class="st">"user"</span>, content: prompt }]
+  });
+  <span class="kw">return</span> res.choices[0].message.content;
+});</code></pre>
+
+<p>The MCP configuration that wires Claude to use this tool:</p>
+
+<pre><code><span class="cm">// .claude/mcp.json (or claude_desktop_config.json)</span>
+{
+  <span class="st">"mcpServers"</span>: {
+    <span class="st">"ness-inference"</span>: {
+      <span class="st">"command"</span>: <span class="st">"node"</span>,
+      <span class="st">"args"</span>: [<span class="st">"ness-mcp-server.js"</span>],
+      <span class="st">"env"</span>: {
+        <span class="st">"NESS_NODE_URL"</span>: <span class="st">"http://batman1.private.ness:54321/v1"</span>,
+        <span class="st">"NESS_IDENTITY"</span>: <span class="st">"privatenessID:jeff_ness"</span>
+      }
+    }
+  }
+}</code></pre>
+
+<p>With this configuration, Claude can explicitly delegate sensitive or sovereignty-critical tasks to NESS inference nodes while retaining its own reasoning for orchestration. The user gets the best of both worlds: Claude's capability for coordination, NESS's sovereignty guarantees for sensitive content.</p>
+
+<h3>6.4 Identity-Based Authentication</h3>
+
+<p>In all three patterns, there is no API key in the traditional sense. The <code>api_key</code> field carries the privatenessID identity handle (<code>privatenessID:jeff_ness</code>), which the node resolves against the chain-anchored <code>id:jeff_ness</code> NVS WORM record to verify the caller's public key. Rate limiting is identity-based, not credential-based. There is nothing to revoke, steal, or leak.</p>
+
+<h3>6.5 Skywire Transport Integration</h3>
+
+<p>For Skywire-routed nodes (no IP address), the client library wraps the Skywire API:</p>
+
+<pre><code><span class="cm"># Skywire pubkey routing — no IP, no DNS, no BGP</span>
+NESS_NODE_URL = <span class="st">"skywire://02abc…def/v1"</span>  <span class="cm"># pubkey as "hostname"</span>
+
+<span class="cm"># The Skywire transport library handles routing through the mesh</span>
+<span class="cm"># The inference API surface is identical — only the base_url scheme changes</span></code></pre>
+
+<!-- 7. SECURITY ANALYSIS -->
+<h2 id="security">7. Security Analysis</h2>
+
+<h3>7.1 No Prompt Logging — By Architecture, Not Policy</h3>
+
+<p>A centralized inference provider can say "we don't log" in their Terms of Service. This is a policy promise, verifiable only by auditing the provider's infrastructure. On the NESS stack: the inference node sees the prompt. But it has no identity to log against: Skywire transport carries no IP, and the privatenessID proves presence without revealing who. ``We don't log'' becomes structurally unenforced rather than a ToS promise. This does not remove all revocation semantics from identity keys; it removes third-party control over API-style credentials from the client path.</p>
+
+<h3>7.2 Censorship-Resistant Service Discovery</h3>
+
+<p>NVS records are WORM. Once <code>inf:node_xyz</code> is written, it cannot be deleted by anyone except the key holder. The AuxPoW moat means rewriting history costs a simultaneous 51% attack on Bitcoin ($5–20B, Coin Metrics 2024). Compare this to: Hugging Face can pull your endpoint in seconds, AWS can terminate your instance in minutes, Cloudflare can drop your traffic with one support ticket.</p>
+
+<h3>7.3 Fiber Hostile Node Resistance</h3>
+
+<p>The Skycoin Fiber consensus model used by NESS infrastructure has a unique property: 100% − 1 attack resistance. Even if 99.9999% of nodes are simultaneously compromised or taken offline, the last honest node with the publisher key is still a valid network. Hostile nodes cannot forge blocks without the announced publisher keys. They can delay propagation (DoS) but cannot alter the historical record (BoltDB is append-only). The floor of the network is one honest node, not a majority quorum.</p>
+
+<h3>7.4 Comparison to Centralized Inference</h3>
+
+<div class="tbl-wrap">
+<table>
+  <thead><tr><th>Property</th><th>OpenAI / Anthropic</th><th>NESS Inference</th></tr></thead>
+  <tbody>
+    <tr><td>API key revocable?</td><td class="bad">Yes — instantly</td><td class="ok">No — identity on-chain</td></tr>
+    <tr><td>Prompt logging?</td><td class="bad">Default on (policy opt-out)</td><td class="ok">Architecturally unenforceable</td></tr>
+    <tr><td>DNS blockable?</td><td class="bad">Yes — api.openai.com is a BGP target</td><td class="ok">No — Skywire pubkey routing</td></tr>
+    <tr><td>Geofenceable?</td><td class="bad">Yes — legal jurisdictions</td><td class="ok">No — mesh routes around</td></tr>
+    <tr><td>Service registry deletable?</td><td class="bad">Yes — provider controls</td><td class="ok">No — WORM, AuxPoW moat</td></tr>
+    <tr><td>Payment traceable?</td><td class="bad">Yes — fiat, KYC</td><td class="ok">EMC micropayments, pseudonymous</td></tr>
+    <tr><td>Kill switch exists?</td><td class="bad">Yes — ToS / legal / technical</td><td class="ok">No kill switch in the stack</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- 8. LIMITATIONS -->
+<h2 id="limits">8. Limitations and Open Problems</h2>
+
+<h3>8.1 Latency</h3>
+<p>Skywire mesh routing adds hops. Consumer-class inference hardware (RK3528 class, ARM SBCs) generates tokens at 10–30 tokens/second for 7B quantized models. Combined latency makes NESS inference unsuitable for real-time interactive applications. Appropriate use cases: async workflows, batch document analysis, background generation, privacy-critical tasks where latency is a fair trade. This is a positioning constraint, not a dealbreaker — it must be stated honestly.</p>
+
+<h3>8.2 Model Quality Ceiling</h3>
+<p>Sovereign nodes run quantized 7B–13B models. The PrivateNess inference network is not GPT-4, Claude 3.5 Sonnet, or any frontier model. It is sovereignty-grade compute, not benchmark-grade compute. The honest pitch: you give up raw capability for unrevocability. For many use cases (summarization, structured extraction, routing decisions, privacy-sensitive content), 7B quantized at local latency is sufficient.</p>
+
+<h3>8.3 Provider Reputation Protocol (Open Problem)</h3>
+<p>PBAT authenticates the user. Nothing in the current stack authenticates the inference node's output integrity. A malicious node registered in NVS can serve subtly poisoned responses that pass the drift clamp. A reputation layer is specified:</p>
+<pre><code>rep:node_&lt;pubkey&gt;  →  signed attestation by &lt;user_NVS_identity&gt;</code></pre>
+<p>But the attestation signing authority is an unresolved recursion: who do you trust to sign attestations? The chain of trust bottoms out at <code>id:</code> records anchored on-chain, but a reputation protocol that aggregates these without centralization does not yet exist. This is the next paper after Identity Bedrock.</p>
+
+<h3>8.4 SRV Wildcard Enumeration</h3>
+<p>Standard DNS does not enumerate wildcard queries. EmerDNS NVS supports prefix scans, but a standard <code>dig SRV</code> query will not enumerate all inference nodes. Clients must use the NVS API directly for discovery, or trust the append-only enumeration index at <code>inf:_inference._tcp.private.ness</code>. This enumeration index itself becomes a trust-sensitive record — if corrupted (only possible by the key holder), discovery fails.</p>
+
+<h3>8.5 CAA Optionality and Client Enforcement</h3>
+<p>CAA records are explicitly <strong>optional</strong> in the discovery protocol. A node without CAA is an anonymous node — discoverable and connectable, but without an operator identity claim. Clients must track trust level per connection and surface it to the user: verified (CAA present, chain validated) vs. anonymous (no CAA). The hard requirement is <em>not</em> that all nodes have CAA — it is that clients never silently upgrade an anonymous connection to verified status. When CAA is present, verification must be enforced in the PrivatenessTools client library; skipping it on a node that published CAA is a protocol violation.</p>
+
+<h3>8.6 Model Availability</h3>
+<p>Some deployments may start with no local model installed. Others may run a local model or proxy to a remote backend. This does not change the trust model, but it should be stated explicitly so readers do not assume every node ships with a preloaded model.</p>
+
+<!-- 9. CONCLUSION -->
+<h2 id="conclusion">9. Conclusion</h2>
+
+<p>The PrivateNess inference-as-a-service stack eliminates every attack surface of centralized AI inference through structural architecture rather than policy promises. Service discovery is WORM-anchored in Emercoin NVS with Bitcoin-level attack costs. Transport is Skywire mesh with pubkey routing that cannot be blocked at the DNS or IP layer. Authentication is chain-anchored identity with no revocable credentials. Payment is EMC microtransactions with staking economics that make node operation self-sustaining. The entropy layer is UHE-PRNG deterministic across all nodes, enabling verifiable distributed generative consensus.</p>
+
+<p>Wiring any OpenAI-compatible client — including applications built against Claude/Anthropic APIs — requires only a <code>base_url</code> configuration change plus optional litellm proxy or MCP server for format translation. The API surface exposed by NESS inference nodes is deliberately compatible with the existing inference ecosystem to minimize integration friction.</p>
+
+<div class="oneliner">
+  PrivateNess inference-as-a-service: sovereign compute, mesh-routed, physically-authenticated, chain-registered, with staking economics that make the network pay you to run it — and <strong>no kill switch anywhere in the stack</strong>.
+  <br><br>
+  The missing piece is the provider reputation protocol. That is the next paper after Identity Bedrock.
+</div>
+
+<!-- REFERENCES -->
+<h2 id="refs">References</h2>
+
+<ol style="font-size:.91rem;line-height:1.85;font-family:'Segoe UI',system-ui,sans-serif;color:var(--muted);">
+  <li>Rompel, J. (1990). <em>One-Way Functions are Necessary and Sufficient for Secure Signatures.</em> STOC '90.</li>
+  <li>Katz, J., &amp; Koo, C.-Y. (2005). <em>On Constructing Universal One-Way Hash Functions from Arbitrary One-Way Functions.</em> Cryptology ePrint Archive Report 2005/328.</li>
+  <li>Haitner, I., Holenstein, T., Reingold, O., Vadhan, S., &amp; Wee, H. (2010). <em>Universal One-Way Hash Functions via Inaccessible Entropy.</em> EUROCRYPT 2010.</li>
+  <li>Josefsson, S. &amp; Liusvaara, I. (2017). <em>Edwards-Curve Digital Signature Algorithm (EdDSA).</em> RFC 8032.</li>
+  <li>Gibson, S. <em>Ultra-High Entropy Pseudo-Random Number Generator.</em> GRC.com.</li>
+  <li>Emercoin. <em>Main Features of Hybrid Mining.</em> emercoin.com/en/features.</li>
+  <li>Nuzzi, L., et al. (2024). <em>Breaking BFT: Quantifying the Cost to Attack Bitcoin and Ethereum.</em> Coin Metrics.</li>
+  <li>Skycoin. <em>Technical Background of Version 0 Skycoin Addresses.</em> skycoin.com/blog.</li>
+  <li>RFC 2782 — Gulbrandsen, A., Vixie, P., Esibov, L. (2000). <em>A DNS RR for specifying the location of services (DNS SRV).</em></li>
+  <li>RFC 6844 — Hallam-Baker, P. &amp; Stradling, R. (2013). <em>DNS Certification Authority Authorization (CAA) Resource Record.</em></li>
+  <li>Bouchard, J. et al. (2025). <em>Identity Bedrock: Operationalizing Rompel's Minimal Cryptographic Substrate for Sovereign Identity.</em> Privateness Network.</li>
+  <li>Fowler, G., Noll, L.C., Vo, K.P. (1991). <em>FNV hash.</em> IETF Internet Draft.</li>
+</ol>
+
+</div><!-- .wrap -->
+
+<footer>
+  <div>NESS · Sovereign Inference-as-a-Service &nbsp;·&nbsp; Privateness Network &nbsp;·&nbsp; <a href="https://privateness.network">privateness.network</a></div>
+  <div style="margin-top:6px;">Emercoin · Skycoin · UHE-PRNG · Identity Bedrock</div>
+</footer>
+
+</body>
+</html>

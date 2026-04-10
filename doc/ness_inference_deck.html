@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NESS · Sovereign Inference-as-a-Service</title>
+<style>
+:root{
+  --bg:#070b14;
+  --panel:#0f1629;
+  --panel2:#111b32;
+  --border:#23304d;
+  --text:#e8eefc;
+  --muted:#8fa1c7;
+  --accent:#7c6cff;
+  --teal:#00d4aa;
+  --warn:#ffca5c;
+  --good:#6bffb8;
+  --red:#ff6b7a;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{
+  height:100%;overflow:hidden;
+  font-family:Inter,'Segoe UI',system-ui,-apple-system,sans-serif;
+  background:var(--bg);color:var(--text);
+  user-select:none;
+}
+
+/* ── DECK CONTAINER ─────────────────────────────────────── */
+#deck{
+  width:100%;height:100%;
+  position:relative;overflow:hidden;
+}
+
+/* ── SLIDES ─────────────────────────────────────────────── */
+.slide{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  justify-content:center;align-items:center;
+  padding:48px 60px;
+  opacity:0;
+  transform:translateX(60px);
+  transition:opacity .38s ease, transform .38s ease;
+  pointer-events:none;
+}
+.slide.active{
+  opacity:1;transform:translateX(0);pointer-events:all;
+}
+.slide.out{
+  opacity:0;transform:translateX(-60px);
+}
+
+/* Slide-specific backgrounds */
+.slide-cover{
+  background:
+    radial-gradient(900px 500px at 20% 0%,rgba(124,108,255,.22),transparent 55%),
+    radial-gradient(700px 400px at 90% 100%,rgba(0,212,170,.14),transparent 50%),
+    var(--bg);
+}
+.slide-dark{background:var(--bg);}
+
+/* ── TYPOGRAPHY ─────────────────────────────────────────── */
+.eyebrow{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--teal);
+  background:rgba(0,212,170,.08);
+  border:1px solid rgba(0,212,170,.25);
+  border-radius:999px;padding:6px 14px;
+  margin-bottom:18px;
+}
+.slide-title{
+  font-size:clamp(2rem,4.5vw,3.4rem);
+  font-weight:800;letter-spacing:-.03em;
+  line-height:1.08;
+  margin-bottom:16px;
+  text-align:center;
+}
+.slide-sub{
+  font-size:clamp(.9rem,1.8vw,1.12rem);
+  color:var(--muted);
+  text-align:center;
+  line-height:1.65;
+  max-width:720px;
+}
+.accent{color:var(--accent);}
+.teal{color:var(--teal);}
+.warn{color:var(--warn);}
+.good{color:var(--good);}
+.red{color:var(--red);}
+.mono{font-family:'Cascadia Code','Fira Code',Menlo,Consolas,monospace;}
+
+/* ── SECTION TITLE SLIDES ───────────────────────────────── */
+.content-slide{
+  max-width:1040px;width:100%;
+  display:flex;flex-direction:column;
+  gap:0;
+}
+.content-slide h2{
+  font-size:clamp(1.4rem,3vw,2rem);
+  font-weight:800;letter-spacing:-.02em;
+  margin-bottom:24px;
+  color:#fff;
+}
+.content-slide h2 span{color:var(--accent);}
+
+/* ── CARDS & PANELS ─────────────────────────────────────── */
+.grid{display:grid;gap:14px;}
+.g2{grid-template-columns:repeat(2,1fr);}
+.g3{grid-template-columns:repeat(3,1fr);}
+
+.card{
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:18px 20px;
+}
+.card-title{
+  font-size:.82rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:8px;
+}
+.card-value{
+  font-size:1.05rem;font-weight:700;color:var(--text);
+  line-height:1.4;
+}
+.card-value code{
+  font-family:'Cascadia Code','Fira Code',Menlo,Consolas,monospace;
+  font-size:.9em;color:var(--teal);
+}
+.card.accent-border{border-color:rgba(124,108,255,.4);}
+.card.teal-border{border-color:rgba(0,212,170,.4);}
+
+/* ── LIST ITEMS ─────────────────────────────────────────── */
+.items{display:flex;flex-direction:column;gap:10px;}
+.item{
+  display:flex;align-items:flex-start;gap:12px;
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:13px 16px;
+  font-size:.93rem;line-height:1.5;
+}
+.item-icon{
+  font-size:1.1rem;margin-top:1px;flex-shrink:0;
+  width:28px;text-align:center;
+}
+.item strong{color:#fff;}
+
+/* ── LAYER STACK ─────────────────────────────────────────── */
+.layers{display:flex;flex-direction:column;gap:5px;width:100%;}
+.layer{
+  display:flex;align-items:center;gap:14px;
+  border-radius:10px;padding:11px 16px;
+  font-size:.87rem;
+  border:1px solid rgba(255,255,255,.06);
+}
+.l1{background:linear-gradient(90deg,rgba(124,108,255,.18),rgba(124,108,255,.06));border-color:rgba(124,108,255,.3);}
+.l2{background:rgba(255,255,255,.04);}
+.l3{background:linear-gradient(90deg,rgba(0,212,170,.12),rgba(0,212,170,.04));border-color:rgba(0,212,170,.25);}
+.l4{background:rgba(255,255,255,.04);}
+.l5{background:linear-gradient(90deg,rgba(255,202,92,.10),rgba(255,202,92,.03));border-color:rgba(255,202,92,.25);}
+.layer-tag{
+  min-width:58px;
+  font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;
+  font-weight:700;
+}
+.layer-name{font-weight:700;min-width:220px;color:#fff;}
+.layer-desc{color:var(--muted);font-size:.82rem;}
+.layer-arrow{text-align:center;color:var(--muted);font-size:.9rem;}
+
+/* ── CODE BLOCKS ─────────────────────────────────────────── */
+.codebox{
+  background:#06101c;
+  border:1px solid rgba(124,108,255,.2);
+  border-radius:12px;
+  padding:14px 18px;
+  font-family:'Cascadia Code','Fira Code',Menlo,Consolas,monospace;
+  font-size:.78rem;line-height:1.65;
+  color:#d7e3ff;
+  overflow:auto;
+  white-space:pre;
+  flex:1;
+  max-height:340px;
+}
+.cm{color:#4a6080;font-style:italic;}
+.kw{color:#c792ea;}
+.st{color:#80cbc4;}
+.nm{color:#82aaff;}
+.op{color:var(--teal);}
+
+/* ── FORMULA BOX ─────────────────────────────────────────── */
+.formula-box{
+  background:rgba(124,108,255,.08);
+  border:1px solid rgba(124,108,255,.25);
+  border-radius:14px;
+  padding:16px 24px;
+  text-align:center;
+  font-family:'Cascadia Code','Fira Code',Menlo,Consolas,monospace;
+  font-size:clamp(.82rem,1.4vw,1rem);
+  color:#c8bcff;
+  line-height:1.7;
+}
+.formula-box .var{color:var(--accent);font-weight:700;}
+.formula-box .num{color:var(--teal);}
+
+/* ── PARAM TABLE ─────────────────────────────────────────── */
+.param-grid{
+  display:grid;
+  grid-template-columns:90px 70px 1fr;
+  gap:2px;
+  font-size:.82rem;
+  width:100%;
+}
+.ph{
+  font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);padding:6px 10px;
+  background:rgba(255,255,255,.03);border-radius:6px;
+  font-weight:700;
+}
+.pd{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);}
+.pd.key{font-family:'Cascadia Code','Fira Code',Menlo,Consolas,monospace;color:var(--accent);font-weight:700;}
+.pd.val{color:var(--teal);font-weight:600;}
+
+/* ── COMPARE TABLE ──────────────────────────────────────── */
+.compare{width:100%;border-collapse:collapse;font-size:.82rem;}
+.compare th{
+  text-align:left;padding:9px 12px;
+  background:rgba(255,255,255,.04);
+  font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);border-bottom:1px solid var(--border);
+}
+.compare td{padding:9px 12px;border-bottom:1px solid rgba(35,48,77,.5);vertical-align:middle;}
+.compare tr:last-child td{border-bottom:none;}
+.ok{color:var(--good);}
+.bad{color:var(--red);}
+.na{color:var(--muted);}
+
+/* ── FLOW STEPS ─────────────────────────────────────────── */
+.flow{display:flex;flex-direction:column;gap:8px;width:100%;}
+.fstep{
+  display:flex;align-items:center;gap:12px;
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--border);
+  border-radius:10px;padding:10px 14px;
+  font-size:.86rem;
+}
+.fnum{
+  min-width:28px;height:28px;border-radius:50%;
+  background:var(--accent);color:#fff;
+  font-weight:800;font-size:.78rem;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.fdesc{line-height:1.4;}
+.fdesc code{
+  font-family:'Cascadia Code','Fira Code',Menlo,Consolas,monospace;
+  font-size:.88em;color:var(--teal);
+  background:rgba(0,212,170,.08);padding:1px 4px;border-radius:3px;
+}
+
+/* ── NAMESPACE LIST ─────────────────────────────────────── */
+.ns-list{display:flex;flex-direction:column;gap:6px;width:100%;}
+.ns-row{
+  display:grid;grid-template-columns:130px 1fr;gap:10px;
+  align-items:center;
+  background:rgba(255,255,255,.03);border:1px solid var(--border);
+  border-radius:10px;padding:10px 14px;font-size:.86rem;
+}
+.ns-key{
+  font-family:'Cascadia Code','Fira Code',Menlo,Consolas,monospace;
+  color:var(--accent);font-weight:700;font-size:.9rem;
+}
+.ns-val{color:var(--muted);line-height:1.4;}
+
+/* ── PROGRESS BAR ───────────────────────────────────────── */
+#progress{
+  position:fixed;bottom:0;left:0;right:0;
+  height:3px;background:rgba(124,108,255,.15);
+  z-index:100;
+}
+#progress-bar{
+  height:100%;background:linear-gradient(90deg,var(--accent),var(--teal));
+  transition:width .38s ease;
+}
+
+/* ── NAVIGATION ─────────────────────────────────────────── */
+#nav{
+  position:fixed;bottom:18px;right:24px;
+  display:flex;align-items:center;gap:10px;
+  z-index:100;
+}
+.nav-btn{
+  width:38px;height:38px;border-radius:50%;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);
+  color:var(--muted);
+  font-size:1rem;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .2s,border-color .2s,color .2s;
+}
+.nav-btn:hover{background:rgba(124,108,255,.2);border-color:rgba(124,108,255,.4);color:#fff;}
+
+#counter{
+  position:fixed;bottom:22px;left:24px;
+  font-size:.78rem;letter-spacing:.1em;color:var(--muted);
+  font-family:'Cascadia Code','Fira Code',Menlo,Consolas,monospace;
+  z-index:100;
+}
+
+/* ── PILLS ───────────────────────────────────────────────── */
+.pill{
+  display:inline-flex;align-items:center;
+  font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;
+  border-radius:999px;padding:4px 10px;border:1px solid;
+  font-weight:700;
+}
+.pill-accent{color:var(--accent);border-color:rgba(124,108,255,.3);background:rgba(124,108,255,.08);}
+.pill-teal{color:var(--teal);border-color:rgba(0,212,170,.3);background:rgba(0,212,170,.08);}
+.pill-warn{color:var(--warn);border-color:rgba(255,202,92,.3);background:rgba(255,202,92,.06);}
+
+/* ── WORM BLOCK ─────────────────────────────────────────── */
+.worm-box{
+  background:#06101c;
+  border:1px solid rgba(0,212,170,.2);
+  border-radius:12px;padding:14px 18px;
+  font-family:'Cascadia Code','Fira Code',Menlo,Consolas,monospace;
+  font-size:.77rem;line-height:1.7;color:#9de8d0;
+  white-space:pre;
+}
+
+/* ── ONE-LINER SLIDE ─────────────────────────────────────── */
+.oneliner-box{
+  background:linear-gradient(135deg,rgba(124,108,255,.15),rgba(0,212,170,.08));
+  border:1px solid rgba(124,108,255,.3);
+  border-radius:20px;
+  padding:28px 36px;
+  text-align:center;
+  max-width:780px;
+}
+.oneliner-text{
+  font-size:clamp(1rem,2vw,1.28rem);
+  font-weight:600;line-height:1.65;color:#e8eefc;
+}
+
+/* ── HINT ────────────────────────────────────────────────── */
+#hint{
+  position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+  font-size:.72rem;letter-spacing:.12em;color:rgba(143,161,199,.4);
+  text-transform:uppercase;z-index:100;
+  pointer-events:none;
+}
+@media(max-width:700px){
+  .slide{padding:28px 24px;}
+  .g2,.g3{grid-template-columns:1fr;}
+  .layer-name,.layer-desc{font-size:.75rem;}
+}
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 1 — COVER
+═══════════════════════════════════════════════════════════ -->
+<section class="slide slide-cover active" id="s0">
+  <div class="eyebrow">Privateness.network · Technical Brief</div>
+  <div class="slide-title">
+    NESS · Sovereign<br><span class="accent">Inference-as-a-Service</span>
+  </div>
+  <p class="slide-sub" style="margin-bottom:28px;">
+    UHE-PRNG &nbsp;·&nbsp; Emercoin NVS &nbsp;·&nbsp; Skywire Mesh &nbsp;·&nbsp; NCH Settlement<br>
+    <span class="teal">No provider-revocable API keys · No prompt logging · No kill switch</span>
+  </p>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+    <span class="pill pill-accent">Identity Bedrock</span>
+    <span class="pill pill-teal">WORM XML Schema</span>
+    <span class="pill pill-accent">EmerDNS SRV+CAA</span>
+    <span class="pill pill-teal">Claude Wiring Guide</span>
+    <span class="pill pill-warn">Open Problems</span>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 2 — THE PROBLEM
+═══════════════════════════════════════════════════════════ -->
+<section class="slide slide-dark" id="s1">
+  <div class="content-slide">
+    <h2><span>The Problem:</span> Centralized AI Has 5 Kill Switches</h2>
+    <div class="items">
+      <div class="item">
+        <div class="item-icon red">🔑</div>
+        <div><strong>Provider-revocable API keys.</strong> One ToS violation, one subpoena — the provider-issued key stops working. Identity keys remain owner-revocable; the point is that NESS removes third-party revocation power from the client path.</div>
+      </div>
+      <div class="item">
+        <div class="item-icon red">👁</div>
+        <div><strong>Prompt logging by default.</strong> "We don't log" is a ToS promise, not a cryptographic guarantee. Every word you send is observed.</div>
+      </div>
+      <div class="item">
+        <div class="item-icon red">📄</div>
+        <div><strong>ToS as the kill switch.</strong> A unilateral document the provider changes at will. Specific topics, jurisdictions, or users terminated by policy update.</div>
+      </div>
+      <div class="item">
+        <div class="item-icon red">🌍</div>
+        <div><strong>BGP-reachable = geofenceable.</strong> <span class="mono" style="font-size:.87em;color:var(--teal);">api.openai.com</span> resolves to IPs that can be blocked by DNS, firewall, or ASN filtering.</div>
+      </div>
+      <div class="item">
+        <div class="item-icon red">💳</div>
+        <div><strong>Fiat payment = traceable.</strong> Every inference call backed by a credit card or KYC exchange account. The financial trail is surveillance infrastructure.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 3 — THE STACK
+═══════════════════════════════════════════════════════════ -->
+<section class="slide slide-dark" id="s2">
+  <div class="content-slide">
+    <h2>The <span>PrivateNess Stack</span> — Each Layer Eliminates One Kill Switch</h2>
+    <div class="layers">
+      <div class="layer l1">
+        <div class="layer-tag" style="color:var(--accent);">WHO</div>
+        <div class="layer-name">privatenessID / Identity Bedrock</div>
+        <div class="layer-desc">Chain-anchored identity · No KYC · No credential to revoke</div>
+      </div>
+      <div class="layer-arrow">↓</div>
+      <div class="layer l2">
+        <div class="layer-tag" style="color:#8fa1c7;">WHERE</div>
+        <div class="layer-name">Emercoin NVS Registry</div>
+        <div class="layer-desc">WORM records · AuxPoW-hardened · $5–20B rewrite cost · Append-only</div>
+      </div>
+      <div class="layer-arrow">↓</div>
+      <div class="layer l3">
+        <div class="layer-tag" style="color:var(--teal);">HOW</div>
+        <div class="layer-name">Skywire Mesh Transport</div>
+        <div class="layer-desc">Pubkey routing · No BGP · No DNS · No ASN to block</div>
+      </div>
+      <div class="layer-arrow">↓</div>
+      <div class="layer l4">
+        <div class="layer-tag" style="color:#8fa1c7;">COMPUTE</div>
+        <div class="layer-name">Sovereign Inference Node</div>
+        <div class="layer-desc">llama.cpp / ollama locally, or a local/remote model backend · OpenAI-compatible API surface</div>
+      </div>
+      <div class="layer-arrow">↓</div>
+      <div class="layer l5">
+        <div class="layer-tag" style="color:var(--warn);">PAYMENT</div>
+        <div class="layer-name">NCH Microtransaction</div>
+        <div class="layer-desc">Client-facing billing in NESS Coin Hours · EMC/Coin Hour settlement rail · PoS staking subsidizes node operation</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 4 — UHE-PRNG
+════════════════════════════════════════════════════════════ -->
+<section class="slide slide-dark" id="s3">
+  <div class="content-slide">
+    <h2><span>UHE-PRNG</span> — Deterministic Entropy Across All Nodes</h2>
+    <div style="display:flex;gap:14px;flex-direction:column;">
+      <div class="grid g2" style="gap:12px;">
+        <div class="card accent-border">
+          <div class="card-title">Stage 1 — Mash Hash Seed Compression</div>
+          <div class="card-value">
+            NVS string seed → UHEPRNG internal state<br>
+            Avalanche: every input bit affects every output bit ~50% of the time<br>
+            <span style="font-size:.82rem;color:var(--muted);">Strong seed-to-state mapping properties</span>
+          </div>
+        </div>
+        <div class="card teal-border">
+          <div class="card-title">Stage 2 — MWC Generator</div>
+          <div class="card-value">
+            Germain prime multiplier <code>1768863</code> (where 2p+1 is also prime)<br>
+            Full 2³² period = 4.29B draws before repeat<br>
+            <span style="font-size:.82rem;color:var(--muted);">Marsaglia MWC algorithm with carry propagation</span>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="background:rgba(0,212,170,.06);border-color:rgba(0,212,170,.25);">
+        <div class="card-title">Distributed Consensus Property — The Key Invariant</div>
+        <div class="card-value" style="font-size:.9rem;color:var(--text);">
+          Seed + parameters stored as NVS WORM record on Emercoin.<br>
+          Any node reading that record <span class="teal">initializes with identical state</span>.<br>
+          All nodes independently compute <span class="teal">identical probabilistic output</span> — distributed generative consensus without a coordinator.<br>
+          The sinusoidal pulse creates <span class="teal">bounded creativity bursts</span> so the model can explore more diverse outputs without losing reproducibility.
+        </div>
+      </div>
+      <div class="codebox" style="font-size:.75rem;max-height:140px;">if (++p &gt;= o) p = 0;
+let t = 1768863 * s[p] + c * 2.3283064365386963e-10; <span class="cm">// 2^-32</span>
+return s[p] = t - (c = t | 0); <span class="cm">// MWC step output in [0,1)</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 5 — ENTROPY CONTROL
+═══════════════════════════════════════════════════════════ -->
+<section class="slide slide-dark" id="s4">
+  <div class="content-slide">
+    <h2>Entropy Control Architecture — <span>ε(t)</span></h2>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="formula-box">
+        <span class="var">ε</span>(t) = [<span class="var">ε<sub>min</sub></span> + (<span class="var">ε<sub>max</sub></span> − <span class="var">ε<sub>min</sub></span>) · e<sup>−<span class="var">λ</span>t</sup>] · (<span class="num">1</span> − C) · (<span class="num">1</span> + <span class="var">α</span> · sin(<span class="var">ω</span>·t))<br>
+        <span style="font-size:.72rem;color:var(--muted);margin-top:6px;display:block;">annealing decay · confidence inversion · sinusoidal pulse</span>
+      </div>
+      <div style="display:grid;grid-template-columns:90px 70px 1fr;gap:3px;">
+        <div class="ph">Param</div><div class="ph">Default</div><div class="ph">Role</div>
+        <div class="pd key">ε<sub>max</sub></div><div class="pd val">0.40</div><div class="pd">Initial entropy ceiling — 40% logit variance at t=0, forces exploration</div>
+        <div class="pd key">ε<sub>min</sub></div><div class="pd val">0.05</div><div class="pd">Asymptotic floor — prevents greedy argmax collapse</div>
+        <div class="pd key">λ</div><div class="pd val">0.08</div><div class="pd">Annealing rate — higher λ = faster convergence to base weights</div>
+        <div class="pd key">C</div><div class="pd val">max(sm)</div><div class="pd">Confidence inversion (1−C) — scales noise ↓ when model is certain</div>
+        <div class="pd key">α</div><div class="pd val">0.15</div><div class="pd">Pulse amplitude — 15% periodic entropy surge, prevents local minima</div>
+        <div class="pd key">ω</div><div class="pd val">0.50</div><div class="pd">Pulse frequency — cadence of creativity bursts</div>
+        <div class="pd key">clamp</div><div class="pd val">±0.10</div><div class="pd">L<sub>∞</sub> drift bound — BFT bounding box, no adversarial divergence</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 6 — WORM XML SCHEMA
+═══════════════════════════════════════════════════════════ -->
+<section class="slide slide-dark" id="s5">
+  <div class="content-slide">
+    <h2><span>WORM XML Schema</span> — ness:worm:inf:1.0</h2>
+    <div style="display:flex;gap:14px;">
+      <div style="flex:1;display:flex;flex-direction:column;gap:10px;">
+        <div class="worm-box">&lt;<span style="color:#82aaff;">worm</span> version=<span style="color:#80cbc4;">"1.0"</span> type=<span style="color:#80cbc4;">"inf"</span>&gt;
+  &lt;<span style="color:#82aaff;">meta</span>&gt;
+    &lt;<span style="color:#82aaff;">schema</span>&gt;<span style="color:#9de8d0;">ness:worm:inf:1.0</span>&lt;/schema&gt;
+    &lt;<span style="color:#82aaff;">author</span>&gt;<span style="color:#9de8d0;">$USER_NVS</span>&lt;/author&gt;    <span style="color:#4a6080;">&lt;!-- privatenessID --&gt;</span>
+    &lt;<span style="color:#82aaff;">node</span>&gt;<span style="color:#9de8d0;">$NODE_NVS</span>&lt;/node&gt;
+    &lt;<span style="color:#82aaff;">created</span>&gt;<span style="color:#9de8d0;">2025-04-09T00:00:00Z</span>&lt;/created&gt;
+  &lt;/meta&gt;
+  &lt;<span style="color:#82aaff;">service</span>&gt;
+    &lt;<span style="color:#82aaff;">network</span>&gt;<span style="color:#9de8d0;">tcp</span>&lt;/network&gt;         <span style="color:#4a6080;">&lt;!-- tcp | skywire | both --&gt;</span>
+    &lt;<span style="color:#82aaff;">tariff</span>&gt;<span style="color:#9de8d0;">0.0001 EMC/1k tokens</span>&lt;/tariff&gt;
+  &lt;/service&gt;
+  &lt;<span style="color:#82aaff;">inference</span>&gt;
+    &lt;<span style="color:#82aaff;">model</span>&gt;<span style="color:#9de8d0;">llama3-8b-q4</span>&lt;/model&gt;
+    &lt;<span style="color:#82aaff;">context_window</span>&gt;<span style="color:#9de8d0;">8192</span>&lt;/context_window&gt;
+    &lt;<span style="color:#82aaff;">price_per_1k</span>&gt;<span style="color:#9de8d0;">0.0001</span>&lt;/price_per_1k&gt;
+    &lt;<span style="color:#82aaff;">endpoint</span>&gt;<span style="color:#9de8d0;">/v1</span>&lt;/endpoint&gt;      <span style="color:#4a6080;">&lt;!-- OpenAI-compatible --&gt;</span>
+    &lt;<span style="color:#82aaff;">skywire_pubkey</span>&gt;<span style="color:#9de8d0;">02abc…def</span>&lt;/skywire_pubkey&gt;
+  &lt;/inference&gt;
+&lt;/worm&gt;</div>
+        <div class="card" style="padding:12px 16px;font-size:.83rem;">
+          <span style="color:var(--accent);font-weight:700;">NVS key:</span> <span class="mono teal">inf:node_&lt;pubkey_hash&gt;</span><br>
+          <span style="color:var(--muted);">Written by the node operator, stored on-chain. AuxPoW moat: $5–20B to rewrite.</span>
+        </div>
+      </div>
+      <div style="width:220px;display:flex;flex-direction:column;gap:10px;">
+        <div class="card teal-border">
+          <div class="card-title">Why WORM?</div>
+          <div class="card-value" style="font-size:.82rem;">Once written, <span class="teal">cannot be deleted</span> by anyone except the key holder. Historical record is permanent.</div>
+        </div>
+        <div class="card accent-border">
+          <div class="card-title">Skywire pubkey</div>
+          <div class="card-value" style="font-size:.82rem;">Omit entirely for TCP-only nodes. Include for mesh-routed endpoints unreachable via BGP.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Author field</div>
+          <div class="card-value" style="font-size:.82rem;">Carries the <span class="accent">privatenessID</span> — chain-anchored identity handle. No PBAT, no KYC leak.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ... -->
+<section class="slide slide-dark" id="s6">
+  <div class="content-slide">
+    <h2>Service Discovery — <span>EmerDNS SRV + CAA</span></h2>
+    <div style="display:flex;gap:14px;">
+      <div style="flex:1;">
+        <div style="font-size:.8rem;color:var(--muted);margin-bottom:8px;letter-spacing:.08em;text-transform:uppercase;">Three NVS Record Types</div>
+        <div class="codebox" style="font-size:.74rem;max-height:130px;"><span class="cm"># REQUIRED — WHERE: endpoint + port (RFC 2782)</span>
+dns:_inference._tcp.batman1.private.ness
+  → "SRV 10 100 54321 batman1.private.ness"
+
+<span class="cm"># OPTIONAL — WHO: operator identity (RFC 6844 repurposed)</span>
+<span class="cm">#   Omit = anonymous node. Include = verified node.</span>
+dns:batman1.private.ness (CAA)
+  → "0 issue \"emc:id:jeff_ness\""
+
+<span class="cm"># REQUIRED — WHAT: capabilities + pricing (WORM XML)</span>
+inf:node_&lt;hash&gt; → &lt;worm type="inf"&gt;...&lt;/worm&gt;</div>
+        <div style="font-size:.8rem;color:var(--muted);margin:10px 0 6px;letter-spacing:.08em;text-transform:uppercase;">6-Step Discovery &amp; Verification</div>
+        <div class="flow">
+          <div class="fstep"><div class="fnum">1</div><div class="fdesc">NVS prefix scan <code>dns:_inference._tcp.</code> → node list</div></div>
+          <div class="fstep"><div class="fnum">2</div><div class="fdesc">Pick node per RFC 2782 priority/weight (load balance + failover built-in)</div></div>
+          <div class="fstep" style="border-color:rgba(255,202,92,.25);"><div class="fnum" style="background:rgba(255,202,92,.3);color:#fff;">3</div><div class="fdesc"><em style="color:var(--warn);">[Optional — if CAA present]</em> Pull CAA → <code>"emc:id:jeff_ness"</code>. No CAA = anonymous node, skip to 5.</div></div>
+          <div class="fstep" style="border-color:rgba(255,202,92,.25);"><div class="fnum" style="background:rgba(255,202,92,.3);color:#fff;">4</div><div class="fdesc"><em style="color:var(--warn);">[Optional — if CAA present]</em> Pull <code>id:jeff_ness</code> NVS WORM → operator public key.</div></div>
+          <div class="fstep"><div class="fnum">5</div><div class="fdesc">Open TLS/Noise. If CAA verified: check cert. If anonymous: connect without cert chain (user assumes risk).</div></div>
+          <div class="fstep"><div class="fnum">6</div><div class="fdesc">Pull <code>inf:node_&lt;hash&gt;</code> WORM for model/pricing. Start sending tokens.</div></div>
+        </div>
+      </div>
+      <div style="width:210px;display:flex;flex-direction:column;gap:10px;">
+        <div class="card teal-border">
+          <div class="card-title">Trust levels</div>
+          <div class="card-value" style="font-size:.82rem;"><span class="teal">Verified</span> = SRV + CAA + WORM<br>→ cert chain confirmed on-chain<br><span style="color:var(--warn);">Anonymous</span> = SRV + WORM only<br>→ reachable, unverified operator</div>
+        </div>
+        <div class="card accent-border">
+          <div class="card-title">Append-only index</div>
+          <div class="card-value" style="font-size:.82rem;"><code style="color:var(--teal);font-size:.82rem;">inf:_inference._tcp.<br>private.ness</code><br>→ ["batman1","batman2"]<br>Grows. Never shrinks.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">EmerDNS resilience</div>
+          <div class="card-value" style="font-size:.82rem;">EmerDNS is strongly censorship-resistant because the record source of truth is on-chain WORM data, not a central registrar. Availability still depends on the resolver or gateway a client chooses.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ... -->
+<section class="slide slide-dark" id="s7">
+  <div class="content-slide">
+    <h2>Wiring Claude to NESS — <span>Pattern A: Direct (Zero-Friction)</span></h2>
+    <div style="display:flex;gap:14px;align-items:flex-start;">
+      <div style="flex:1;">
+        <div class="codebox"><span class="kw">from</span> openai <span class="kw">import</span> OpenAI
+<span class="kw">import</span> requests
+
+<span class="cm"># 1. Discover node from Emercoin NVS</span>
+<span class="kw">def</span> <span class="nm">discover_ness_node</span>(nvs=<span class="st">"http://127.0.0.1:6562"</span>):
+    idx = requests.post(nvs+<span class="st">"/nvget"</span>,
+        json={<span class="st">"name"</span>: <span class="st">"inf:_inference._tcp.private.ness"</span>}
+    ).json()[<span class="st">"result"</span>][<span class="st">"value"</span>]  <span class="cm"># → ["batman1",...]</span>
+    srv = requests.post(nvs+<span class="st">"/nvget"</span>,
+        json={<span class="st">"name"</span>: <span class="st">f"dns:_inference._tcp.</span>{idx[0]}<span class="st">.private.ness"</span>}
+    ).json()[<span class="st">"result"</span>][<span class="st">"value"</span>]
+    p = srv.split()  <span class="cm"># "SRV 10 100 54321 batman1.private.ness"</span>
+    <span class="kw">return</span> {<span class="st">"host"</span>: p[4], <span class="st">"port"</span>: <span class="kw">int</span>(p[3])}
+
+node = discover_ness_node()
+
+<span class="cm"># 2. Wire OpenAI SDK → NESS node (same code, different base_url)</span>
+client = OpenAI(
+    base_url=<span class="st">f"http://</span>{node[<span class="st">'host'</span>]}<span class="st">:</span>{node[<span class="st">'port'</span>]}<span class="st">/v1"</span>,
+    api_key=<span class="st">"privatenessID:jeff_ness"</span>  <span class="cm"># identity, not a secret</span>
+)
+
+<span class="cm"># 3. Inference call — identical to OpenAI</span>
+resp = client.chat.completions.create(
+    model=<span class="st">"llama3-8b-q4"</span>,
+    messages=[{<span class="st">"role"</span>:<span class="st">"user"</span>, <span class="st">"content"</span>: prompt}]
+)</div>
+      </div>
+      <div style="width:220px;display:flex;flex-direction:column;gap:10px;">
+        <div class="card teal-border">
+          <div class="card-title">No code changes</div>
+          <div class="card-value" style="font-size:.82rem;">Any OpenAI-compatible app works with only <span class="teal">base_url</span> changed. Zero friction migration.</div>
+        </div>
+        <div class="card accent-border">
+          <div class="card-title">api_key = identity</div>
+          <div class="card-value" style="font-size:.82rem;"><span class="accent">privatenessID:jeff_ness</span> → resolved on-chain. Nothing to revoke. Nothing to steal.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">llama.cpp / ollama</div>
+          <div class="card-value" style="font-size:.82rem;">NESS nodes expose <span class="mono teal">/v1/chat/completions</span> — same surface as OpenAI.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ... -->
+<section class="slide slide-dark" id="s10">
+  <div class="content-slide">
+    <h2><span>Open Problems</span> — Honest Tradeoffs</h2>
+    <div class="grid g2" style="gap:12px;">
+      <div class="card" style="border-color:rgba(255,202,92,.25);background:rgba(255,202,92,.04);">
+        <div class="card-title" style="color:var(--warn);">⚡ Latency</div>
+        <div class="card-value" style="font-size:.87rem;">Skywire mesh adds hops. Consumer hardware = 10–30 tok/s for 7B Q4 models. <span style="color:var(--warn);">Not viable for real-time chat.</span> Acceptable for async, batch, privacy-critical tasks.</div>
+      </div>
+      <div class="card" style="border-color:rgba(255,202,92,.25);background:rgba(255,202,92,.04);">
+        <div class="card-title" style="color:var(--warn);">🎯 Model Quality Ceiling</div>
+        <div class="card-value" style="font-size:.87rem;">Sovereign nodes run quantized 7B–13B. <span style="color:var(--warn);">Not GPT-4, not Claude 3.5 Sonnet.</span> Sovereignty-grade, not benchmark-grade. Honest tradeoff: unrevocability for raw capability.</div>
+      </div>
+      <div class="card" style="border-color:rgba(0,212,170,.25);background:rgba(0,212,170,.04);">
+        <div class="card-title" style="color:var(--teal);">🔐 Privacy advantage</div>
+        <div class="card-value" style="font-size:.87rem;">Compared with centralized APIs, NESS removes the revocable key, default prompt-logging trust gap, centralized kill switch, and fiat-facing account trail from the client path. That is a structural privacy advantage, not a marketing promise.</div>
+      </div>
+      <div class="card" style="border-color:rgba(255,107,122,.25);background:rgba(255,107,122,.04);">
+        <div class="card-title" style="color:var(--red);">🔒 Provider Reputation Protocol</div>
+        <div class="card-value" style="font-size:.87rem;">No protocol yet authenticates node output integrity at scale. A reputation system is specified, but unresolved.</div>
+      </div>
+      <div class="card" style="border-color:rgba(255,107,122,.25);background:rgba(255,107,122,.04);">
+        <div class="card-title" style="color:var(--red);">⚠️ CAA Client Enforcement</div>
+        <div class="card-value" style="font-size:.87rem;">CAA trust verification is client-side in this stack (non-standard). Clients that skip steps 3–4 connect to <span style="color:var(--red);">unverified nodes.</span> Must be a hard requirement in PrivatenessTools client library.</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px;padding:12px 16px;font-size:.83rem;border-color:rgba(124,108,255,.2);">
+      <span style="color:var(--accent);font-weight:700;">Next paper after Identity Bedrock:</span> <span style="color:var(--muted);">The provider reputation protocol — a chain-anchored attestation system that aggregates signed reviews without a central authority.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 12 — THE ONE-LINER
+═══════════════════════════════════════════════════════════ -->
+<section class="slide slide-cover" id="s11">
+  <div style="text-align:center;max-width:820px;">
+    <div class="eyebrow">Conclusion</div>
+    <div class="oneliner-box">
+      <div class="oneliner-text">
+        PrivateNess inference-as-a-service:<br>
+        <span class="accent">sovereign compute</span>, <span class="teal">mesh-routed</span>, chain-registered,<br>
+        with staking economics that <span class="accent">make the network pay you to run it</span> —<br>
+        and <strong style="color:#fff;">no kill switch anywhere in the stack.</strong>
+      </div>
+    </div>
+    <div style="margin-top:24px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+      <span class="pill pill-teal">privateness.network</span>
+      <span class="pill pill-accent">emercoin.com</span>
+      <span class="pill pill-accent">skycoin.com</span>
+    </div>
+    <div style="margin-top:28px;font-size:.85rem;color:var(--muted);line-height:1.8;">
+      Full technical paper: <span class="mono teal">ness_inference_paper.html</span><br>
+      Entropy demos: <span class="mono teal">ness_entropy_control.html · ness_entropy_demo.html</span><br>
+      Benchmark suite: <span class="mono teal">uheprng_suite.html</span>
+    </div>
+  </div>
+</section>
+
+</div><!-- #deck -->
+
+<!-- PROGRESS BAR -->
+<div id="progress"><div id="progress-bar"></div></div>
+
+<!-- NAVIGATION -->
+<div id="nav">
+  <button class="nav-btn" id="prev" title="Previous (←)">&#8592;</button>
+  <button class="nav-btn" id="next" title="Next (→)">&#8594;</button>
+</div>
+<div id="counter">1 / 12</div>
+<div id="hint">← → navigate &nbsp;·&nbsp; space: next</div>
+
+<script>
+(function(){
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  let current = 0;
+
+  const bar = document.getElementById('progress-bar');
+  const counter = document.getElementById('counter');
+  const hint = document.getElementById('hint');
+  let hintTimer = null;
+
+  function show(n, dir){
+    if(n < 0) n = 0;
+    if(n >= total) n = total - 1;
+    if(n === current) return;
+
+    slides[current].classList.remove('active');
+    slides[current].classList.add('out');
+    setTimeout(()=>{ slides[current].classList.remove('out'); current = n; go(); }, 38);
+  }
+
+  function go(){
+    slides.forEach((s,i)=>{
+      s.classList.toggle('active', i === current);
+    });
+    bar.style.width = ((current/(total-1))*100).toFixed(1)+'%';
+    counter.textContent = (current+1)+' / '+total;
+  }
+
+  function next(){ if(current < total-1){ current++; go(); } }
+  function prev(){ if(current > 0){ current--; go(); } }
+
+  document.getElementById('next').addEventListener('click', next);
+  document.getElementById('prev').addEventListener('click', prev);
+
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' ') next();
+    if(e.key==='ArrowLeft'||e.key==='ArrowUp') prev();
+    if(e.key==='Home'){ current=0; go(); }
+    if(e.key==='End'){ current=total-1; go(); }
+  });
+
+  // Touch swipe
+  let tx=0;
+  document.addEventListener('touchstart', e=>{ tx = e.touches[0].clientX; }, {passive:true});
+  document.addEventListener('touchend', e=>{
+    const dx = e.changedTouches[0].clientX - tx;
+    if(Math.abs(dx)>40){ if(dx<0) next(); else prev(); }
+  }, {passive:true});
+
+  // Click on left/right third of screen
+  document.getElementById('deck').addEventListener('click', e=>{
+    const x = e.clientX / window.innerWidth;
+    if(x < 0.35) prev();
+    else if(x > 0.65) next();
+  });
+
+  // Fade hint after 4s
+  hintTimer = setTimeout(()=>{ hint.style.opacity='0'; hint.style.transition='opacity 1s'; }, 4000);
+
+  go();
+})();
+</script>
+</body>
+</html>

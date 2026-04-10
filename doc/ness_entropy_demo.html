@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NESS Entropy Inference Demo</title>
+<style>
+  body { font-family: Arial; background: #0f172a; color: #e2e8f0; padding: 20px; }
+  h1 { color: #38bdf8; }
+  .box { background: #1e293b; padding: 15px; border-radius: 10px; margin-bottom: 15px; }
+  input, button { padding: 8px; margin: 5px; }
+  .tokens { font-size: 18px; line-height: 1.6; }
+  .metric { font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>NESS Entropy ↔ Coherence Demo</h1>
+
+<div class="box">
+  Seed (NVS): 
+  <input id="seed" value="ness-demo-123">
+  <button onclick="run()">Run</button>
+</div>
+
+<div class="box">
+  Exploration ε:
+  <input type="range" id="epsilon" min="0" max="1" step="0.01" value="0.2" oninput="updateEps()">
+  <span id="epsVal">0.2</span>
+</div>
+
+<div class="box tokens" id="output"></div>
+
+<div class="box">
+  <div>Coherence: <span class="metric" id="coherence"></span></div>
+  <div>Entropy Influence: <span class="metric" id="entropy"></span></div>
+</div>
+
+<script src="uheprng.js"></script>
+<script>
+
+// Deterministic PRNG via Gibson UHEPRNG (doc/uheprng.js)
+function PRNG(seed) {
+  const rng = uheprng();
+  rng.initState();
+  rng.hashString(seed);
+  return function() {
+    return rng(0x100000000) / 4294967296;
+  };
+}
+
+// Vocabulary (toy tokens)
+const vocab = [
+  "network","identity","entropy","coherence","node",
+  "transaction","proof","stream","anchor","consensus"
+];
+
+// Base logits (simulated knowledge)
+const base = [0.12,0.10,0.08,0.11,0.09,0.13,0.07,0.10,0.10,0.10];
+
+function softmax(arr) {
+  let max = Math.max(...arr);
+  let exps = arr.map(x => Math.exp(x - max));
+  let sum = exps.reduce((a,b)=>a+b,0);
+  return exps.map(x => x/sum);
+}
+
+function sample(probs, rand) {
+  let r = rand();
+  let acc = 0;
+  for (let i=0;i<probs.length;i++) {
+    acc += probs[i];
+    if (r < acc) return i;
+  }
+  return probs.length-1;
+}
+
+function run() {
+  const seed = document.getElementById("seed").value;
+  const epsilon = parseFloat(document.getElementById("epsilon").value);
+
+  const rand = PRNG(seed);
+  let output = [];
+  let coherenceScore = 1;
+
+  for (let t=0;t<30;t++) {
+
+    // entropy modulation (bounded)
+    let perturbed = base.map((b,i)=>{
+      let noise = (rand() - 0.5) * epsilon;
+      return b + noise;
+    });
+
+    let probs = softmax(perturbed);
+    let idx = sample(probs, rand);
+
+    output.push(vocab[idx]);
+
+    // simple coherence metric (stay near base distribution)
+    coherenceScore -= Math.abs(perturbed[idx] - base[idx]) * 0.1;
+  }
+
+  document.getElementById("output").innerText = output.join(" ");
+  document.getElementById("coherence").innerText = coherenceScore.toFixed(3);
+  document.getElementById("entropy").innerText = epsilon.toFixed(2);
+}
+
+function updateEps() {
+  document.getElementById("epsVal").innerText =
+    document.getElementById("epsilon").value;
+}
+
+run();
+
+</script>
+
+</body>
+</html>
