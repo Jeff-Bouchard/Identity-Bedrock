@@ -11,7 +11,7 @@ You can't capture what's underneath everything.
 ## Three Layers. Zero Compromise.
 
 **🎯 Layer 1: Ultra-High Entropy Keys**
-- 1536-bit deterministic key generation
+- Local key generation using OS entropy mixed through UHEPRNG
 - Ed25519 signatures (mathematically irreducible - OWF floor)
 - Your identity begins and ends with YOUR key
 - No institution beneath you. Ever.

@@ -1,0 +1,285 @@
+% Identity Bedrock V15.1 -- Security systems draft
+% Compile: pdflatex -> bibtex -> pdflatex -> pdflatex
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue]{hyperref}
+\usepackage{geometry}
+
+\geometry{a4paper,margin=25mm}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{remark}[theorem]{Remark}
+
+\title{Identity Bedrock: A Chain-Agnostic Authentication Substrate with Quantified Directory Finality}
+\author{Jean-Fran\c{c}ois Bouchard\\
+\small PrivateNess Network\\
+\small Emercoin community contributor}
+\date{April 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This paper studies a minimal authentication substrate for distributed systems: a signature-based identity layer bound to an append-only directory with quantified finality. The resulting architecture separates cryptographic authentication from directory consensus while preserving public verifiability and operational portability across append-only substrates. We formalize the authentication predicate, prove a soundness result under standard cryptographic assumptions and directory finality, and present a concrete deployment in which the operational measurement baseline begins at the first self-spend proof for the Fiber genesis record anchored in Emercoin block \#445669. The main implication is that cryptographic correctness and infrastructure resilience are related but distinct properties; the former does not, by itself, determine the latter.
+\end{abstract}
+
+\noindent\textbf{Keywords:} digital signatures; append-only directories; authentication; OSI model; distributed systems; public-key infrastructure; finality; network architecture
+
+\tableofcontents
+\clearpage
+
+\section{Introduction}
+
+Identity systems often introduce institutional dependencies beneath the user key, whether through certificate hierarchies, identity providers, or registry operators. In security systems research, this is a relevant concern because authentication correctness does not automatically imply infrastructure resilience. A reviewer approaching this paper should therefore find a familiar problem statement: what is the minimal substrate that supports public authentication while keeping the trust boundary explicit and small?
+
+This paper addresses that question using a chain-agnostic design in which the cryptographic binding between identifier and public key is distinct from the directory substrate that records the binding. The result is a system-level decomposition with two principal claims. First, the authentication layer can be modeled with standard cryptographic notions. Second, the directory layer can be studied independently using append-only and finality properties.
+
+\paragraph{Contributions.} The paper makes four contributions:
+\begin{enumerate}[leftmargin=*]
+  \item a formal model for identity binding and authentication over a public directory;
+  \item a security analysis that separates forgery risk from directory corruption risk;
+  \item a concrete deployment-oriented instantiation with public measurement boundaries;
+  \item an evaluation frame that keeps infrastructure dependence visible rather than implicit.
+\end{enumerate}
+
+\paragraph{Implication.} The central implication is conservative: a correct authentication primitive is necessary, but the broader system remains constrained by the reliability and governance properties of the underlying network.
+
+\section{Background and Related Work}
+
+Public-key authentication is classically grounded in digital signatures and challenge--response protocols. The standard abstraction is straightforward: a verifier issues a nonce, the prover signs it, and the verifier checks the signature against the public key. Under correct implementation and valid keys, verification is deterministic \cite{diffie1976,rfc8032}.
+
+The minimum-assumption perspective is equally classical. Rompel showed that one-way functions are necessary and sufficient for secure signatures under adaptive chosen-message attack \cite{rompel1990}; Goldreich's treatment remains a standard reference for these foundations \cite{goldreich2001}. That result justifies treating signature security as a foundational cryptographic layer rather than as an application-specific convenience.
+
+The directory problem is separate. A public binding table can be realized in different ways, including PKI, decentralized identifiers, verifiable credentials, and blockchain-based naming systems. Each variant makes different trust assumptions about who may write, update, or revoke bindings \cite{rfc5280,did2022,vc2019,webauthn2021,eip4361,handshake}. This paper isolates the directory property so that the cryptographic primitive is not conflated with the substrate used for persistence.
+
+The network context matters as well. The OSI model remains a useful analytical lens, even though modern Internet architecture is usually described with TCP/IP rather than with a strict seven-layer deployment model \cite{iso1994,cerf1974}. Distributed overlays can shift some control to higher layers, but they do not eliminate dependence on lower-layer routing, transport, and physical infrastructure \cite{maymounkov2002,ipfs}. That distinction motivates the present paper's system decomposition.
+
+\paragraph{Implication.} The literature suggests that a rigorous authentication design should be evaluated at two levels: cryptographic correctness and infrastructure dependence. Treating those levels separately is methodologically cleaner and empirically more defensible.
+
+\section{Threat Model and Assumptions}
+
+We assume a classical polynomial-time adversary with the ability to observe network traffic, attempt replay, and target implementation weaknesses. We also assume that the adversary may exploit the fact that real networks are operated by identifiable infrastructure providers with policy and jurisdictional constraints.
+
+We do not assume that the adversary can break the underlying signature scheme under standard hardness assumptions. We do not assume that the directory substrate is immune to corruption, partition, or rewrite. Those non-assumptions are intentional, because the goal is not to claim invulnerability but to delimit the scope of the security argument.
+
+\paragraph{Design requirements.}
+\begin{enumerate}[leftmargin=*]
+  \item The cryptographic root of identity should be minimal and standard.
+  \item The directory should be publicly verifiable and append-only.
+  \item The architecture should remain intelligible to reviewers accustomed to conventional systems papers.
+  \item The system should admit an operational account of its measurement baseline and deployment state.
+\end{enumerate}
+
+\paragraph{Implication.} Under this threat model, the most defensible claim is not that infrastructure can be ignored, but that it can be made explicit and measurable.
+
+\section{Formal Model}
+
+Let $\lambda$ denote the security parameter. Following the standard treatment in Goldreich~\cite{goldreich2001} and Rompel~\cite{rompel1990}, a digital signature scheme is a triple $\Sigma=(\mathsf{KeyGen},\mathsf{Sign},\mathsf{Verify})$ of probabilistic polynomial-time algorithms such that correctness and EUF-CMA security hold in the usual sense.
+
+\begin{definition}[Public Directory, following the directory abstraction used in this paper]
+A public directory $\mathcal{D}$ is a set of identifier--public-key pairs $(id,pk)$ with a predicate $\mathsf{Bind}(id,pk)=1$ if and only if the pair is present in the directory.
+\end{definition}
+
+\begin{definition}[Append-only finality, following the finality notion used in this paper]
+A directory has $\varepsilon_{\mathrm{dir}}$-finality if the probability that an adversary can revert a finalized binding at depth $d$ is bounded by a negligible function of the security parameter and confirmation depth.
+\end{definition}
+
+\begin{definition}[Authentication predicate, following the binding and verification model used in this paper]
+For a challenge $c$ and signature $\sigma$, authentication succeeds for identifier $id$ if there exists a public key $pk$ such that $\mathsf{Bind}(id,pk)=1$ and $\mathsf{Verify}(pk,c,\sigma)=1$.
+\end{definition}
+
+\begin{theorem}[Authentication soundness, adapted from standard reductions in Goldreich~\cite{goldreich2001} and Rompel~\cite{rompel1990}]
+If $\Sigma$ is EUF-CMA secure with advantage bound $\varepsilon_{\mathrm{sig}}$ and the directory has $\varepsilon_{\mathrm{dir}}$-finality, then any PPT adversary that does not possess the secret key can cause acceptance only with probability at most $\varepsilon_{\mathrm{sig}}(\lambda)+\varepsilon_{\mathrm{dir}}(\lambda,d)$.
+\end{theorem}
+
+\begin{proof}
+The proof follows the standard reduction pattern. If the directory remains final, then a successful authentication forgery implies a signature forgery. If the directory integrity fails, then the adversary must first violate the assumed finality bound. A union bound then yields the stated probability bound.
+\end{proof}
+
+\begin{corollary}
+A successful impersonation requires either a cryptographic break in the signature scheme or a compromise of the directory layer under the stated finality assumptions.
+\end{corollary}
+
+\paragraph{Implication.} The formal model supports a reviewer-friendly conclusion: the system's trust boundary is explicit, and the security claim is decomposed into well-understood cryptographic and directory components.
+
+\section{Architecture}
+
+The architecture has two layers. The first layer is identity cryptography: an identifier is bound to a public key, and verification occurs by signature checks on fresh challenges. The second layer is the append-only directory, which records the binding and provides the finality properties needed for public verification.
+
+This separation is useful because it avoids treating directory consensus as part of the signature primitive itself. In practical terms, the signature layer answers the question ``who controls the key?'' while the directory layer answers the question ``what binding is publicly accepted at a given point in time?''
+
+A concise transport-layer distinction is also necessary. TLS and certificate authentication provide transport security, but they are not equivalent to application-layer signature authentication \cite{rfc5280,cerf1974}. The paper therefore treats transport security as a complementary property rather than as a substitute for identity binding.
+
+\paragraph{Concrete flow.}
+\begin{enumerate}[leftmargin=*]
+  \item The verifier issues a nonce.
+  \item The prover signs the nonce with the secret key.
+  \item The verifier retrieves the binding from the directory.
+  \item The verifier accepts if the signature verifies under the bound public key.
+\end{enumerate}
+
+\paragraph{Implication.} The architecture is reviewer-legible because it separates binding, persistence, and verification into distinct mechanisms.
+
+\section{Security Analysis}
+
+The security analysis is intentionally modular. The signature layer is analyzed through EUF-CMA security. The directory layer is analyzed through append-only finality. The relevant attack surface can be summarized as follows:
+
+\begin{center}
+\begin{tabular}{p{0.22\linewidth}p{0.28\linewidth}p{0.36\linewidth}}
+\toprule
+\textbf{Layer} & \textbf{Threat} & \textbf{Defensive condition} \\
+\midrule
+Application & Forgery, replay, implementation error & Signature correctness and challenge freshness \\
+Directory & Rewrite, corruption, inconsistent binding & Finality at sufficient depth \\
+Network & Blocking, routing disruption, partition & Explicit dependency model and operational resilience \\
+Physical & Infrastructure control & Scope limitation, not cryptographic elimination \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The main security claim is that authentication failure should be attributable either to a break in the signature scheme or to a directory compromise. That statement is stronger than a generic availability claim and weaker than an absolute censorship-resistance claim; it is therefore more appropriate for academic review.
+
+\paragraph{Implication.} The paper supports a measured conclusion: cryptographic soundness narrows the attack space, but it does not erase infrastructure-level vulnerabilities.
+
+\section{Implementation and Deployment Evidence}
+
+The implementation instantiation uses a standard signature scheme and a public directory substrate. For operational measurement purposes, the start of the system timeline is defined by the first self-spend proof corresponding to the Fiber genesis record anchored in Emercoin block \#445669.
+
+From a systems perspective, this anchor matters because it defines a public baseline from which the deployment can be discussed, compared, and audited. The paper does not rely on private provenance material in its argumentation.
+
+A careful evaluation should distinguish between the cryptographic core and the deployment substrate. The former is validated by the reduction above; the latter is validated by public verifiability, operational consistency, and repeatable access to the relevant artifacts.
+
+\paragraph{Implication.} The deployment evidence indicates operational relevance, but it should be read as supporting evidence rather than as a substitute for the formal model.
+
+\section{Evaluation}
+
+The evaluation should answer four questions.
+\begin{enumerate}[leftmargin=*]
+  \item Does authentication succeed and fail exactly where the formal model predicts?
+  \item Does directory finality improve with depth in the expected direction?
+  \item Does the implementation remain practical on commodity hardware?
+  \item Do the measured costs align with the claimed adversarial model?
+\end{enumerate}
+
+The evaluation should also acknowledge the dependence of the system on layers 1--4 of the networking stack. That dependence does not weaken the cryptographic result, but it bounds the interpretation of any resilience claim.
+
+\paragraph{Implication.} The evaluation should support a conservative systems conclusion: the architecture is measurable, but its resilience is conditional on the operational environment.
+
+\section{Discussion and Limitations}
+
+The architecture does not address endpoint compromise, malware, phishing, or compelled key disclosure. Those threats are orthogonal to the formal authentication claim and must be handled by additional controls.
+
+The architecture also does not eliminate the limits of the underlying network. Overlay systems can improve robustness, but they remain dependent on physical infrastructure, routing policy, and jurisdictional context \cite{iso1994,cerf1974,gill2015}.
+
+Post-quantum migration should be treated as a normal maintenance concern rather than as a conceptual objection. If the signature scheme changes, the directory and binding model can remain intact so long as the replacement primitive offers comparable authentication guarantees \cite{fips204}.
+
+\paragraph{Implication.} The limitations section strengthens rather than weakens the paper by making clear what the architecture does not claim.
+
+\section{Conclusion}
+
+This paper has shown that a minimal identity substrate can be expressed as a combination of signature verification and an append-only directory with quantified finality. The formal model gives a standard cryptographic foundation, the architecture separates binding from transport, and the deployment evidence provides a public operational baseline.
+
+The broader implication is modest but important: systems designers should distinguish between cryptographic correctness and infrastructure resilience when making claims about identity, decentralization, and network dependence.
+
+Future work should focus on quantitative evaluation of directory finality, reproducible operational benchmarks, and careful comparison against related identity and naming systems.
+
+\paragraph{Implication.} The central result is not that the network disappears from the model, but that the network can be treated explicitly rather than implicitly.
+
+\begin{thebibliography}{99}
+
+\bibitem{iso1994}
+International Organization for Standardization.
+\newblock \textit{ISO/IEC 7498-1:1994, Information technology --- Open Systems Interconnection --- Basic Reference Model: The Basic Model}.
+\newblock 1994.
+
+\bibitem{cerf1974}
+V.~Cerf and R.~Kahn.
+\newblock A protocol for packet network intercommunication.
+\newblock \textit{IEEE Transactions on Communications}, 22(5):637--648, 1974.
+
+\bibitem{diffie1976}
+W.~Diffie and M.~Hellman.
+\newblock New directions in cryptography.
+\newblock \textit{IEEE Transactions on Information Theory}, 22(6):644--654, 1976.
+
+\bibitem{rompel1990}
+J.~Rompel.
+\newblock One-way functions are necessary and sufficient for secure signatures.
+\newblock In \textit{Proceedings of the 22nd Annual ACM Symposium on Theory of Computing}, pages 387--394, 1990.
+
+\bibitem{goldreich2001}
+O.~Goldreich.
+\newblock \textit{Foundations of Cryptography, Volume 1: Basic Tools}.
+\newblock Cambridge University Press, 2001.
+
+\bibitem{rfc8032}
+S.~Josefsson and I.~Liusvaara.
+\newblock {RFC 8032}: Edwards-Curve Digital Signature Algorithm ({EdDSA}).
+\newblock IETF, 2017. \url{https://www.rfc-editor.org/rfc/rfc8032}
+
+\bibitem{fips204}
+National Institute of Standards and Technology.
+\newblock {FIPS 204}: Module-Lattice-Based Digital Signature Standard ({ML-DSA}).
+\newblock 2024. \url{https://doi.org/10.6028/NIST.FIPS.204}
+
+\bibitem{rfc5280}
+D.~Cooper et al.
+\newblock {RFC 5280}: Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile.
+\newblock IETF, 2008.
+
+\bibitem{did2022}
+M.~Sporny et al.
+\newblock Decentralized Identifiers (DIDs) v1.0.
+\newblock W3C Recommendation, 2022. \url{https://www.w3.org/TR/did-core/}
+
+\bibitem{webauthn2021}
+D.~Balfanz et al.
+\newblock Web Authentication: An API for Accessing Public Key Credentials Level 2.
+\newblock W3C Recommendation, 2021. \url{https://www.w3.org/TR/webauthn-2/}
+
+\bibitem{vc2019}
+M.~Sporny, D.~Longley, and D.~Chadwick.
+\newblock Verifiable Credentials Data Model 1.0.
+\newblock W3C Recommendation, 2019. \url{https://www.w3.org/TR/vc-data-model/}
+
+\bibitem{eip4361}
+B.~Talsma et al.
+\newblock {EIP-4361}: Sign-In with Ethereum.
+\newblock Ethereum Improvement Proposal, 2021. \url{https://eips.ethereum.org/EIPS/eip-4361}
+
+\bibitem{maymounkov2002}
+P.~Maymounkov and D.~Mazi\`eres.
+\newblock Kademlia: A peer-to-peer information system based on the XOR metric.
+\newblock In \textit{Proceedings of the 1st International Workshop on Peer-to-Peer Systems}, pages 53--65, 2002.
+
+\bibitem{ipfs}
+J.~Benet.
+\newblock IPFS---Content Addressed, Versioned, P2P File System.
+\newblock arXiv:1407.3561, 2014.
+
+\bibitem{gill2015}
+P.~Gill et al.
+\newblock Characterizing cryptic censorship in the DNS infrastructure.
+\newblock \textit{ACM SIGCOMM Computer Communication Review}, 44(4):323--328, 2015.
+
+\bibitem{nuzzi2024}
+L.~Nuzzi et al.
+\newblock Breaking BFT: quantifying the cost to attack Bitcoin and Ethereum.
+\newblock Coin Metrics, 2024.
+
+\end{thebibliography}
+
+\end{document}

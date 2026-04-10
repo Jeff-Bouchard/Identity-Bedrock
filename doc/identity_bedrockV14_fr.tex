@@ -482,10 +482,10 @@ attribuables et auditables sans opérateur de registre centralisé.
 
 Nous instancions $\Sigma$ avec Ed25519~\cite{eddsa}, un schéma de type
 Schnorr sur Curve25519 offrant une sécurité d'environ $2^{128}$ contre les
-attaques connues.  La génération de clés utilise une graine multi-source à
-haute entropie~: plusieurs blocs de 1024~octets issus de \texttt{os.urandom}
-(1\,536~bits d'état interne total), la sortie RC4OK du générateur de nombres aléatoires (GNA) du c\oe{}ur Emercoin, la gigue temporelle du processeur et des identifiants matériels,
-mélangés via UHEPRNG~\cite{uheprng}.
+attaques connues. La génération de clés utilise une entropie locale
+(plusieurs blocs de 1024~octets issus de \texttt{os.urandom}) mélangée
+via UHEPRNG~\cite{uheprng}. Des sources locales optionnelles (gigue CPU,
+identifiants matériels) peuvent être ajoutées selon la politique de déploiement.
 
 \subsection{Répertoire : SNV Emercoin + AuxPoW}
 

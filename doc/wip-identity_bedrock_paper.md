@@ -178,7 +178,7 @@ under the usual definitions, and we rely on \[1,7,9\] for the underlying constru
 **Layer 1: Identity Cryptography (Chain-Agnostic)**
 
 ```plaintext
-Local entropy (os.urandom) + UHEPRNG mixing
+Deployment entropy source + UHEPRNG mixing
   → Ed25519 KeyGen
   → (sk, pk)
 
@@ -357,7 +357,7 @@ In our deployment, NESS Fiber serves as one example of an infrastructure layer t
 
 ### 5.4 Key Generation and Entropy Provisioning
 
-In our implementation, Ed25519 keys are derived from a seed produced by Gibson's Ultra High Entropy PRNG (UHEPRNG) \[3\], which is in turn driven by operating system randomness. Concretely, the key generation code reads multiple 1024-byte blocks from `os.urandom` and mixes them into a UHEPRNG instance before extracting a 32-byte (256-bit) seed for Ed25519. The total amount of input randomness is on the order of 1536 bits or more, but the resulting seed is 256 bits by construction.
+In our implementation, Ed25519 key generation uses a deployment-configured entropy source mixed into Gibson's Ultra High Entropy PRNG (UHEPRNG) \[3\] before key material is produced. The exact entropy backend is environment-specific.
 
 Modern Linux kernels internally cap their deterministic random bit generator state to approximately 256 bits of entropy. Our use of UHEPRNG and multiple `os.urandom` draws is therefore not intended to exceed this theoretical ceiling, but to increase robustness: it reduces sensitivity to RNG bias, implementation defects, and partial entropy leakage. The security of the resulting keys still rests on the standard hardness assumptions for Ed25519 (roughly 128 bits of classical security), but we take care to make the seed as close as possible to uniformly random in the 256-bit space exposed to the signature scheme.
 

@@ -168,7 +168,7 @@
 **Layer 1: Identity Cryptography (Chain-Agnostic)**
 
 ```
-Local entropy (os.urandom) + UHEPRNG mixing
+Deployment entropy source + UHEPRNG mixing
   → Ed25519 KeyGen
   → (sk, pk)
 
@@ -202,7 +202,7 @@ Requirements:
 
 **Setup:**
 ```
-1. User generates (sk, pk) via local KeyGen using OS entropy mixed through UHEPRNG
+1. User generates (sk, pk) via local KeyGen using deployment entropy source mixed through UHEPRNG
 2. User publishes (id, pk) to directory D
 3. Wait for finality (directory-dependent)
 4. Binding is now global: Bind(id, pk) = 1

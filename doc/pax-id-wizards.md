@@ -24,7 +24,7 @@ Authoritative implementation: `privatenesstools/keygen.py`, `privatenesstools/fr
 
   In `KeyManager.__generate_seed(entropy, len)`, `<entropy>` is an **integer loop count**. For each `i` in `range(entropy)` the code does:
 
-  - `rand = b64encode(os.urandom(1024)).decode('utf-8')`, then
+  - reads from the deployment-configured entropy source (1024-byte chunks), then
   - `generator.add_entropy(rand, str(uuid.getnode()))` on a `prng.UhePrng()` instance, optionally printing `+`.
 
   Runtime cost scales roughly linearly with `<entropy>`. PAX helper tooling currently defaults to `100`.

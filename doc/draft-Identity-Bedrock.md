@@ -22,7 +22,7 @@ Acronym summary (for quick reference):
 - **PKI** – Public Key Infrastructure.
 - **IdP** – Identity Provider (centralized auth authority we purposely avoid).
 
-Operational note: production keys are minted locally through KeyGen using OS entropy (e.g., `os.urandom`) mixed into a UHEPRNG state before key material is produced. This document does not assume Emercoin RC4OK in the local keygen path.
+Operational note: production keys are minted locally through KeyGen using a deployment-configured entropy source mixed into a UHEPRNG state before key material is produced. This document does not assume Emercoin RC4OK in the local keygen path.
 
 Above this floor we add only:
 

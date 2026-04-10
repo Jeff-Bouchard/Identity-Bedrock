@@ -386,8 +386,9 @@ bloc Emercoin~\#445669, 1\textsuperscript{er} novembre 2020,
 
 \subsection{Génération de clés et entropie}
 
-Graine depuis UHEPRNG~\cite{Gibson}~: \texttt{os.urandom} $\times 6$,
-RC4OK Emercoin, gigue CPU, identifiants matériels. Plancher~:
+Génération locale via UHEPRNG~\cite{Gibson} avec entrée d'entropie
+\texttt{os.urandom} (plusieurs blocs de 1024 octets), et sources
+locales optionnelles (gigue CPU, identifiants matériels). Plancher~:
 $\approx$128 bits de sécurité classique.
 
 \section{Extension de présence physique}

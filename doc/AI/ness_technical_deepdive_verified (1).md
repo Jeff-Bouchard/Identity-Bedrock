@@ -60,16 +60,15 @@ https://www.grc.com/otg/uheprng.htm
 
 **Key Derivation Process:**
 ```
-1. Generate 1536-bit seed from UHEPRNG
-2. Derive Ed25519 keypair deterministically per RFC 8032:
-   seed → SHA-512(seed) → Ed25519 (sk, pk)
-3. Store seed securely (hardware wallet, Shamir backup)
+1. Run local KeyGen with OS entropy input mixed through UHEPRNG
+2. Generate Ed25519 keypair for identity operations
+3. Store backup material securely (hardware wallet, Shamir backup)
 ```
 
 **Why 1536 bits?**
 - Exceeds all current cryptanalytic capabilities
-- Enables deterministic key trees for multiple identities
-- Single seed backup recovers entire key hierarchy
+- Supports reproducible entropy analysis at the PRNG layer
+- Backup procedures can preserve operator continuity when managed correctly
 - Compatible with hardware security modules
 
 ---
@@ -397,18 +396,18 @@ The Ed25519 key is the root. Everything else is optional layering.
 
 **Backup Strategy (Recommended):**
 ```
-1536-bit UHEPRNG seed → Shamir Secret Sharing
+Key backup material → Shamir Secret Sharing
 
 Example: 2-of-3 scheme
 - Shard 1: Personal safe (home jurisdiction)
 - Shard 2: Bank safety deposit box (different jurisdiction)
 - Shard 3: Trusted person (different jurisdiction)
 
-Recovery: Any 2 shards reconstruct seed → deterministic Ed25519 derivation
+Recovery: Any 2 shards reconstruct backup material used for key continuity procedures
 ```
 
 **Key Rotation:**
-1. Generate new (sk', pk') from fresh UHEPRNG seed
+1. Generate new (sk', pk') via local KeyGen using fresh entropy
 2. Publish updated WORM object `(id, pk')` to Emercoin NVS
 3. Sign transition statement with old sk: "Rotating to pk' at block N"
 4. Wait 1 confirmation
