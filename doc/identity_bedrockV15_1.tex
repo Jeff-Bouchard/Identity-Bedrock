@@ -12,10 +12,33 @@
 \usepackage{booktabs}
 \usepackage{array}
 \usepackage{enumitem}
-\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue]{hyperref}
-\usepackage{geometry}
+\usepackage{titlesec}
+\usepackage[hidelinks,
+            bookmarks=true,bookmarksopen=true,bookmarksnumbered=true,
+            pdfpagemode=UseOutlines]{hyperref}
+\usepackage{bookmark}
+\usepackage{url}
 
-\geometry{a4paper,margin=25mm}
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000
+\brokenpenalty=10000
+\interfootnotelinepenalty=10000
+\setlength{\parindent}{1.2em}
+\setlength{\parskip}{0.35em plus 0.10em minus 0.05em}
+\setlist[enumerate]{topsep=0.45em,itemsep=0.25em,parsep=0.15em,partopsep=0pt,leftmargin=*}
+\setlist[itemize]{topsep=0.45em,itemsep=0.25em,parsep=0.15em,partopsep=0pt,leftmargin=*}
+\setlength{\abovedisplayskip}{0.8em plus 0.2em minus 0.1em}
+\setlength{\belowdisplayskip}{0.8em plus 0.2em minus 0.1em}
+\setlength{\abovedisplayshortskip}{0.5em plus 0.15em}
+\setlength{\belowdisplayshortskip}{0.5em plus 0.15em}
+
+\titleformat{\section}{\large\bfseries}{\thesection}{0.75em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.75em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{0.75em}{}
+\titlespacing*{\section}{0pt}{2.0ex plus 0.6ex minus 0.2ex}{1.0ex plus 0.2ex}
+\titlespacing*{\subsection}{0pt}{1.5ex plus 0.4ex minus 0.2ex}{0.8ex plus 0.2ex}
+\titlespacing*{\subsubsection}{0pt}{1.2ex plus 0.3ex minus 0.2ex}{0.6ex plus 0.15ex}
 
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{definition}[theorem]{Definition}
@@ -26,18 +49,27 @@
 \author{Jean-Fran\c{c}ois Bouchard\\
 \small PrivateNess Network\\
 \small Emercoin community contributor}
-\date{April 2026}
+\date{}
+
+\newcommand{\keywords}[1]{\par\noindent\textbf{Keywords:} #1\par}
 
 \begin{document}
 
 \maketitle
+\pagenumbering{arabic}
+
+\keywords{digital signatures; append-only directories; authentication; OSI model; distributed systems; public-key infrastructure; finality; network architecture}
+
+\vspace{1.1em}
 
 \begin{abstract}
 This paper studies a minimal authentication substrate for distributed systems: a signature-based identity layer bound to an append-only directory with quantified finality. The resulting architecture separates cryptographic authentication from directory consensus while preserving public verifiability and operational portability across append-only substrates. We formalize the authentication predicate, prove a soundness result under standard cryptographic assumptions and directory finality, and present a concrete deployment in which the operational measurement baseline begins at the first self-spend proof for the Fiber genesis record anchored in Emercoin block \#445669. The main implication is that cryptographic correctness and infrastructure resilience are related but distinct properties; the former does not, by itself, determine the latter.
 \end{abstract}
 
-\noindent\textbf{Keywords:} digital signatures; append-only directories; authentication; OSI model; distributed systems; public-key infrastructure; finality; network architecture
+\vspace{0.6em}
+\clearpage
 
+\pdfbookmark[1]{Contents}{toc}
 \tableofcontents
 \clearpage
 
