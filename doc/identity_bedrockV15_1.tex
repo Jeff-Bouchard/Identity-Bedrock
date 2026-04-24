@@ -13,6 +13,7 @@
 \usepackage{array}
 \usepackage{enumitem}
 \usepackage{titlesec}
+\usepackage{verbatim}
 \usepackage[hidelinks,
             bookmarks=true,bookmarksopen=true,bookmarksnumbered=true,
             pdfpagemode=UseOutlines]{hyperref}
@@ -67,6 +68,12 @@ This paper studies a minimal authentication substrate for distributed systems: a
 \end{abstract}
 
 \vspace{0.6em}
+
+\begin{center}
+\small\itshape
+\textbf{AI disclosure:} The author used AI language model assistance for manuscript drafting and editing. All technical contributions, system design, implementation, theoretical framing, and binding insights described herein originate with the author, drawing on operational experience deploying Emercoin-based infrastructure.
+\end{center}
+
 \clearpage
 
 \pdfbookmark[1]{Contents}{toc}
@@ -155,15 +162,59 @@ This separation is useful because it avoids treating directory consensus as part
 
 A concise transport-layer distinction is also necessary. TLS and certificate authentication provide transport security, but they are not equivalent to application-layer signature authentication \cite{rfc5280,cerf1974}. The paper therefore treats transport security as a complementary property rather than as a substitute for identity binding.
 
-\paragraph{Concrete flow.}
+\subsection{Concrete Instantiation: Ed25519 and Emercoin NVS}
+
+The cryptographic layer uses the Ed25519 signature scheme as specified in RFC~8032~\cite{rfc8032}, with optional migration to ML-DSA (FIPS~204)~\cite{fips204} for post-quantum compatibility. An identity record consists of:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Identifier:} a human-readable name (e.g., \texttt{user@example.nv})
+  \item \textbf{Public key:} the 32-byte Ed25519 public key
+  \item \textbf{Signature:} an Ed25519 signature over a challenge nonce
+\end{itemize}
+
+The directory layer uses Emercoin NVS (Name Value Service), a blockchain-based key-value store with append-only semantics. A binding is recorded as an NVS entry where:
+\begin{itemize}[leftmargin=*]
+  \item The NVS name is the identifier
+  \item The NVS value contains the public key and optional metadata
+  \item The entry is anchored in the Emercoin blockchain via AuxPoW (merged mining with Bitcoin)
+\end{itemize}
+
+\subsection{Authentication Protocol Step-by-Step}
+
+The concrete authentication flow operates as follows:
+
 \begin{enumerate}[leftmargin=*]
-  \item The verifier issues a nonce.
-  \item The prover signs the nonce with the secret key.
-  \item The verifier retrieves the binding from the directory.
-  \item The verifier accepts if the signature verifies under the bound public key.
+  \item \textbf{Challenge generation:} The verifier generates a fresh random nonce $c$ (typically 32 bytes).
+  
+  \item \textbf{Signature:} The prover computes $\sigma = \mathsf{Sign}_{sk}(c)$ using their Ed25519 secret key $sk$.
+  
+  \item \textbf{Directory lookup:} The verifier queries the Emercoin NVS for the identifier $id$, retrieving the stored public key $pk$. The lookup is performed via \texttt{emercoin-cli name\_show}.
+  
+  \item \textbf{Verification:} The verifier checks $\mathsf{Verify}_{pk}(c,\sigma) = 1$ using Ed25519 verification. The verifier also confirms that the NVS entry has sufficient confirmation depth to provide acceptable finality.
+  
+  \item \textbf{Acceptance:} If both the signature verification and directory finality checks succeed, authentication succeeds.
 \end{enumerate}
 
-\paragraph{Implication.} The architecture is reviewer-legible because it separates binding, persistence, and verification into distinct mechanisms.
+\subsection{Data Structure Example}
+
+A concrete identity binding stored in Emercoin NVS has the following JSON structure:
+
+\begin{verbatim}
+{
+  "name": "user@example.nv",
+  "value": {
+    "public_key": "ed25519:base64_encoded_public_key",
+    "timestamp": "2026-04-10T00:00:00Z",
+    "version": "1"
+  },
+  "txid": "emercoin_transaction_hash",
+  "confirmations": 1000
+}
+\end{verbatim}
+
+The \texttt{txid} provides a blockchain-anchored proof of existence, and the \texttt{confirmations} count quantifies the finality depth.
+
+\paragraph{Implication.} The architecture is reviewer-legible because it separates binding, persistence, and verification into distinct mechanisms, with concrete implementation details that allow independent verification and reproduction.
 
 \section{Security Analysis}
 
@@ -188,13 +239,52 @@ The main security claim is that authentication failure should be attributable ei
 
 \section{Implementation and Deployment Evidence}
 
-The implementation instantiation uses a standard signature scheme and a public directory substrate. For operational measurement purposes, the start of the system timeline is defined by the first self-spend proof corresponding to the Fiber genesis record anchored in Emercoin block \#445669.
+The implementation instantiation uses Ed25519 signatures (RFC~8032)~\cite{rfc8032} for the cryptographic layer and Emercoin NVS (Name Value Service) for the directory substrate. For operational measurement purposes, the start of the system timeline is defined by the first self-spend proof corresponding to the Fiber genesis record anchored in Emercoin block \#445669.
 
-From a systems perspective, this anchor matters because it defines a public baseline from which the deployment can be discussed, compared, and audited. The paper does not rely on private provenance material in its argumentation.
+\subsection{Operational Verification Commands}
+
+The deployment can be verified publicly using standard Emercoin CLI commands. To retrieve an identity binding:
+
+\begin{verbatim}
+emercoin-cli name_show user@example.nv
+\end{verbatim}
+
+This returns the NVS entry including the transaction ID, confirmation count, and the stored public key. The confirmation count provides a quantitative measure of directory finality.
+
+To verify the blockchain anchoring of a specific binding:
+
+\begin{verbatim}
+emercoin-cli getblock <block_hash>
+emercoin-cli getrawtransaction <txid> 1
+\end{verbatim}
+
+These commands allow any external auditor to confirm that the binding exists at a specific block height and has accumulated the expected number of confirmations.
+
+\subsection{Baseline Measurement: Block \#445669}
+
+The operational baseline is anchored at Emercoin block \#445669, which contains the first self-spend proof for the Fiber genesis record. This anchor can be verified as follows:
+
+\begin{verbatim}
+emercoin-cli getblockhash 445669
+emercoin-cli getblock <resulting_hash>
+\end{verbatim}
+
+The block contains a transaction with an NVS name update operation that establishes the initial identity binding. By fixing this block height as the measurement baseline, the deployment provides a reproducible reference point for evaluating directory finality and operational continuity.
+
+\subsection{Independent Reproducibility}
+
+The implementation does not rely on private provenance material. All artifacts required for independent verification are public:
+
+\begin{itemize}[leftmargin=*]
+  \item The Emercoin blockchain is publicly accessible via full nodes and block explorers
+  \item The Ed25519 signature verification algorithm is specified in RFC~8032 and implemented in multiple open-source libraries
+  \item The NVS record format is documented in the Emercoin protocol specification
+  \item The authentication protocol can be reproduced using any standard Ed25519 library and Emercoin node
+\end{itemize}
 
 A careful evaluation should distinguish between the cryptographic core and the deployment substrate. The former is validated by the reduction above; the latter is validated by public verifiability, operational consistency, and repeatable access to the relevant artifacts.
 
-\paragraph{Implication.} The deployment evidence indicates operational relevance, but it should be read as supporting evidence rather than as a substitute for the formal model.
+\paragraph{Implication.} The deployment evidence indicates operational relevance with concrete verification mechanisms, but it should be read as supporting evidence rather than as a substitute for the formal model.
 
 \section{Evaluation}
 

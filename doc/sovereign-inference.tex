@@ -1,0 +1,1000 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+
+\usepackage{geometry}
+\geometry{a4paper, margin=2.5cm}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{abstract}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{footnote}
+\usepackage[english]{babel}
+\usepackage{multirow}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  urlcolor=blue,
+  citecolor=black,
+  pdflang={en-US},
+  pdfauthor={PrivateNess Network},
+}
+
+% Explicitly set PDF language tag for TTS / accessibility
+\AtBeginDocument{\pdfcatalog{/Lang (en-US)}}
+
+\definecolor{codeblue}{RGB}{30,100,180}
+\definecolor{codegray}{RGB}{100,100,100}
+\definecolor{codegreen}{RGB}{0,130,80}
+\definecolor{backcolor}{RGB}{248,248,248}
+
+\lstdefinestyle{ness}{
+  backgroundcolor=\color{backcolor},
+  commentstyle=\color{codegray}\itshape,
+  keywordstyle=\color{codeblue}\bfseries,
+  stringstyle=\color{codegreen},
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  captionpos=b,
+  keepspaces=true,
+  showspaces=false,
+  showstringspaces=false,
+  frame=single,
+  framesep=4pt,
+  xleftmargin=8pt,
+  xrightmargin=8pt,
+}
+\lstset{style=ness}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{property}{Property}[section]
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\small PrivateNess Network --- Sovereign Inference-as-a-Service}
+\lhead{\small April 2026}
+\cfoot{\thepage}
+
+\title{\textbf{Sovereign Inference-as-a-Service}\\[0.4em]
+  \large Decentralized AI Endpoint Discovery, Authentication,\\
+  and Payment over Commodity Hardware}
+
+\author{
+  Jeff Bouchard\\
+  PrivateNess Network\\
+  \texttt{privateness.network}
+}
+
+\date{April 2026}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+
+\maketitle
+\thispagestyle{fancy}
+
+% ─── ABSTRACT ────────────────────────────────────────────────────────────────
+\begin{abstract}
+Contemporary AI inference services rely on centralized infrastructure: corporate
+API gateways, revocable authentication credentials, fiat payment rails, and
+BGP-reachable endpoints subject to geofencing and regulatory seizure.  We present
+a sovereign inference-as-a-service architecture that addresses these
+dependencies without relying on any centralized operator.  Service discovery is performed via RFC~2782 SRV records
+stored in the Emercoin Name-Value Storage (NVS) blockchain.  Trust is rooted
+entirely within the NVS record chain: the \texttt{inf:} capability record
+references the \texttt{node:} registration record, which in turn references
+the operator's \emph{privatenessID} (\texttt{id:}) WORM~XML identity record
+containing the authoritative public key.  No DNS record type is repurposed
+for authentication; no X.509 hierarchy participates at any point.  Transport
+is carried by the Skywire mesh network using public-key routing, eliminating
+IP-layer visibility.  Payment is denominated in EMC micro-transactions, with
+proof-of-stake staking rewards at a fixed rate of 6\% per annum producing a
+net-negative operational cost model for sufficiently staked nodes:
+the chain subsidizes node operators before they serve a single inference request.
+Stochastic sampling draws from a sovereign UHEPRNG entropy source rather than
+operator-controlled randomness, closing a subtle output-manipulation attack
+surface.  The entire stack is validated on commodity hardware at multiple price
+tiers---from Raspberry Pi~3 and above through directly-supported and
+community-ported system-on-chip TV-box hardware---establishing a reproducible
+minimum viable node floor at consumer electronics price points.  We formalize the
+\texttt{ness:}~namespace registry, the WORM~XML schema hierarchy, and the
+complete five-step discovery protocol, and identify open problems including a
+provider reputation protocol and liveness signalling without record mutation.
+\end{abstract}
+
+\vspace{1em}
+\noindent\textbf{Keywords:} decentralized inference, blockchain service discovery,
+sovereign identity, mesh networking, commodity hardware, proof-of-stake economics,
+entropy as a security primitive.
+
+\newpage
+
+% ─── 1. INTRODUCTION ─────────────────────────────────────────────────────────
+\section{Introduction}
+
+The dominant model of AI inference delivery in 2025 resembles any other
+cloud service in its dependency structure: a corporate operator runs compute, sells access via
+API keys, logs requests by default, and terminates service at will through Terms of
+Service enforcement, payment processor pressure, or regulatory mandate.  Users
+have no recourse, no alternative, and no visibility into what is done with their
+prompts.
+
+Decentralization efforts in adjacent domains---file storage \cite{ipfs},
+computation \cite{ethereum}, communications \cite{skywire}---have demonstrated
+that this dependency is architectural, not inevitable.  Yet the ``decentralized AI''
+literature has largely addressed training data governance and model ownership while
+leaving the inference layer---the point of actual use---in the same centralized
+hands.
+
+This paper addresses that gap.  We present a complete architecture for
+\emph{sovereign inference-as-a-service}: AI inference that is discoverable without
+a central registry, authenticated without a certificate authority, transported
+without BGP visibility, paid without fiat rails, and operable on hardware costing
+less than a restaurant meal.
+
+The architecture is not speculative.  Every component is either deployed or
+directly derivable from deployed infrastructure: Emercoin NVS has operated since
+2013 \cite{emercoin}; the PrivatenessTools client library is in active use;
+Skywire mesh nodes are running; the WORM XML format and privatenessID identity
+system are anchored on-chain.  This paper formalizes the integration and
+identifies the remaining open problems.
+
+\subsection{Contributions}
+
+\begin{enumerate}[leftmargin=*, label=\textbf{C\arabic*.}]
+  \item \textbf{WORM-chained trust without DNS repurposing.}  We demonstrate
+    that inference endpoint authentication can be rooted entirely within NVS
+    WORM records---\texttt{inf:} $\to$ \texttt{node:} $\to$ \texttt{id:}---without
+    repurposing any DNS record type for a purpose outside its specification.
+    Trust terminates at the AuxPoW-hardened blockchain, not at a certificate
+    authority, a DNS record, or any corporate infrastructure.
+
+  \item \textbf{Proof-of-stake economic inversion.}  We demonstrate that the
+    EMC fixed PoS rate of 6\% per annum can exceed NVS operation and renewal
+    costs for a node operator holding a modest staking balance, producing a
+    net-negative cost model.  Inference capacity is not a cost center for
+    staking operators; the chain subsidizes it.
+
+  \item \textbf{Standards-compliant sovereign service discovery.}  RFC~2782 SRV
+    records stored in EmerDNS provide load balancing, failover, and multi-transport
+    addressing using existing DNS client semantics, with no centralized registry
+    dependency.
+
+  \item \textbf{Entropy as a security primitive.}  We formalize the role of
+    UHEPRNG-sourced sampling entropy in closing an operator-controlled output
+    manipulation attack surface that is implicit in all centralized inference
+    deployments but has not been previously articulated as a threat model.
+
+  \item \textbf{Reproducible commodity hardware floor.}  We establish a
+    multi-tier, costed hardware taxonomy---from single-board computers to
+    community-ported system-on-chip devices---as a falsifiable claim about the
+    minimum viable sovereign inference node.
+\end{enumerate}
+
+\subsection{Paper Structure}
+
+Section~\ref{sec:background} reviews the component technologies.
+Section~\ref{sec:architecture} presents the full stack.
+Section~\ref{sec:namespace} defines the \texttt{ness:} namespace registry.
+Section~\ref{sec:discovery} specifies the SRV/WORM discovery protocol.
+Section~\ref{sec:economics} analyzes the staking economic model.
+Section~\ref{sec:hardware} characterizes the hardware deployment tiers.
+Section~\ref{sec:security} provides a threat model and security analysis.
+Section~\ref{sec:limitations} states open problems.
+Section~\ref{sec:conclusion} concludes.
+
+% ─── 2. BACKGROUND ───────────────────────────────────────────────────────────
+\section{Background}
+\label{sec:background}
+
+\subsection{Emercoin NVS and AuxPoW}
+
+Emercoin is a proof-of-work blockchain launched in December 2013 as a fork of
+Peercoin, with merged mining (AuxPoW) against Bitcoin, inheriting Bitcoin's
+accumulated hash rate as a security subsidy \cite{emercoin}.  Its Name-Value
+Storage subsystem provides a key-value store
+with blockchain-level immutability: records are cryptographically committed to
+the chain at write time and are not modifiable without the controlling private
+key.  Expiry is block-count-based; records can be renewed but not silently
+altered.  We treat NVS as a \emph{write-once-read-many} (WORM) store for all
+structured PrivateNess records.
+
+The security cost of rewriting NVS history is bounded below by the Bitcoin
+network's accumulated hash rate, scaled by the AuxPoW coefficient defined by
+Khovayko's hack51 framework \cite{hack51}.  This makes history revision
+economically prohibitive for any adversary without a majority of global Bitcoin
+hash rate.
+
+\subsection{WORM XML and PrivatenessTools}
+
+The WORM (World Object Markup Language) format is a structured XML schema
+developed by Sokolov \cite{privatenesstools} for signed, chain-committed
+records in the PrivateNess ecosystem.  Every WORM document carries a
+\texttt{<schema>} URI declaring its type and version, an ownership reference
+to a sovereign identity, and a creation timestamp.  The PrivatenessTools
+library provides \texttt{keygen} for key material generation and \texttt{key
+worm} for emitting signed WORM documents from a key file.
+
+\subsection{privatenessID}
+
+A privatenessID is a sovereign identity anchored in Emercoin NVS under the
+\texttt{id:} prefix.  The NVS value is a WORM XML document (schema
+\texttt{ness:worm:id:1.0}) containing the identity's public key, creation
+block reference, and optional transport addresses.  The PrivateNess Network's
+own identity is anchored at Emercoin block~\#445669 (November~1, 2020), establishing
+a four-year prior art timestamp for the identity system.
+
+\subsection{Skywire Mesh Network}
+
+Skywire is a public-key-routed mesh network developed by Smietana and Narrow
+\cite{skywire}.  Routing is performed on 33-byte compressed elliptic curve
+public keys rather than IP addresses.  Traffic between nodes is not visible at
+the IP layer; an observer with access to a Skywire node sees encrypted packets
+addressed to public keys, not to BGP prefixes.  Bandwidth is accounted in Coin
+Hours, Skycoin's native time-weighted currency unit.  A Skywire-only inference
+node has no TCP/IP listening socket; it presents no surface to conventional
+network scanning, geofencing, or ASN-level blocking.
+
+\subsection{EmerDNS}
+
+EmerDNS maps conventional DNS record types (A, AAAA, SRV, MX, TXT) to
+Emercoin NVS records under the \texttt{dns:} prefix.  A DNS-compatible resolver
+reads NVS records and serves them to standard DNS clients.  Because the records
+are stored on-chain, they are resistant to seizure, redirection, or censorship by a
+registrar or registry operator.  The \texttt{.lib}, \texttt{.bazar}, and
+\texttt{.coin} TLDs are native; \texttt{.ness} is the PrivateNess network TLD.
+
+\subsection{RFC~2782 SRV Records}
+
+RFC~2782 \cite{rfc2782} defines the DNS SRV resource record type for
+service location.  An SRV record of the form \texttt{\_service.\_proto.name}
+carries priority, weight, port, and target fields.  Clients select among
+multiple SRV records using a weighted random algorithm that provides
+load balancing within a priority class and automatic failover to lower-priority
+records.  SRV is supported natively by all major DNS client libraries.
+
+% ─── 3. ARCHITECTURE ─────────────────────────────────────────────────────────
+\section{System Architecture}
+\label{sec:architecture}
+
+Figure~\ref{fig:layers} shows the full stack.  We describe each layer in
+ascending order.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{|c|}
+\hline
+\rule{0pt}{2.2ex}\textbf{Application layer}: inference client / payment \\
+\hline
+\rule{0pt}{2.2ex}\textbf{Payment layer}: EMC micro-transactions per token \\
+\hline
+\rule{0pt}{2.2ex}\textbf{Inference layer}: llama.cpp / Ollama, UHEPRNG entropy \\
+\hline
+\rule{0pt}{2.2ex}\textbf{Transport layer}: Skywire mesh (pubkey routing) or inet \\
+\hline
+\rule{0pt}{2.2ex}\textbf{Discovery layer}: EmerDNS SRV + NVS WORM trust chain \\
+\hline
+\rule{0pt}{2.2ex}\textbf{Identity layer}: privatenessID WORM XML (\texttt{id:}) \\
+\hline
+\rule{0pt}{2.2ex}\textbf{Consensus layer}: Emercoin NVS + Bitcoin AuxPoW \\
+\hline
+\end{tabular}
+\end{center}
+\caption{PrivateNess sovereign inference stack (ascending).}
+\label{fig:layers}
+\end{figure}
+
+\subsection{Consensus Layer}
+
+All persistent state---identity records, node registrations, service discovery
+records, capability metadata, and the namespace schema index---is stored in
+Emercoin NVS.  No server, database, or CDN is required.  An adversary wishing
+to remove or alter any record must control a majority of the Bitcoin network's
+hash rate for the duration of the attack.  Records that have been on-chain for
+years are practically immutable.
+
+\subsection{Identity Layer}
+
+Every actor in the system---node operators, inference clients, reputation
+attestors---is identified by a privatenessID: an \texttt{id:} NVS record
+containing a WORM XML document with the actor's public key.  The key algorithm
+is Ed25519 for current deployments, with a migration path to ML-DSA-65 (FIPS
+204) specified in the Identity Bedrock paper \cite{identitybedrock}.
+
+The privatenessID is not an email address, a phone number, or a domain name.
+It is a chain-committed cryptographic key binding.  No personal information
+is required or implied.
+
+\subsection{Discovery Layer}
+
+Service discovery uses two mechanisms:
+\begin{itemize}
+  \item \textbf{SRV record}: locates the endpoint (protocol, host, port).
+  \item \textbf{WORM trust chain}: authenticates the endpoint operator via
+    the \texttt{inf:} $\to$ \texttt{node:} $\to$ \texttt{id:} record sequence.
+\end{itemize}
+
+The complete discovery protocol is specified in Section~\ref{sec:discovery}.
+
+\subsection{Transport Layer}
+
+Nodes declare one or more transport networks in their registration record:
+\texttt{inet} (clearnet TCP/IP), \texttt{skywire}, \texttt{yggdrasil},
+\texttt{i2p}, or \texttt{tor}.  Clients select the transport most consistent
+with their threat model.  A Skywire-only node has no conventional IP address; it is not reachable via the standard internet.  For Skywire nodes, the SRV target is the node's
+compressed public key suffixed with \texttt{.skywire}; port is set to 0 by
+convention, as Skywire is transport-native and does not use TCP port numbers.
+
+\subsection{Inference Layer}
+
+The inference runtime (llama.cpp, Ollama, or equivalent) runs on the node's
+local hardware.  The critical property is the entropy source for sampling:
+temperature-based token selection requires a random number generator; on a
+sovereign node, this is provided by the PrivateNess UHEPRNG service
+\cite{pyuheprng} rather than the host operating system's CSPRNG seeded by
+vendor-controlled sources.  The adversarial significance of this is formalized
+in Section~\ref{sec:entropy-threat}.
+
+\subsection{Payment Layer}
+
+Inference is billed in EMC per 1,000 tokens.  EMC is a transferable,
+on-chain asset with no fiat intermediary.  The pricing is declared in the
+node's \texttt{inf:} WORM XML capability record (Section~\ref{sec:inf-prefix})
+and is verifiable before a session is opened.  Billing granularity is
+configurable; the WORM record carries a base unit of EMC/1k tokens.
+
+% ─── 4. NAMESPACE REGISTRY ───────────────────────────────────────────────────
+\section{The \texttt{ness:} Namespace Registry}
+\label{sec:namespace}
+
+All PrivateNess NVS records are subordinate to the \texttt{ness:} root namespace.
+Table~\ref{tab:prefixes} lists the canonical prefixes.  WORM XML schemas are
+themselves registered as \texttt{ness:schema:\textit{type}:\textit{version}} NVS
+records, making the schema registry self-describing and chain-hosted.
+
+\begin{table}[ht]
+\centering
+\caption{Canonical \texttt{ness:} namespace prefixes.}
+\label{tab:prefixes}
+\begin{tabularx}{\textwidth}{@{}llX@{}}
+\toprule
+\textbf{Prefix} & \textbf{WORM schema} & \textbf{Role} \\
+\midrule
+\texttt{id:} & \texttt{ness:worm:id:1.0} & Sovereign identity (privatenessID). Trust anchor. \\
+\texttt{inf:} & \texttt{ness:worm:inf:1.0} & Inference node capability and pricing. \\
+\texttt{node:} & \texttt{ness:worm:node:1.0} & General node transport addresses and services. \\
+\texttt{dns:} & DNS RR (plain text) & EmerDNS records: A, AAAA, SRV, TXT. Transport addressing only; not used for authentication. \\
+\texttt{meme:} & \texttt{ness:worm:meme:1.0} & Immutable content records (NESSMeme). \\
+\texttt{rep:} & \texttt{ness:worm:rep:1.0} & Node reputation attestations (specified; not yet implemented). \\
+\texttt{ness:schema:} & --- & Schema registry: canonical WORM schema definitions. \\
+\texttt{ness:index:} & JSON array & Append-only enumeration indexes per type. \\
+\texttt{ness:version} & plain text & Namespace specification version. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Append-only Enumeration}
+\label{sec:enumeration}
+
+Standard DNS does not support wildcard zone enumeration; a client cannot
+issue a query equivalent to ``list all SRV records under
+\texttt{\_inference.\_tcp.*.private.ness}.''  EmerDNS NVS supports prefix
+scans on the key-value store, but this requires NVS API access rather than
+standard DNS queries.
+
+We address this with \texttt{ness:index:\textit{type}} records: append-only
+JSON arrays of known record keys.  A node registering an inference service
+appends its \texttt{inf:node\_\textit{hash}} key to \texttt{ness:index:inf}.
+Clients without direct NVS access use this index for discovery enumeration.
+The append-only property is enforced by convention: index records are never
+reduced.  Nodes that go offline remain in the index; liveness is determined
+by transport-layer connectivity, not by index membership.
+
+\subsection{The \texttt{id:} Prefix}
+\label{sec:id-prefix}
+
+\begin{definition}[privatenessID]
+A \emph{privatenessID} is an Emercoin NVS record with key \texttt{id:\textit{username}}
+whose value is a WORM XML document conforming to schema \texttt{ness:worm:id:1.0},
+containing at minimum: a public key, a creation timestamp, and the Emercoin block
+number at which the record was first committed.
+\end{definition}
+
+The block number serves as a tamper-evident timestamp.  All downstream records
+(\texttt{inf:}, \texttt{node:}, \texttt{rep:}) reference their owner's
+\texttt{id:} key, making every record in the namespace traceable to a sovereign
+identity without disclosing personal information.
+
+\subsection{The \texttt{inf:} Prefix}
+\label{sec:inf-prefix}
+
+An inference node registers a capability record with key
+\texttt{inf:node\_\textit{H}} where \textit{H} is the first 16 hexadecimal
+characters of the SHA-256 hash of the owning identity's public key.  The WORM
+XML value (schema \texttt{ness:worm:inf:1.0}) carries:
+
+\begin{itemize}
+  \item \texttt{<author>}: the owning \texttt{id:} NVS key.
+  \item \texttt{<node>}: the associated \texttt{node:} NVS key.
+  \item \texttt{<model>}: the model identifier (GGUF tag or equivalent).
+  \item \texttt{<context\_window>}: maximum context in tokens.
+  \item \texttt{<price\_per\_1k>}: price in EMC per 1,000 tokens.
+  \item \texttt{<endpoint>}: the HTTP path for the inference API.
+  \item \texttt{<skywire\_pubkey>}: Skywire transport address (optional).
+\end{itemize}
+
+This record is advisory metadata.  The authoritative endpoint is determined by
+the SRV record (Section~\ref{sec:discovery}).
+
+\subsection{The \texttt{dns:} Prefix}
+
+EmerDNS NVS records under \texttt{dns:} carry plain-text DNS resource record
+values.  The key is the DNS name with \texttt{dns:} prepended.  Three record
+types are relevant to inference discovery:
+
+\begin{enumerate}
+  \item \texttt{dns:\_inference.\_tcp.\textit{host}}: SRV record for TCP transport.
+  \item \texttt{dns:\_inference.\_skywire.\textit{host}}: SRV record for Skywire transport (port~0).
+  \item \texttt{dns:\textit{host}}: A or AAAA address record for inet transport targets.
+\end{enumerate}
+
+% ─── 5. DISCOVERY PROTOCOL ───────────────────────────────────────────────────
+\section{Discovery and Authentication Protocol}
+\label{sec:discovery}
+
+\subsection{SRV Record Structure}
+
+An inference node operator writes the following NVS record:
+
+\begin{lstlisting}[caption={SRV record for TCP inference endpoint.}]
+KEY:   dns:_inference._tcp.batman1.private.ness
+VALUE: SRV 10 100 8080 batman1.private.ness
+\end{lstlisting}
+
+The four fields follow RFC~2782: \emph{priority}, \emph{weight}, \emph{port},
+and \emph{target}.  Multiple nodes registering under the same service label
+(\texttt{\_inference.\_tcp.private.ness}) create a set of SRV records from
+which clients select using the RFC~2782 weighted-random algorithm, producing
+load distribution and automatic failover with no scheduler required.
+
+For Skywire-only nodes:
+\begin{lstlisting}[caption={SRV record for Skywire inference endpoint.}]
+KEY:   dns:_inference._skywire.batman1.private.ness
+VALUE: SRV 10 100 0 02abc...def.skywire
+\end{lstlisting}
+
+Port~0 is used by convention when the transport is Skywire-native; the target
+is the node's compressed public key.
+
+\subsection{WORM Trust Chain}
+
+Authentication does not use any DNS record type.  Instead, trust flows
+through a chain of NVS WORM records that is established at node registration
+time and verifiable by any client with NVS read access.
+
+\begin{definition}[WORM trust chain]
+The \emph{WORM trust chain} for an inference node is the sequence:
+\[
+\texttt{inf:node\_}\mathit{H} \xrightarrow{\texttt{<node>}} \texttt{node:}\mathit{name}
+  \xrightarrow{\texttt{<owner>}} \texttt{id:}\mathit{username}
+  \xrightarrow{\texttt{<pubkey>}} \mathit{key}
+\]
+Each arrow represents a typed reference field in a WORM XML document.
+The chain terminates at the operator's privatenessID public key, which is
+committed to the blockchain at identity registration time.
+\end{definition}
+
+The \texttt{node:} record carries both the \texttt{<owner>} reference to the
+operator's \texttt{id:} record and the node's signing public key used for
+TLS or Noise protocol handshake verification.  No DNS record participates
+in the authentication path.
+
+\begin{property}[Trust termination]
+Trust for any inference endpoint terminates at the \texttt{id:\textit{username}}
+NVS record at the tail of its WORM trust chain.  No intermediate CA, no DNS
+record type, no root store, and no corporate entity participates.  Removing
+or altering any record in the chain requires the controlling private key or
+a Bitcoin-scale hash rate attack against the Emercoin blockchain.
+\end{property}
+
+\subsection{Five-Step Discovery Protocol}
+
+\begin{enumerate}[label=\textbf{Step \arabic*:}, leftmargin=*, wide=0pt]
+  \item \textbf{Enumerate.}  Client queries \texttt{ness:index:inf} (NVS
+    prefix scan or index record) to obtain the set of known
+    \texttt{inf:node\_*} keys.  Alternatively, client queries
+    \texttt{dns:\_inference.\_tcp.private.ness} SRV records directly for
+    transport addressing.
+
+  \item \textbf{Select.}  Client applies the RFC~2782 weighted-random
+    selection algorithm to the SRV record set, obtaining a
+    \textit{(priority, weight, port, target)} tuple for transport.
+    Client also identifies the corresponding \texttt{inf:node\_\textit{H}}
+    key for capability lookup.
+
+  \item \textbf{Resolve trust chain.}  Client reads
+    \texttt{inf:node\_\textit{H}} WORM XML $\to$ extracts \texttt{<node>}
+    reference $\to$ reads \texttt{node:\textit{name}} WORM XML $\to$
+    extracts \texttt{<owner>} reference $\to$ reads
+    \texttt{id:\textit{username}} WORM XML $\to$ extracts public key.
+    All three reads are against Emercoin NVS directly.
+
+  \item \textbf{Authenticate.}  Client opens a TLS or Noise protocol
+    connection to the SRV-resolved endpoint.  Verifies that the node's
+    presented certificate or ephemeral key matches the public key from the
+    \texttt{node:} WORM record, which is itself anchored to the
+    \texttt{id:} identity.  \emph{Connection is terminated immediately on
+    mismatch.  No fallback is attempted.}
+
+  \item \textbf{Negotiate.}  Client uses the \texttt{inf:node\_\textit{H}}
+    WORM data (already fetched in Step~3) for model, context window, and
+    pricing confirmation.  Client initiates inference session and begins
+    EMC micro-payment stream.
+\end{enumerate}
+
+Figure~\ref{fig:chain} illustrates the trust chain resolved in Step~3.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{l}
+\texttt{inf:node\_H} $\xrightarrow{\texttt{<node>}}$ \texttt{node:batman1}\\
+\texttt{node:batman1} $\xrightarrow{\texttt{<owner>}}$ \texttt{id:username}\\
+\texttt{id:username} $\xrightarrow{\texttt{<pubkey>}}$ \textit{signing key}\\
+\textit{signing key} $\xrightarrow{\text{verify}}$ \textit{node TLS/Noise cert}\\
+\textit{cert verified} $\rightarrow$ \textit{inference traffic authorized}\\
+\end{tabular}
+\end{center}
+\caption{WORM trust chain: \texttt{inf:} $\to$ \texttt{node:} $\to$ \texttt{id:} $\to$ public key $\to$ certificate.  No DNS record type is used for authentication.}
+\label{fig:chain}
+\end{figure}
+
+\subsection{Trust Chain Enforcement}
+
+The WORM trust chain is enforced by the PrivatenessTools client library at
+Step~4.  A client that skips Step~3 connects without on-chain authentication;
+this is a configuration error, not a fallback mode.  Because all three
+WORM records (\texttt{inf:}, \texttt{node:}, \texttt{id:}) are read from NVS
+rather than from DNS, the authentication path has no dependency on DNS record
+semantics and is not affected by DNS-layer manipulation, seizure, or the
+compromise of any certificate authority.
+
+% ─── 6. ECONOMICS ────────────────────────────────────────────────────────────
+\section{Proof-of-Stake Economic Model}
+\label{sec:economics}
+
+\subsection{NVS Operation Costs}
+
+Writing a record to Emercoin NVS requires a small EMC fee proportional to
+the record's key length and value size, and the desired expiry period.  A
+typical \texttt{inf:} WORM XML record of approximately 800 bytes with a
+one-year expiry incurs a fee on the order of 1--10~EMC at current network
+parameters.  Renewal is required annually.
+
+\subsection{Proof-of-Stake Rewards}
+
+Emercoin operates a hybrid PoW/PoS consensus with a fixed PoS reward rate
+of approximately 6\% per annum \cite{emercoin}.  Coin age maturity is 30~days:
+a UTXO must remain unspent for 30 days before it becomes eligible to generate
+a PoS block.  Staking rewards are proportional to the holder's balance and
+accrue continuously while the wallet is online and unlocked for minting.
+
+\begin{property}[Net-negative operational cost]
+For a node operator holding an EMC staking balance $B$, the annual staking
+reward is approximately $R = 0.06 \cdot B$.  For any $B$ such that
+$R > C_{\mathrm{NVS}} + C_{\mathrm{renewal}}$---where $C_{\mathrm{NVS}}$
+is the total cost of NVS write operations and $C_{\mathrm{renewal}}$
+the total cost of annual record renewals---the net operational cost of
+maintaining sovereign inference infrastructure is negative: the chain
+covers costs from staking income before the first inference request is
+served.
+\end{property}
+
+At current NVS fee parameters (1--10~EMC per record per year for a full
+node registration comprising \texttt{id:}, \texttt{node:}, \texttt{inf:},
+and \texttt{dns:} records), the staking balance required to break even
+is small relative to any meaningful operational holding.  The 6\% rate
+is a fixed protocol parameter, not subject to operator discretion.
+
+\subsection{Per-Token Revenue}
+
+Inference revenue in EMC is strictly additive.  A node generating EMC
+staking rewards while simultaneously billing inference sessions compounds
+both income streams.  The minimum viable economic configuration is a
+small EMC stake covering operational costs with zero inference revenue;
+any inference traffic is margin.
+
+% ─── 7. HARDWARE ─────────────────────────────────────────────────────────────
+\section{Commodity Hardware Deployment}
+\label{sec:hardware}
+
+A central claim of this paper is that sovereign inference is achievable on
+commodity hardware.  We characterize three reproducible deployment tiers.
+
+\subsection{Tier~0: Single-Board Computers (Pi~3 and above)}
+
+The Raspberry Pi~3 and its successors represent the established baseline.
+Mainline Linux kernel support, large community, well-understood supply chain.
+Quantized 7B and 8B parameter models execute at practical token rates on
+this class of hardware.  This tier establishes the \emph{conservative lower
+bound}: if sovereign inference works here, it works everywhere.
+
+\subsection{Tier~1: Directly Supported SOC TV Boxes}
+
+Consumer Android TV hardware running commodity system-on-chip designs has
+been actively brought up by the Armbian community \cite{armbian} with
+mainline or near-mainline kernel support.  This hardware is designed for
+mass-market consumer electronics and therefore carries aggressive price
+compression not present in maker-market single-board computers.  A directly
+Armbian-supported TV box running a quantized 8B model constitutes a sovereign
+inference node with a bill of materials at consumer
+retail pricing.
+
+\begin{definition}[Minimum Viable Node Floor]
+The \emph{minimum viable node floor} is the lowest reproducible bill-of-materials
+cost for hardware capable of running a quantized 8B parameter model under
+Armbian Linux with PrivatenessTools installed.  At time of writing, Tier~1
+hardware in this class is available at consumer electronics retail prices,
+inclusive of SOC, memory, and storage.
+\end{definition}
+
+\subsection{Tier~2: Community-Ported SOC TV Boxes}
+
+A third class consists of TV boxes whose SOC is not directly supported by
+Armbian but for which community-maintained device trees, vendor BSP fragments,
+and partial mainline patches exist.  Bootstrapping sovereign inference on
+Tier~2 hardware is more complex but demonstrates that the minimum viable node
+floor is an \emph{active variable}, currently moving downward as the Armbian
+community extends coverage.
+
+The conservative reproducibility claim in the abstract uses Tier~0 and Tier~1
+only.  Tier~2 appears as a directional indicator: the hardware floor observed
+today is an upper bound on the hardware floor in 18 months.
+
+\subsection{The 127.0.0.1 Locality Doctrine}
+
+The architecture enforces a transport preference hierarchy:
+
+\[\texttt{localhost} \succ \texttt{LAN node} \succ \texttt{Skywire peer} \succ \texttt{inet node}\]
+
+A client never contacts a commercial inference API when a local or mesh-local
+sovereign node is available.  This preference is not a configuration option;
+it is the default client behavior, consistent with the founding philosophy
+of the PrivateNess project \cite{litepaper}.
+
+% ─── 8. SECURITY ANALYSIS ────────────────────────────────────────────────────
+\section{Security Analysis}
+\label{sec:security}
+
+\subsection{Threat Model}
+
+We consider four adversary classes:
+
+\begin{enumerate}[label=\textbf{A\arabic*.}]
+  \item \textbf{Network adversary.}  Controls BGP routing, DNS resolvers, TLS
+    CAs, and internet chokepoints.  Goal: prevent access to inference services
+    or redirect clients to adversarial nodes.
+
+  \item \textbf{Platform adversary.}  Controls cloud infrastructure, payment
+    processors, and app stores.  Goal: terminate inference node operation through
+    service suspension or payment rail deplatforming.
+
+  \item \textbf{Regulatory adversary.}  Issues legal demands to operators, registrars,
+    or CA operators.  Goal: compel removal of service or disclosure of user identity.
+
+  \item \textbf{Malicious node operator.}  A legitimate-appearing node operator who
+    serves manipulated inference outputs.
+\end{enumerate}
+
+\subsection{Defense Against A1 (Network Adversary)}
+
+\textbf{BGP blocking.}  Skywire transport does not use IP routing.  A Skywire-only
+node has no BGP-reachable address.  BGP-level blocking is ineffective.
+
+\textbf{DNS seizure.}  EmerDNS records are stored on the Emercoin blockchain.
+There is no registrar, registry operator, or DNS hosting provider to serve with
+a seizure order.  Record removal requires the operator's private key or a Bitcoin-scale
+hash rate attack.
+
+\textbf{CA compromise.}  The WORM trust chain does not involve any X.509 CA.
+A CA-issued certificate for a claimed PrivateNess endpoint carries no weight
+because client verification checks the NVS-anchored public key from the
+\texttt{node:} WORM record directly, independent of any CA.
+
+\textbf{Endpoint blocking.}  Inet-transport nodes are reachable only by clients
+who know their SRV-resolved address.  Nodes with multiple transport declarations
+fall back from inet to Skywire automatically.
+
+\subsection{Defense Against A2 (Platform Adversary)}
+
+Emercoin is a decentralized blockchain.  There is no hosting provider to
+suspend.  EMC payment requires no payment processor.  PrivatenessTools is
+open-source and distributable without an app store.  Node hardware is
+consumer electronics.  There is no platform to leverage.
+
+\subsection{Defense Against A3 (Regulatory Adversary)}
+
+A node operator's legal identity is not required by the protocol.
+The privatenessID is a cryptographic key binding with no mandatory
+personal information.  A regulatory demand directed at a registrar
+finds no registrar; directed at a hosting provider finds no hosting
+provider; directed at a CA finds no CA.  An operator in a permissive
+jurisdiction running Skywire-only transport is effectively unreachable
+by foreign regulatory action.
+
+\subsection{Defense Against A4 (Malicious Node Operator)}
+\label{sec:a4}
+
+The WORM trust chain (Steps~3--4 of the discovery
+protocol) ensures that a client connects only to a node whose signing key is
+committed on-chain under the declared operator identity.  A malicious
+node \emph{that has registered a legitimate \texttt{id:} record} can
+serve manipulated outputs; this is addressed by the reputation layer
+(\texttt{rep:} prefix, Section~\ref{sec:rep}) which is an open problem.
+
+A malicious node that has \emph{not} registered a legitimate identity
+cannot pass Step~5 authentication and is unreachable by compliant clients.
+
+\subsection{Entropy as a Security Primitive}
+\label{sec:entropy-threat}
+
+\begin{property}[Operator entropy control]
+A centralized inference service whose operator controls the sampling RNG
+can bias, watermark, or suppress token selections in ways that are
+statistically undetectable to individual users and require population-scale
+analysis to identify.
+\end{property}
+
+This attack surface is implicit in every commercial inference deployment
+but has not been previously stated as a formal threat.  Temperature-based
+sampling selects tokens proportional to $\exp(l_i / T)$ where $l_i$ are
+logits and $T$ is temperature.  An operator who controls the RNG can
+consistently bias the sampling distribution without altering any visible
+parameter.
+
+The PrivateNess stack uses UHEPRNG \cite{pyuheprng}, a user-controlled
+entropy source, as the sampling RNG.  Because the entropy is generated
+by the client or by the sovereign node's own PRNG service---not by an
+operator-controlled backend---the attack surface is closed structurally.
+
+\subsection{Fiber Hostile Node Resistance}
+
+The Skywire Fiber consensus model \cite{skywire} guarantees safety with
+a single honest node.  The failure threshold for the PrivateNess inference
+network is therefore $n - 1$ of $n$ nodes, not a majority fraction.  The
+last honest node in the network constitutes a valid, operational inference
+service.  This is the lower bound on network availability; the expected
+operating point is far above it.
+
+% ─── 9. LIMITATIONS ──────────────────────────────────────────────────────────
+\section{Limitations and Open Problems}
+\label{sec:limitations}
+
+\subsection{Provider Reputation Protocol}
+\label{sec:rep}
+
+The \texttt{rep:} prefix is specified (Table~\ref{tab:prefixes}) but not yet
+implemented.  Attestation records require a trust weighting scheme that
+does not recurse to a central authority.  We propose weighting attestations
+by the anchor age of the attesting \texttt{id:} record: older anchors cost
+more to establish and are therefore harder to Sybil-attack.  The AuxPoW
+cost of registering a new \texttt{id:} record provides a baseline
+Sybil-resistance floor.  A complete reputation protocol is left to future
+work.
+
+\subsection{Inference Latency}
+
+Skywire mesh routing adds per-hop latency.  Quantized 8B models on Tier~1
+and Tier~2 hardware generate tokens at rates of 5--20 tokens per second
+depending on context length.  The combined latency profile makes real-time
+interactive use marginal on current hardware; batch generation, document
+analysis, and asynchronous workflows are the practical deployment targets
+in the near term.  This is a positioning constraint, not a protocol deficiency.
+
+\subsection{Liveness Signalling Without Record Mutation}
+
+A node that goes offline does not automatically expire its SRV or
+\texttt{inf:} records.  Clients discover stale records and incur failed
+connection attempts before falling back to an alternative SRV entry.
+A liveness layer is required; candidates include:
+(a)~proof-of-liveness WORM records with recent timestamp updates,
+(b)~Skywire transport failure as an implicit liveness signal, or
+(c)~a gossip protocol over Skywire carrying liveness beacons.
+None of these is implemented.
+
+\subsection{NVS Block Time and Real-Time Load Balancing}
+
+Emercoin targets a block interval of approximately 10~minutes (the observed
+network average is around 8--9~minutes), identical to Bitcoin's cadence
+\cite{emercoin}.  NVS-based service discovery records are therefore updated
+on a 10-minute timescale at best.  This makes NVS unsuitable for sub-minute
+dynamic load balancing.  The SRV priority/weight mechanism handles
+coarse-grained balancing at registration time.  Fine-grained real-time
+routing requires a second-layer gossip protocol over Skywire.
+This is an open engineering problem.
+
+\subsection{Trust Chain Enforcement Dependency on Client Library}
+
+WORM trust chain verification is not automatic; it requires clients to use
+the PrivatenessTools library or a compatible implementation that performs
+the full \texttt{inf:} $\to$ \texttt{node:} $\to$ \texttt{id:} resolution
+and key verification at Step~4.  A client that skips this sequence connects
+without on-chain authentication.  This is an implementation dependency, not
+a protocol flaw, but it creates a correctness requirement on client software
+that is not self-enforcing.
+
+% ─── 10. RELATED WORK ────────────────────────────────────────────────────────
+\section{Related Work}
+\label{sec:related}
+
+\textbf{Decentralized AI platforms.}  Bittensor \cite{bittensor} creates a
+token-incentivized market for AI inference and training, but discovery and
+authentication remain mediated by a centralized validator set.  Akash Network
+\cite{akash} provides decentralized compute but does not address AI-specific
+concerns such as entropy control or prompt privacy.  Neither system terminates
+trust on a blockchain-anchored identity without intermediate infrastructure.
+
+\textbf{Federated inference.}  Federated learning literature (e.g.,
+\cite{federated}) addresses training data privacy but does not address inference
+endpoint trust, service discovery, or payment.
+
+\textbf{DNS-based service discovery.}  RFC~2782 SRV records are widely used
+for VOIP \cite{sip}, XMPP \cite{xmpp}, and other distributed services.
+Our contribution is the application of SRV to AI inference service discovery
+with blockchain-backed records, where SRV handles transport addressing only
+and authentication is handled entirely within the NVS WORM record chain.
+
+\textbf{Self-sovereign identity.}  The W3C DID specification \cite{w3cdid}
+addresses decentralized identity but does not specify a complete service
+discovery, authentication, and payment stack.  The privatenessID system
+predates the DID specification's finalization and is optimized for the
+Emercoin NVS substrate rather than a generic resolver architecture.
+
+% ─── 11. CONCLUSION ──────────────────────────────────────────────────────────
+\section{Conclusion}
+\label{sec:conclusion}
+
+We have presented a complete architecture for sovereign inference-as-a-service:
+AI inference that is discovered via blockchain-hosted SRV records, authenticated
+via a WORM trust chain rooted entirely in on-chain NVS identity records,
+transported over a public-key-routed mesh network, paid in a decentralized
+currency, and operated on commodity hardware available at consumer electronics retail prices.
+
+The five contributions are independent but mutually reinforcing.  The
+economic model makes node operation self-sustaining.  The hardware floor
+makes participation accessible.  The SRV + WORM trust chain makes the
+network discoverable with standard DNS tooling while keeping authentication
+entirely on-chain.  The privatenessID record chain makes authentication
+independent of any certificate authority, DNS record type repurposing,
+or external trust infrastructure.
+The sovereign entropy source closes an attack surface that is invisible
+in the centralized inference model.
+
+Three open problems remain: provider reputation, liveness signalling, and
+real-time load balancing.  Each is tractable given the existing infrastructure;
+none requires changes to the core protocol.
+
+The minimum viable sovereign inference node is not a research artifact.
+It runs today, on hardware you can buy at a consumer electronics retailer,
+on a network whose trust roots were committed to the blockchain in 2013 and
+2020.  Decentralized AI infrastructure, operated at the edge, at commodity
+cost, by the people who use it, is the structural answer to centralized
+inference dependency.
+
+% ─── ACKNOWLEDGEMENTS ────────────────────────────────────────────────────────
+\section*{Acknowledgements}
+
+The author thanks Aleksej Sokolov (Alex014) for the PrivatenessTools
+implementation and WORM XML format; Oleg Khovayko for the Emercoin NVS
+infrastructure and hack51 AuxPoW security framework; and Brandon Smietana
+and Moses Narrow for the Skywire mesh network and Fiber consensus model.
+Prior art is anchored on-chain at Emercoin blocks \#445669, \#780915,
+and \#780931.
+
+% ─── REFERENCES ──────────────────────────────────────────────────────────────
+\begin{thebibliography}{99}
+
+\bibitem{emercoin}
+Emercoin Development Team.
+\textit{Emercoin: Blockchain with Name-Value Storage}.
+\url{https://emercoin.com}, 2013.
+
+\bibitem{hack51}
+O.~Khovayko.
+\textit{hack51: AuxPoW Security Coefficient Framework for Emercoin NVS}.
+Internal technical specification, Emercoin project.
+
+\bibitem{privatenesstools}
+A.~Sokolov (Alex014).
+\textit{PrivatenessTools: Console Tools for the PrivateNess Network}.
+\url{https://github.com/NESS-Network/PrivatenessTools}, 2020--2025.
+
+\bibitem{pyuheprng}
+A.~Sokolov (Alex014).
+\textit{pyuheprng: Uniform Hash-based Entropy PRNG}.
+\url{https://github.com/Alex014/pyuheprng}.
+
+\bibitem{identitybedrock}
+PrivateNess Network.
+\textit{Identity Bedrock: Rompel-Grounded Sovereign Identity with
+Ed25519/ML-DSA Blockchain Anchoring and Physically-Bound Authentication}.
+PrivateNess Network technical paper, 2024--2025.
+
+\bibitem{skywire}
+B.~Smietana and M.~Narrow.
+\textit{Skywire: A Peer-to-Peer Networking Platform}.
+Skycoin project, \url{https://skywire.skycoin.com}.
+
+\bibitem{litepaper}
+PrivateNess Network.
+\textit{PrivateNess Network Litepaper}.
+\url{https://privateness.network}, October~9, 2020.
+
+\bibitem{armbian}
+Armbian Community.
+\textit{Armbian: Linux for ARM Development Boards}.
+\url{https://armbian.com}.
+
+\bibitem{ipfs}
+J.~Benet.
+\textit{IPFS --- Content Addressed, Versioned, P2P File System}.
+arXiv:1407.3561, 2014.
+
+\bibitem{ethereum}
+G.~Wood.
+\textit{Ethereum: A Secure Decentralised Generalised Transaction Ledger}.
+Ethereum Foundation, 2014.
+
+\bibitem{rfc2782}
+A.~Gulbrandsen, P.~Vixie, and L.~Esibov.
+\textit{A DNS RR for Specifying the Location of Services (DNS SRV)}.
+RFC~2782, IETF, February~2000.
+
+\bibitem{bittensor}
+J.~Fishman and A.~Psoras.
+\textit{Bittensor: A Peer-to-Peer Intelligence Market}.
+\url{https://bittensor.com}, 2021.
+
+\bibitem{akash}
+G.~Adams et~al.
+\textit{Akash Network: Decentralized Cloud Computing}.
+\url{https://akash.network}, 2020.
+
+\bibitem{federated}
+B.~McMahan et~al.
+\textit{Communication-Efficient Learning of Deep Networks from Decentralized Data}.
+Proceedings of AISTATS, 2017.
+
+\bibitem{sip}
+J.~Rosenberg et~al.
+\textit{SIP: Session Initiation Protocol}.
+RFC~3261, IETF, June~2002.
+
+\bibitem{xmpp}
+P.~Saint-Andre.
+\textit{Extensible Messaging and Presence Protocol (XMPP): Core}.
+RFC~6120, IETF, March~2011.
+
+\bibitem{w3cdid}
+M.~Sporny et~al.
+\textit{Decentralized Identifiers (DIDs) v1.0}.
+W3C Recommendation, July~2022.
+
+\end{thebibliography}
+
+\end{document}

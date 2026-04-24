@@ -1,0 +1,222 @@
+\documentclass[11pt]{article}
+
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\title{Sovereign Inference-as-a-Service:\\
+Decentralized Discovery, Authentication, and Execution of AI Inference}
+\author{Jean-François Bouchard}
+\date{April 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Contemporary AI inference services rely on centralized infrastructure, including API gateways, revocable credentials, and network endpoints subject to filtering or seizure.
+
+We present a sovereign inference-as-a-service architecture that removes reliance on centralized control points. Service discovery is performed via SRV records stored in the Emercoin Name-Value Storage (NVS) blockchain. Trust is established through on-chain identities (privatenessID), replacing certificate authority dependencies with cryptographic key bindings anchored in a public ledger.
+
+Transport is provided by mesh and overlay networks, reducing dependence on conventional IP routing visibility. Payment is performed using native blockchain transactions without intermediary processors.
+
+While network-level interference remains possible, the system ensures that service discovery and identity records remain globally replicated and tamper-resistant.
+
+We further introduce the use of a user-controlled entropy source for inference sampling, reducing the risk of operator-induced bias in probabilistic generation.
+
+The architecture is validated on commodity hardware, establishing a reproducible lower bound for decentralized inference deployment.
+\end{abstract}
+
+\section{Introduction}
+
+AI inference delivery is predominantly centralized, relying on cloud infrastructure and revocable access mechanisms. This introduces structural dependencies on infrastructure providers, payment systems, and regulatory environments.
+
+This paper proposes a decentralized alternative in which:
+\begin{itemize}
+    \item Discovery is blockchain-based
+    \item Identity is cryptographically anchored
+    \item Transport is multi-network
+    \item Payment is native and decentralized
+\end{itemize}
+
+\section{System Model}
+
+We define the system as:
+
+\[
+\mathcal{S} = (N, I, D, T, E)
+\]
+
+Where:
+\begin{itemize}
+    \item $N$: set of nodes
+    \item $I$: identity mapping (on-chain)
+    \item $D$: discovery mechanism
+    \item $T$: transport layer
+    \item $E$: entropy source
+\end{itemize}
+
+\section{Consensus and Storage}
+
+All persistent records are stored in Emercoin NVS. Records are:
+\begin{itemize}
+    \item globally replicated
+    \item cryptographically committed
+    \item modifiable only with key ownership
+\end{itemize}
+
+Auxiliary proof-of-work (AuxPoW) increases resistance to deep chain reorganization by coupling security to external mining participation.
+
+\section{Security Properties}
+
+\subsection{Record Immutability}
+
+Unauthorized modification requires:
+
+\[
+P(\text{attack}) \approx P(\text{key compromise}) + P(\text{consensus failure})
+\]
+
+\subsection{Discovery Integrity}
+
+A client accepts an endpoint only if:
+
+\[
+\text{Endpoint Key} \in I(\text{identity})
+\]
+
+\subsection{No Single Point of Control}
+
+\[
+\forall c \in \mathcal{S}, \quad \mathcal{S} \setminus c \neq \emptyset
+\]
+
+\subsection{Attack Cost Lower Bound}
+
+\[
+C_{attack} \ge \min(C_{reorg}, C_{key}) + C_{network}
+\]
+
+\section{Entropy as a Security Primitive}
+
+\subsection{Sampling Model}
+
+\[
+P(t_i) = \frac{\exp(l_i / T)}{\sum_j \exp(l_j / T)}
+\]
+
+\subsection{Adversarial Bias}
+
+\[
+P'(t_i) = P(t_i) + \epsilon_i
+\]
+
+Where:
+
+\[
+\sum_i \epsilon_i = 0
+\]
+
+\subsection{Detection Difficulty}
+
+\[
+D_{KL}(P' || P) \approx \mathcal{O}(\epsilon^2)
+\]
+
+Small biases are difficult to detect without large datasets.
+
+\subsection{Mitigation}
+
+External entropy source:
+
+\[
+R = H(seed, counter)
+\]
+
+Sampling becomes:
+
+\[
+t_i = f(P, R)
+\]
+
+Reducing operator control over stochastic output.
+
+\section{Experimental Evaluation}
+
+\subsection{Setup}
+
+\begin{itemize}
+    \item Model: 7B / 8B quantized
+    \item Runtime: llama.cpp
+    \item Hardware: Raspberry Pi 4, RK35xx
+    \item Transports: localhost, LAN, mesh, inet
+\end{itemize}
+
+\subsection{Throughput}
+
+\begin{tabular}{|c|c|}
+\hline
+Hardware & Tokens/sec \\
+\hline
+Pi 4 & 4--8 \\
+RK35xx & 8--18 \\
+\hline
+\end{tabular}
+
+\subsection{Latency}
+
+\begin{tabular}{|c|c|}
+\hline
+Transport & Latency \\
+\hline
+Localhost & 50--150 ms \\
+LAN & 100--300 ms \\
+Mesh & 500--1500 ms \\
+Inet & 200--800 ms \\
+\hline
+\end{tabular}
+
+\subsection{Discovery Time}
+
+\begin{tabular}{|c|c|}
+\hline
+Operation & Time \\
+\hline
+NVS lookup & 1--3 s \\
+SRV resolution & 50--200 ms \\
+\hline
+\end{tabular}
+
+\section{Economic Considerations}
+
+Operational costs are low due to:
+\begin{itemize}
+    \item commodity hardware
+    \item minimal storage fees
+\end{itemize}
+
+Staking rewards may offset costs under favorable conditions, but this is dependent on market dynamics and not assumed as a system invariant.
+
+\section{Limitations}
+
+\begin{itemize}
+    \item Network-level filtering remains possible
+    \item Latency is higher on mesh transports
+    \item Reputation systems are not yet implemented
+    \item Real-time load balancing is limited
+\end{itemize}
+
+\section{Conclusion}
+
+We present a decentralized inference architecture that:
+\begin{itemize}
+    \item removes reliance on centralized trust anchors
+    \item distributes discovery and identity
+    \item introduces entropy as a security control
+\end{itemize}
+
+The system demonstrates that AI inference can be delivered through decentralized infrastructure with verifiable trust and minimal cost.
+
+\end{document}

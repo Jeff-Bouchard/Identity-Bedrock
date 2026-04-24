@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.3.22)  10 APR 2026 13:39
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.3.22)  12 APR 2026 18:28
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -277,6 +277,11 @@ Package: titlesec 2025/01/04 v2.17 Sectioning titles
 \titlewidth=\dimen187
 \titlewidthlast=\dimen188
 \titlewidthfirst=\dimen189
+) (C:\Users\gaetane\AppData\Local\Programs\MiKTeX\tex/latex/tools\verbatim.sty
+Package: verbatim 2024-01-22 v1.5x LaTeX2e package for verbatim enhancements
+\every@verbatim=\toks36
+\verbatim@line=\toks37
+\verbatim@in@stream=\read2
 )
 (C:\Users\gaetane\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hyperref.sty
 Package: hyperref 2026-01-29 v7.01p Hypertext links for LaTeX
@@ -424,7 +429,7 @@ File: bkm-pdftex.def 2023-12-10 v1.31 bookmark driver for pdfTeX and luaTeX (HO
 \BKM@id=\count319
 ))
 \c@theorem=\count320
-LaTeX Font Info:    Trying to load font information for T1+lmr on input line 56
+LaTeX Font Info:    Trying to load font information for T1+lmr on input line 57
 .
  (C:\Users\gaetane\AppData\Local\Programs\MiKTeX\tex/latex/lm\t1lmr.fd
 File: t1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
@@ -436,31 +441,31 @@ File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
 ) (identity_bedrockV15_1.aux)
 \openout1 = `identity_bedrockV15_1.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 56.
-LaTeX Font Info:    ... okay on input line 56.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 56.
-LaTeX Font Info:    ... okay on input line 56.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 56.
-LaTeX Font Info:    ... okay on input line 56.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 56.
-LaTeX Font Info:    ... okay on input line 56.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 56.
-LaTeX Font Info:    ... okay on input line 56.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 56.
-LaTeX Font Info:    ... okay on input line 56.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 56.
-LaTeX Font Info:    ... okay on input line 56.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 56.
-LaTeX Font Info:    ... okay on input line 56.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 56.
-LaTeX Font Info:    ... okay on input line 56.
-LaTeX Info: Redefining \microtypecontext on input line 56.
-Package microtype Info: Applying patch `item' on input line 56.
-Package microtype Info: Applying patch `toc' on input line 56.
-Package microtype Info: Applying patch `eqnum' on input line 56.
-Package microtype Info: Applying patch `footnote' on input line 56.
-Package microtype Info: Applying patch `verbatim' on input line 56.
-LaTeX Info: Redefining \microtypesetup on input line 56.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 57.
+LaTeX Font Info:    ... okay on input line 57.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 57.
+LaTeX Font Info:    ... okay on input line 57.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 57.
+LaTeX Font Info:    ... okay on input line 57.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 57.
+LaTeX Font Info:    ... okay on input line 57.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 57.
+LaTeX Font Info:    ... okay on input line 57.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 57.
+LaTeX Font Info:    ... okay on input line 57.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 57.
+LaTeX Font Info:    ... okay on input line 57.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 57.
+LaTeX Font Info:    ... okay on input line 57.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 57.
+LaTeX Font Info:    ... okay on input line 57.
+LaTeX Info: Redefining \microtypecontext on input line 57.
+Package microtype Info: Applying patch `item' on input line 57.
+Package microtype Info: Applying patch `toc' on input line 57.
+Package microtype Info: Applying patch `eqnum' on input line 57.
+Package microtype Info: Applying patch `footnote' on input line 57.
+Package microtype Info: Applying patch `verbatim' on input line 57.
+LaTeX Info: Redefining \microtypesetup on input line 57.
 Package microtype Info: Generating PDF output.
 Package microtype Info: Character protrusion enabled (level 2).
 Package microtype Info: Using default protrusion set `alltext'.
@@ -502,12 +507,12 @@ mkii
 \scratchbox=\box61
 \nofMPsegments=\count323
 \nofMParguments=\count324
-\everyMPshowfont=\toks36
+\everyMPshowfont=\toks38
 \MPscratchCnt=\count325
 \MPscratchDim=\dimen195
 \MPnumerator=\count326
 \makeMPintoPDFobject=\count327
-\everyMPtoPDFconversion=\toks37
+\everyMPtoPDFconversion=\toks39
 )))
 (C:\Users\gaetane\AppData\Local\Programs\MiKTeX\tex/latex/epstopdf-pkg\epstopdf
 -base.sty
@@ -522,36 +527,36 @@ File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 \Gin@req@height=\dimen196
 \Gin@req@width=\dimen197
 )
-Package hyperref Info: Link coloring OFF on input line 56.
-LaTeX Font Info:    Trying to load font information for OT1+lmr on input line 5
-9.
+Package hyperref Info: Link coloring OFF on input line 57.
+LaTeX Font Info:    Trying to load font information for OT1+lmr on input line 6
+0.
  (C:\Users\gaetane\AppData\Local\Programs\MiKTeX\tex/latex/lm\ot1lmr.fd
 File: ot1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
-LaTeX Font Info:    Trying to load font information for OML+lmm on input line 5
-9.
+LaTeX Font Info:    Trying to load font information for OML+lmm on input line 6
+0.
 (C:\Users\gaetane\AppData\Local\Programs\MiKTeX\tex/latex/lm\omllmm.fd
 File: omllmm.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for OMS+lmsy on input line 
-59.
+60.
 
 (C:\Users\gaetane\AppData\Local\Programs\MiKTeX\tex/latex/lm\omslmsy.fd
 File: omslmsy.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for OMX+lmex on input line 
-59.
+60.
 
 (C:\Users\gaetane\AppData\Local\Programs\MiKTeX\tex/latex/lm\omxlmex.fd
 File: omxlmex.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <12> on input line 59.
+(Font)              <12> on input line 60.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <8> on input line 59.
+(Font)              <8> on input line 60.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <6> on input line 59.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 59.
+(Font)              <6> on input line 60.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 60.
 
 
 (C:\Users\gaetane\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd
@@ -560,7 +565,7 @@ File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 (C:\Users\gaetane\AppData\Local\Programs\MiKTeX\tex/latex/microtype\mt-msa.cfg
 File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 59.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 60.
 
 (C:\Users\gaetane\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
@@ -571,7 +576,10 @@ File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 
 {C:/Users/gaetane/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}{C:/Users/ga
 etane/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-ec.enc}]
-(identity_bedrockV15_1.toc)
+(identity_bedrockV15_1.toc
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <10.95> on input line 12.
+)
 \tf@toc=\write3
 \openout3 = `identity_bedrockV15_1.toc'.
 
@@ -581,13 +589,11 @@ etane/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-ec.enc}]
 
 ]
 
-LaTeX Warning: Citation `handshake' on page 4 undefined on input line 98.
+LaTeX Warning: Citation `handshake' on page 4 undefined on input line 99.
 
 [4]
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10.95> on input line 122.
 LaTeX Font Info:    Trying to load font information for OT1+lmss on input line 
-122.
+123.
  (C:\Users\gaetane\AppData\Local\Programs\MiKTeX\tex/latex/lm\ot1lmss.fd
 File: ot1lmss.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
@@ -599,9 +605,14 @@ Package microtype Info: Loading generic protrusion settings for font family
 [5{C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathit.
 enc}{C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-rm.en
 c}{C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathsy.
-enc}] [6] [7] [8]
-LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 2
+enc}]
+LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 1
 63.
+ (C:\Users\gaetane\AppData\Local\Programs\MiKTeX\tex/latex/lm\ts1lmr.fd
+File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
+)
+LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 1
+64.
 
 (C:\Users\gaetane\AppData\Local\Programs\MiKTeX\tex/latex/lm\t1lmtt.fd
 File: t1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
@@ -611,7 +622,19 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
 
-[9] [10] (identity_bedrockV15_1.aux)
+Overfull \hbox (0.2036pt too wide) in paragraph at lines 169--170
+[]\T1/lmr/m/n/10.95 (-20) The di-rec-tory layer uses Emer-coin NVS (Name Value 
+Ser-vice), a blockchain-
+ []
+
+[6{C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-ts1.enc
+}] [7] [8]
+Overfull \hbox (1.72021pt too wide) in paragraph at lines 276--277
+[]\T1/lmr/m/n/10.95 (-20) The au-then-ti-ca-tion pro-to-col can be re-pro-duced
+ us-ing any stan-dard Ed25519
+ []
+
+[9] [10] [11] [12] (identity_bedrockV15_1.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
@@ -622,28 +645,29 @@ LaTeX Warning: There were undefined references.
 
  ) 
 Here is how much of TeX's memory you used:
- 14068 strings out of 467866
- 222646 string characters out of 5417345
- 666119 words of memory out of 5000000
- 42511 multiletter control sequences out of 15000+600000
- 687112 words of font info for 164 fonts, out of 8000000 for 9000
+ 14176 strings out of 467866
+ 224900 string characters out of 5417345
+ 665860 words of memory out of 5000000
+ 42594 multiletter control sequences out of 15000+600000
+ 687867 words of font info for 170 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,8n,79p,1020b,621s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,8n,79p,1020b,631s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx10.
 pfb><C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx1
 2.pfb><C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmm
 i10.pfb><C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/l
-mr10.pfb><C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/
-lmr12.pfb><C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm
-/lmr17.pfb><C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/type1/public/l
-m/lmr8.pfb><C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/type1/public/l
-m/lmri10.pfb><C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/type1/public
-/lm/lmss10.pfb><C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/type1/publ
-ic/lm/lmsy10.pfb><C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/type1/pu
-blic/lm/lmtt10.pfb>
-Output written on identity_bedrockV15_1.pdf (10 pages, 305522 bytes).
+mmi8.pfb><C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/
+lmr10.pfb><C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm
+/lmr12.pfb><C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/type1/public/l
+m/lmr17.pfb><C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/type1/public/
+lm/lmr8.pfb><C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/type1/public/
+lm/lmri10.pfb><C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/type1/publi
+c/lm/lmss10.pfb><C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/type1/pub
+lic/lm/lmsy10.pfb><C:/Users/gaetane/AppData/Local/Programs/MiKTeX/fonts/type1/p
+ublic/lm/lmtt10.pfb>
+Output written on identity_bedrockV15_1.pdf (12 pages, 326231 bytes).
 PDF statistics:
- 263 PDF objects out of 1000 (max. 8388607)
- 72 named destinations out of 1000 (max. 500000)
- 31321 words of extra memory for PDF output out of 35830 (max. 10000000)
+ 316 PDF objects out of 1000 (max. 8388607)
+ 80 named destinations out of 1000 (max. 500000)
+ 33417 words of extra memory for PDF output out of 35830 (max. 10000000)
 

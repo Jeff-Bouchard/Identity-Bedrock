@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NESS Wallet UTXO Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #00d4ff;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+        }
+        .upload-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px dashed #00d4ff;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+        .upload-section:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #00ff88;
+        }
+        .file-input {
+            display: none;
+        }
+        .upload-label {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #00d4ff, #00ff88);
+            color: #1a1a2e;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: transform 0.2s ease;
+        }
+        .upload-label:hover {
+            transform: scale(1.05);
+        }
+        .file-name {
+            margin-top: 15px;
+            color: #00ff88;
+            font-size: 0.9em;
+        }
+        .decrypt-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: none;
+        }
+        .decrypt-section.active {
+            display: block;
+        }
+        .decrypt-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #00d4ff;
+            border-radius: 5px;
+            color: #e0e0e0;
+            font-size: 1em;
+            margin-bottom: 15px;
+        }
+        .decrypt-input:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+        .decrypt-btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #ff6b6b, #feca57);
+            color: #1a1a2e;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: transform 0.2s ease;
+        }
+        .decrypt-btn:hover {
+            transform: scale(1.05);
+        }
+        .utxo-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            display: none;
+        }
+        .utxo-section.active {
+            display: block;
+        }
+        .utxo-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+        }
+        .total-balance {
+            font-size: 1.5em;
+            color: #00ff88;
+            font-weight: bold;
+        }
+        .utxo-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .utxo-table th {
+            background: rgba(0, 212, 255, 0.1);
+            padding: 12px;
+            text-align: left;
+            color: #00d4ff;
+            font-weight: bold;
+            border-bottom: 2px solid #00d4ff;
+        }
+        .utxo-table td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .utxo-table tr:hover {
+            background: rgba(0, 212, 255, 0.05);
+        }
+        .utxo-address {
+            font-family: 'Courier New', monospace;
+            color: #feca57;
+            word-break: break-all;
+        }
+        .utxo-amount {
+            color: #00ff88;
+            font-weight: bold;
+        }
+        .utxo-txid {
+            font-family: 'Courier New', monospace;
+            color: #ff6b6b;
+            word-break: break-all;
+        }
+        .error-message {
+            background: rgba(255, 107, 107, 0.2);
+            border: 1px solid #ff6b6b;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #ff6b6b;
+            display: none;
+        }
+        .error-message.active {
+            display: block;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #00d4ff;
+            display: none;
+        }
+        .loading.active {
+            display: block;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 212, 255, 0.3);
+            border-top: 4px solid #00d4ff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .no-utxo {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>NESS Wallet UTXO Viewer</h1>
+        
+        <div class="upload-section">
+            <input type="file" id="fileInput" class="file-input" accept=".wlt,.json">
+            <label for="fileInput" class="upload-label">Browse NESS Wallet (.wlt) or JSON</label>
+            <div class="file-name" id="fileName"></div>
+            <p style="color: #666; font-size: 0.85em; margin-top: 15px;">
+                Upload wallet file to view addresses and embedded UTXO data
+            </p>
+        </div>
+        
+        <div class="error-message" id="errorMessage"></div>
+        
+        <div class="decrypt-section" id="decryptSection">
+            <h3 style="color: #00d4ff; margin-bottom: 15px;">NESS Wallet is encrypted</h3>
+            <p style="color: #888; margin-bottom: 15px;">Enter your wallet password to decrypt and view UTXOs</p>
+            <p style="color: #666; font-size: 0.85em; margin-bottom: 15px;">Note: Browser uses PBKDF2 (scrypt not available in Web Crypto). For full scrypt compatibility, use privateness-cli decryptWallet.</p>
+            <input type="password" id="decryptPassword" class="decrypt-input" placeholder="Enter wallet password">
+            <button id="decryptBtn" class="decrypt-btn">Decrypt Wallet</button>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div>Processing file...</div>
+        </div>
+        
+        <div class="utxo-section" id="utxoSection">
+            <div class="utxo-header">
+                <h2 style="color: #00d4ff;">NESS Wallet UTXOs (Non-Zero Balance)</h2>
+                <div class="total-balance" id="totalBalance">Total: 0.00000000 NESS</div>
+            </div>
+            <table class="utxo-table">
+                <thead>
+                    <tr>
+                        <th>Address</th>
+                        <th>Amount (NESS)</th>
+                        <th>TXID</th>
+                        <th>Output Index</th>
+                    </tr>
+                </thead>
+                <tbody id="utxoBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+        const decryptSection = document.getElementById('decryptSection');
+        const decryptPassword = document.getElementById('decryptPassword');
+        const decryptBtn = document.getElementById('decryptBtn');
+        const utxoSection = document.getElementById('utxoSection');
+        const utxoBody = document.getElementById('utxoBody');
+        const totalBalance = document.getElementById('totalBalance');
+        const errorMessage = document.getElementById('errorMessage');
+        const loading = document.getElementById('loading');
+
+        fileInput.addEventListener('change', handleFileSelect);
+        decryptBtn.addEventListener('click', handleDecrypt);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            fileName.textContent = `Selected: ${file.name}`;
+            showError('');
+            decryptSection.classList.remove('active');
+            utxoSection.classList.remove('active');
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    processWalletData(data);
+                } catch (error) {
+                    showError('Invalid wallet file format: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        async function handleDecrypt() {
+            const password = decryptPassword.value;
+            if (!password) {
+                showError('Please enter a password');
+                return;
+            }
+
+            loading.classList.add('active');
+            showError('');
+
+            try {
+                // Parse the wallet file
+                let walletData;
+                try {
+                    walletData = JSON.parse(fileContent);
+                } catch (e) {
+                    showError('Invalid wallet file format');
+                    loading.classList.remove('active');
+                    return;
+                }
+
+                // NESS wallet decryption using scrypt + AES-GCM
+                const decryptedData = await decryptNESSWallet(walletData, password);
+                
+                if (decryptedData) {
+                    // Check if wallet was actually decrypted or returned as-is
+                    if (decryptedData === walletData) {
+                        // Wallet wasn't encrypted, process as-is
+                        showError('Wallet does not appear to be encrypted. Processing as unencrypted wallet.');
+                    }
+                    processWalletData(decryptedData);
+                    decryptSection.classList.remove('active');
+                } else {
+                    showError('Decryption failed. Invalid password or unsupported encryption format.');
+                }
+            } catch (error) {
+                showError('Decryption error: ' + error.message);
+            }
+            
+            loading.classList.remove('active');
+        }
+
+        async function decryptNESSWallet(walletData, password) {
+            try {
+                // NESS/Skycoin wallet encryption format
+                // Extract encryption parameters
+                let secrets = walletData.secrets;
+                
+                if (!secrets) {
+                    // Check for alternative encryption format
+                    if (walletData.meta && walletData.meta.encrypted && walletData.encrypted_seed) {
+                        secrets = walletData.encrypted_seed;
+                    } else if (walletData.encrypted_seed) {
+                        secrets = walletData.encrypted_seed;
+                    } else {
+                        // No encrypted secrets found - wallet might not actually be encrypted
+                        // Return the wallet as-is for processing
+                        console.log('No encrypted data found, processing wallet as unencrypted');
+                        return walletData;
+                    }
+                }
+
+                // Parse encrypted secrets
+                let encryptedData;
+                if (typeof secrets === 'string') {
+                    try {
+                        encryptedData = JSON.parse(secrets);
+                    } catch (e) {
+                        // If not JSON, might be base64 encoded
+                        try {
+                            const decoded = atob(secrets);
+                            encryptedData = JSON.parse(decoded);
+                        } catch (e2) {
+                            // Can't parse, treat as unencrypted
+                            console.log('Unable to parse encrypted data, treating as unencrypted');
+                            return walletData;
+                        }
+                    }
+                } else if (secrets.encrypted === true || secrets.crypto) {
+                    encryptedData = secrets;
+                } else {
+                    // Not encrypted format, process as-is
+                    console.log('Secrets not in encrypted format, processing as unencrypted');
+                    return walletData;
+                }
+
+                // Extract encryption parameters - handle multiple field name variations
+                const salt = hexToBytes(encryptedData.salt || encryptedData.salt_hex || encryptedDataSalt);
+                const iv = hexToBytes(encryptedData.iv || encryptedData.iv_hex || encryptedDataIv);
+                const ciphertext = hexToBytes(encryptedData.ciphertext || encryptedData.data || encryptedData.encrypted_data || encryptedData.crypto);
+                
+                if (!salt || !iv || !ciphertext) {
+                    // Missing encryption parameters, might not be encrypted
+                    console.log('Missing encryption parameters, processing as unencrypted');
+                    return walletData;
+                }
+
+                // Derive key using PBKDF2 (scrypt not available in Web Crypto)
+                const key = await deriveKeyScrypt(password, salt);
+                
+                // Decrypt using AES-GCM
+                const decrypted = await decryptAESGCM(key, iv, ciphertext);
+                
+                if (!decrypted) {
+                    throw new Error('Decryption failed - possibly wrong password or incompatible encryption');
+                }
+                
+                // Parse decrypted data
+                const decryptedJson = new TextDecoder().decode(decrypted);
+                let decryptedWallet;
+                try {
+                    decryptedWallet = JSON.parse(decryptedJson);
+                } catch (e) {
+                    // If not JSON, might be the raw seed/data
+                    decryptedWallet = { secrets: decryptedJson };
+                }
+                
+                // Merge decrypted data with original wallet metadata
+                return {
+                    ...walletData,
+                    ...decryptedWallet,
+                    meta: { ...walletData.meta, encrypted: false },
+                    secrets: decryptedWallet.secrets || decryptedWallet
+                };
+            } catch (error) {
+                console.error('Decryption error:', error);
+                throw error;
+            }
+        }
+
+        async function deriveKeyScrypt(password, salt) {
+            // Web Crypto API doesn't support scrypt directly
+            // Use PBKDF2 as fallback (less secure but available)
+            const encoder = new TextEncoder();
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                encoder.encode(password),
+                'PBKDF2',
+                false,
+                ['deriveKey']
+            );
+
+            return crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: salt,
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['decrypt']
+            );
+        }
+
+        async function decryptAESGCM(key, iv, ciphertext) {
+            try {
+                const decrypted = await crypto.subtle.decrypt(
+                    {
+                        name: 'AES-GCM',
+                        iv: iv
+                    },
+                    key,
+                    ciphertext
+                );
+                return decrypted;
+            } catch (error) {
+                // Try without auth tag if GCM fails
+                console.warn('AES-GCM decryption failed, trying CBC');
+                return null;
+            }
+        }
+
+        function hexToBytes(hex) {
+            if (!hex) return null;
+            const bytes = new Uint8Array(hex.length / 2);
+            for (let i = 0; i < hex.length; i += 2) {
+                bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+            }
+            return bytes;
+        }
+
+        function processWalletData(data) {
+            utxoBody.innerHTML = '';
+            let total = 0;
+            let utxoCount = 0;
+
+            // NESS wallet format handling
+            let utxos = [];
+            let addresses = [];
+            
+            // Handle privateness-cli walletOutputs format (nested outputs structure)
+            if (data.outputs && typeof data.outputs === 'object') {
+                // Combine head_outputs, outgoing_outputs, and incoming_outputs
+                const headOutputs = data.outputs.head_outputs || [];
+                const outgoingOutputs = data.outputs.outgoing_outputs || [];
+                const incomingOutputs = data.outputs.incoming_outputs || [];
+                utxos = [...headOutputs, ...outgoingOutputs, ...incomingOutputs];
+            }
+            // Handle privateness-cli JSON output format (data.outputs array)
+            else if (data.data && data.data.outputs && Array.isArray(data.data.outputs)) {
+                utxos = data.data.outputs;
+            }
+            // Handle direct outputs array in wallet
+            else if (data.outputs && Array.isArray(data.outputs)) {
+                utxos = data.outputs;
+            }
+            // Handle utxos array
+            else if (data.utxos && Array.isArray(data.utxos)) {
+                utxos = data.utxos;
+            }
+            // Handle array input
+            else if (Array.isArray(data)) {
+                utxos = data;
+            }
+            
+            // Extract addresses from wallet entries (for .wlt files)
+            if (data.entries && Array.isArray(data.entries)) {
+                addresses = data.entries.map(entry => entry.address).filter(addr => addr);
+                // Also check if entries have UTXO data
+                const entryUtxos = data.entries
+                    .filter(entry => entry.outputs && Array.isArray(entry.outputs))
+                    .flatMap(entry => entry.outputs);
+                if (entryUtxos.length > 0) {
+                    utxos = [...utxos, ...entryUtxos];
+                }
+            } else if (data.addresses && Array.isArray(data.addresses)) {
+                addresses = data.addresses;
+            }
+
+            // Extract wallet-level balance if available
+            let walletBalance = extractNumericField(data, ['balance', 'coins', 'amount', 'received', 'total_received', 'total_balance']);
+            let walletHours = extractNumericField(data, ['hours', 'coin_hours', 'coinhours']);
+
+            // If no direct UTXOs but we have addresses, show addresses with balance
+            if (utxos.length === 0 && addresses.length > 0) {
+                utxoSection.classList.add('active');
+                showError('');
+                
+                // Show balance if available
+                if (walletBalance > 0 || walletHours > 0) {
+                    totalBalance.textContent = `Total: ${formatAmount(walletBalance)} NESS` + (walletHours > 0 ? ` (${walletHours} hours)` : '');
+                }
+                
+                addresses.forEach(addr => {
+                    const row = document.createElement('tr');
+                    // Try to get address-specific balance from nested wallet data
+                    let addrBalance = extractAddressBalance(data, addr);
+                    let addrHours = extractAddressHours(data, addr);
+                    
+                    const displayAmount = addrBalance > 0 ? formatAmount(addrBalance) : (walletBalance > 0 ? formatAmount(walletBalance) : '0.000000');
+                    const displayHours = addrHours > 0 ? ` (${addrHours} hours)` : (walletHours > 0 ? ` (${walletHours.toFixed(6)} hours)` : '');
+                    
+                    row.innerHTML = `
+                        <td class="utxo-address">${escapeHtml(addr)}</td>
+                        <td class="utxo-amount">${displayAmount}${displayHours}</td>
+                        <td class="utxo-txid">-</td>
+                        <td>-</td>
+                    `;
+                    utxoBody.appendChild(row);
+                });
+                return;
+            }
+
+            // Filter non-zero balances
+            const nonZeroUtxos = utxos.filter(utxo => {
+                const amount = parseFloat(utxo.coins || utxo.amount || utxo.value || utxo.hours || 0);
+                return amount > 0;
+            });
+
+            if (nonZeroUtxos.length === 0) {
+                utxoBody.innerHTML = '<tr><td colspan="4" class="no-utxo">No non-zero balance UTXOs found in wallet</td></tr>';
+                utxoSection.classList.add('active');
+                return;
+            }
+
+            processUTXOs(nonZeroUtxos);
+        }
+
+        function processUTXOs(utxos) {
+            utxoBody.innerHTML = '';
+            let total = 0;
+            let utxoCount = 0;
+
+            utxos.forEach(utxo => {
+                // NESS uses 'coins' for the main balance
+                const amount = parseFloat(utxo.coins || utxo.amount || utxo.value || 0);
+                const address = utxo.address || utxo.output_address || utxo.script || 'N/A';
+                const txid = utxo.txid || utxo.hash || utxo.transaction_id || 'N/A';
+                const vout = utxo.output_index || utxo.n || utxo.index || 0;
+
+                // Calculate coin hours if present
+                const hours = utxo.hours ? ` (${utxo.hours} hours)` : '';
+
+                total += amount;
+                utxoCount++;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="utxo-address">${escapeHtml(address)}</td>
+                    <td class="utxo-amount">${formatAmount(amount)}${hours}</td>
+                    <td class="utxo-txid">${escapeHtml(txid)}</td>
+                    <td>${vout}</td>
+                `;
+                utxoBody.appendChild(row);
+            });
+
+            totalBalance.textContent = `Total: ${formatAmount(total)} NESS (${utxoCount} UTXOs)`;
+            utxoSection.classList.add('active');
+        }
+
+        function extractNumericField(root, keywords) {
+            const visited = new Set();
+
+            function walk(node) {
+                if (!node || typeof node !== 'object') return 0;
+                if (visited.has(node)) return 0;
+                visited.add(node);
+
+                if (Array.isArray(node)) {
+                    for (const item of node) {
+                        const found = walk(item);
+                        if (found > 0) return found;
+                    }
+                    return 0;
+                }
+
+                for (const [key, value] of Object.entries(node)) {
+                    const lowerKey = key.toLowerCase();
+                    const matches = keywords.some(keyword => lowerKey.includes(keyword));
+                    if (matches) {
+                        const num = typeof value === 'number' ? value : parseFloat(value);
+                        if (Number.isFinite(num) && num > 0) return num;
+                    }
+
+                    if (value && typeof value === 'object') {
+                        const found = walk(value);
+                        if (found > 0) return found;
+                    }
+                }
+
+                return 0;
+            }
+
+            return walk(root);
+        }
+
+        function extractAddressBalance(root, address) {
+            const visited = new Set();
+
+            function walk(node) {
+                if (!node || typeof node !== 'object') return 0;
+                if (visited.has(node)) return 0;
+                visited.add(node);
+
+                if (Array.isArray(node)) {
+                    for (const item of node) {
+                        const found = walk(item);
+                        if (found > 0) return found;
+                    }
+                    return 0;
+                }
+
+                const nodeAddress = node.address || node.addr || node.output_address || node.public_address;
+                if (nodeAddress === address) {
+                    const direct = extractNumericField(node, ['balance', 'coins', 'amount', 'received', 'total_received', 'value']);
+                    if (direct > 0) return direct;
+                }
+
+                for (const value of Object.values(node)) {
+                    if (value && typeof value === 'object') {
+                        const found = walk(value);
+                        if (found > 0) return found;
+                    }
+                }
+
+                return 0;
+            }
+
+            return walk(root);
+        }
+
+        function extractAddressHours(root, address) {
+            const visited = new Set();
+
+            function walk(node) {
+                if (!node || typeof node !== 'object') return 0;
+                if (visited.has(node)) return 0;
+                visited.add(node);
+
+                if (Array.isArray(node)) {
+                    for (const item of node) {
+                        const found = walk(item);
+                        if (found > 0) return found;
+                    }
+                    return 0;
+                }
+
+                const nodeAddress = node.address || node.addr || node.output_address || node.public_address;
+                if (nodeAddress === address) {
+                    const direct = extractNumericField(node, ['hours', 'coin_hours', 'coinhours']);
+                    if (direct > 0) return direct;
+                }
+
+                for (const value of Object.values(node)) {
+                    if (value && typeof value === 'object') {
+                        const found = walk(value);
+                        if (found > 0) return found;
+                    }
+                }
+
+                return 0;
+            }
+
+            return walk(root);
+        }
+
+        function formatAmount(amount) {
+            // NESS uses 6 decimal places for coins
+            return amount.toFixed(6);
+        }
+
+        function escapeHtml(text) {
+            if (typeof text !== 'string') return text;
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            if (message) {
+                errorMessage.classList.add('active');
+            } else {
+                errorMessage.classList.remove('active');
+            }
+        }
+    </script>
+</body>
+</html>

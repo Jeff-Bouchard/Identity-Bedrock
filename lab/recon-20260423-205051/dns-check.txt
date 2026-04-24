@@ -1,0 +1,9 @@
+;; communications error to 127.0.0.1#1053: connection refused
+;; communications error to 127.0.0.1#1053: connection refused
+;; communications error to 127.0.0.1#1053: connection refused
+
+; <<>> DiG 9.18.6-2-Debian <<>> @127.0.0.1 example.com -p 1053
+; (1 server found)
+;; global options: +cmd
+;; no servers could be reached
+
