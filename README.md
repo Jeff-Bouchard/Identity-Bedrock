@@ -1,5 +1,5 @@
 <<<<<<< HEAD
-# Identity Bedrock & EIP-4361
+# Identity Bedrock the capture of EIP-4361
 
 This repository collects the research notes, specifications, tools, and reference code around **Identity Bedrock** – an identity layer that takes Rompel’s 1990 theorem on one-way functions and signatures as its *minimal cryptographic foundation* – together with practical infrastructure used by the **Privateness Network**.
 
